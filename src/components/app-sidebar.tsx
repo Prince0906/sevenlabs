@@ -32,12 +32,10 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarHeader>
         <div className="flex items-center gap-2 px-2 py-1">
-          <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+          <div className="bg-primary text-primary-foreground flex size-8 items-center justify-center rounded-lg">
             <Mic className="size-4" />
           </div>
-          <span className="text-base font-semibold tracking-tight">
-            SevenLabs
-          </span>
+          <span className="text-base font-semibold tracking-tight">SevenLabs</span>
         </div>
       </SidebarHeader>
       <SidebarSeparator />
@@ -49,11 +47,7 @@ export function AppSidebar() {
               {navItems.map((item) => (
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton
-                    isActive={
-                      item.href === "/"
-                        ? pathname === "/"
-                        : pathname.startsWith(item.href)
-                    }
+                    isActive={item.href === "/" ? pathname === "/" : pathname.startsWith(item.href)}
                     tooltip={item.title}
                     render={<Link href={item.href} />}
                   >
@@ -74,8 +68,7 @@ export function AppSidebar() {
             appearance={{
               elements: {
                 rootBox: "w-full",
-                organizationSwitcherTrigger:
-                  "w-full justify-start rounded-md px-2 py-1.5 text-sm",
+                organizationSwitcherTrigger: "w-full justify-start rounded-md px-2 py-1.5 text-sm",
               },
             }}
           />
@@ -85,7 +78,7 @@ export function AppSidebar() {
                 elements: { avatarBox: "size-7" },
               }}
             />
-            <span className="text-sm text-muted-foreground">Account</span>
+            <span className="text-muted-foreground text-sm">Account</span>
           </div>
         </div>
       </SidebarFooter>

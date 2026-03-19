@@ -28,35 +28,18 @@ const mockVoices: VoiceOption[] = [
 
 describe("VoiceSelector", () => {
   it("renders without crashing", () => {
-    render(
-      <VoiceSelector
-        voices={mockVoices}
-        value=""
-        onValueChange={vi.fn()}
-      />
-    );
+    render(<VoiceSelector voices={mockVoices} value="" onValueChange={vi.fn()} />);
     expect(screen.getByText("Select a voice...")).toBeInTheDocument();
   });
 
   it("renders with empty voices array", () => {
-    render(
-      <VoiceSelector
-        voices={[]}
-        value=""
-        onValueChange={vi.fn()}
-      />
-    );
+    render(<VoiceSelector voices={[]} value="" onValueChange={vi.fn()} />);
     expect(screen.getByText("Select a voice...")).toBeInTheDocument();
   });
 
   it("accepts disabled prop", () => {
     const { container } = render(
-      <VoiceSelector
-        voices={mockVoices}
-        value=""
-        onValueChange={vi.fn()}
-        disabled
-      />
+      <VoiceSelector voices={mockVoices} value="" onValueChange={vi.fn()} disabled />
     );
     const trigger = container.querySelector("[data-slot='select-trigger']");
     expect(trigger).toBeTruthy();

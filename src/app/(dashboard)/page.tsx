@@ -12,10 +12,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Label } from "@/components/ui/label";
 
 import { VoiceSelector, type VoiceOption } from "@/components/voice-selector";
-import {
-  GenerationSettings,
-  type GenerationParams,
-} from "@/components/generation-settings";
+import { GenerationSettings, type GenerationParams } from "@/components/generation-settings";
 import { AudioPlayer } from "@/components/audio-player";
 
 const DEFAULT_PARAMS: GenerationParams = {
@@ -118,27 +115,21 @@ function SpeechSynthesisContent() {
   return (
     <div className="p-6">
       <div className="mb-6">
-        <h1 className="text-xl font-semibold tracking-tight">
-          Speech Synthesis
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Convert text to natural-sounding speech
-        </p>
+        <h1 className="text-xl font-semibold tracking-tight">Speech Synthesis</h1>
+        <p className="text-muted-foreground text-sm">Convert text to natural-sounding speech</p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
         <div className="space-y-4">
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">
-                Text to Speech
-              </CardTitle>
+              <CardTitle className="text-sm font-medium">Text to Speech</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label className="text-sm">Voice</Label>
                 {loadingVoices ? (
-                  <div className="flex h-8 items-center gap-2 text-sm text-muted-foreground">
+                  <div className="text-muted-foreground flex h-8 items-center gap-2 text-sm">
                     <Spinner className="size-3.5" />
                     Loading voices...
                   </div>
@@ -154,9 +145,7 @@ function SpeechSynthesisContent() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label className="text-sm">Text</Label>
-                  <span className="text-xs text-muted-foreground">
-                    {charCount} characters
-                  </span>
+                  <span className="text-muted-foreground text-xs">{charCount} characters</span>
                 </div>
                 <Textarea
                   placeholder="Start typing or paste your text here..."
@@ -166,12 +155,7 @@ function SpeechSynthesisContent() {
                 />
               </div>
 
-              <Button
-                className="w-full"
-                size="lg"
-                onClick={handleGenerate}
-                disabled={!canGenerate}
-              >
+              <Button className="w-full" size="lg" onClick={handleGenerate} disabled={!canGenerate}>
                 {isGenerating ? (
                   <>
                     <Spinner className="size-3.5" />

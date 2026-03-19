@@ -35,7 +35,7 @@ function SettingRow({
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <Label className="text-sm">{label}</Label>
-        <span className="font-mono text-xs text-muted-foreground">
+        <span className="text-muted-foreground font-mono text-xs">
           {Number.isInteger(step) ? value : value.toFixed(2)}
         </span>
       </div>
@@ -53,10 +53,7 @@ function SettingRow({
   );
 }
 
-export function GenerationSettings({
-  params,
-  onChange,
-}: GenerationSettingsProps) {
+export function GenerationSettings({ params, onChange }: GenerationSettingsProps) {
   const update = (key: keyof GenerationParams, value: number) => {
     onChange({ ...params, [key]: value });
   };

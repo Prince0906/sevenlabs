@@ -138,9 +138,7 @@ describe("POST /api/generate", () => {
       voice: { id: "v1", name: "Rachel" },
     });
 
-    const res = await POST(
-      makeRequest({ text: "Hello", voiceId: "v1" })
-    );
+    const res = await POST(makeRequest({ text: "Hello", voiceId: "v1" }));
 
     expect(res.status).toBe(200);
     expect(mockGenerationCreate).toHaveBeenCalledWith(

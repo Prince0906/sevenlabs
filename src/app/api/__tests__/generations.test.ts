@@ -70,9 +70,7 @@ describe("GET /api/generations", () => {
   it("maps r2ObjectKey to audioUrl", async () => {
     mockAuth.mockResolvedValue({ orgId: "org_123" } as never);
 
-    mockFindMany.mockResolvedValue([
-      { id: "g1", r2ObjectKey: "gen_test.wav" },
-    ]);
+    mockFindMany.mockResolvedValue([{ id: "g1", r2ObjectKey: "gen_test.wav" }]);
     mockCount.mockResolvedValue(1);
 
     const req = new Request("http://localhost/api/generations?page=1");

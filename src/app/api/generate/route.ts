@@ -10,14 +10,7 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json();
-  const {
-    text,
-    voiceId,
-    temperature = 0.7,
-    topP = 0.9,
-    topK = 50,
-    repetitionPenalty = 1.0,
-  } = body;
+  const { text, voiceId, temperature = 0.7, topP = 0.9, topK = 50, repetitionPenalty = 1.0 } = body;
 
   if (!text || typeof text !== "string") {
     return NextResponse.json({ error: "Text is required" }, { status: 400 });

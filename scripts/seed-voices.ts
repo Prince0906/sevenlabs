@@ -11,7 +11,8 @@ const prisma = new PrismaClient({ adapter });
 const systemVoices = [
   {
     name: "Rachel",
-    description: "A warm and friendly voice, perfect for everyday conversations and customer interactions.",
+    description:
+      "A warm and friendly voice, perfect for everyday conversations and customer interactions.",
     category: "CONVERSATIONAL" as const,
     language: "en-US",
   },
@@ -29,7 +30,8 @@ const systemVoices = [
   },
   {
     name: "Marcus",
-    description: "A professional and polished voice for corporate presentations and business content.",
+    description:
+      "A professional and polished voice for corporate presentations and business content.",
     category: "CORPORATE" as const,
     language: "en-US",
   },

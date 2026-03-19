@@ -10,9 +10,7 @@ test.describe("Authentication", () => {
   test("sign-in page renders Clerk form", async ({ page }) => {
     await page.goto("/sign-in");
 
-    await expect(
-      page.getByRole("heading", { name: /sign in/i })
-    ).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole("heading", { name: /sign in/i })).toBeVisible({ timeout: 10000 });
   });
 
   test("sign-up page is accessible", async ({ page }) => {

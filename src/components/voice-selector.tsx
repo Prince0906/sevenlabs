@@ -33,12 +33,7 @@ function formatCategory(category: string) {
     .replace(/^\w/, (c) => c.toUpperCase());
 }
 
-export function VoiceSelector({
-  voices,
-  value,
-  onValueChange,
-  disabled,
-}: VoiceSelectorProps) {
+export function VoiceSelector({ voices, value, onValueChange, disabled }: VoiceSelectorProps) {
   const systemVoices = voices.filter((v) => v.variant === "SYSTEM");
   const customVoices = voices.filter((v) => v.variant === "CUSTOM");
 
