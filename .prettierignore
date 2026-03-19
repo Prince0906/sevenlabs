@@ -1,0 +1,6 @@
+.next
+node_modules
+src/generated
+public/audio
+pnpm-lock.yaml
+package-lock.json
