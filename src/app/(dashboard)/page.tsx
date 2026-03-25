@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { Mic } from "lucide-react";
@@ -32,20 +32,6 @@ type GenerationResult = {
 };
 
 export default function SpeechSynthesisPage() {
-  return (
-    <Suspense
-      fallback={
-        <div className="flex items-center justify-center p-12">
-          <Spinner className="size-6" />
-        </div>
-      }
-    >
-      <SpeechSynthesisContent />
-    </Suspense>
-  );
-}
-
-function SpeechSynthesisContent() {
   const searchParams = useSearchParams();
   const [voices, setVoices] = useState<VoiceOption[]>([]);
   const [selectedVoice, setSelectedVoice] = useState("");
