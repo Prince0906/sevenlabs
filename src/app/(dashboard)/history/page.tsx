@@ -72,7 +72,11 @@ function InlinePlayer({ audioUrl }: { audioUrl: string }) {
     <>
       <audio ref={audioRef} src={audioUrl} preload="none" />
       <Button variant="ghost" size="icon-xs" onClick={toggle}>
-        {playing ? <Pause className="size-3" /> : <Play className="size-3" />}
+        {playing ? (
+          <Pause className="size-3" />
+        ) : (
+          <Play className="size-3" />
+        )}
       </Button>
     </>
   );
@@ -115,8 +119,12 @@ export default function HistoryPage() {
   return (
     <div className="p-6">
       <div className="mb-6">
-        <h1 className="text-xl font-semibold tracking-tight">Generation History</h1>
-        <p className="text-muted-foreground text-sm">View your past text-to-speech generations</p>
+        <h1 className="text-xl font-semibold tracking-tight">
+          Generation History
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          View your past text-to-speech generations
+        </p>
       </div>
 
       {generations.length === 0 ? (
@@ -126,7 +134,9 @@ export default function HistoryPage() {
               <Clock />
             </EmptyMedia>
             <EmptyTitle>No generations yet</EmptyTitle>
-            <EmptyDescription>Generate your first speech to see it here.</EmptyDescription>
+            <EmptyDescription>
+              Generate your first speech to see it here.
+            </EmptyDescription>
           </EmptyHeader>
         </Empty>
       ) : (
@@ -146,7 +156,9 @@ export default function HistoryPage() {
                 {generations.map((gen) => (
                   <TableRow key={gen.id}>
                     <TableCell className="max-w-[300px]">
-                      <span className="line-clamp-2 text-sm">{gen.text}</span>
+                      <span className="line-clamp-2 text-sm">
+                        {gen.text}
+                      </span>
                     </TableCell>
                     <TableCell>
                       <Badge variant="secondary" className="text-xs font-normal">
@@ -155,16 +167,16 @@ export default function HistoryPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1">
-                        <span className="text-muted-foreground font-mono text-xs">
+                        <span className="font-mono text-xs text-muted-foreground">
                           T:{gen.temperature}
                         </span>
-                        <span className="text-muted-foreground font-mono text-xs">
+                        <span className="font-mono text-xs text-muted-foreground">
                           P:{gen.topP}
                         </span>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <span className="text-muted-foreground text-xs">
+                      <span className="text-xs text-muted-foreground">
                         {formatDistanceToNow(new Date(gen.createdAt), {
                           addSuffix: true,
                         })}
@@ -174,7 +186,9 @@ export default function HistoryPage() {
                       {gen.audioUrl ? (
                         <InlinePlayer audioUrl={gen.audioUrl} />
                       ) : (
-                        <span className="text-muted-foreground text-xs">--</span>
+                        <span className="text-xs text-muted-foreground">
+                          --
+                        </span>
                       )}
                     </TableCell>
                   </TableRow>
@@ -195,17 +209,19 @@ export default function HistoryPage() {
                       />
                     </PaginationItem>
                   )}
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                    <PaginationItem key={p}>
-                      <PaginationLink
-                        isActive={p === page}
-                        onClick={() => setPage(p)}
-                        className="cursor-pointer"
-                      >
-                        {p}
-                      </PaginationLink>
-                    </PaginationItem>
-                  ))}
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                    (p) => (
+                      <PaginationItem key={p}>
+                        <PaginationLink
+                          isActive={p === page}
+                          onClick={() => setPage(p)}
+                          className="cursor-pointer"
+                        >
+                          {p}
+                        </PaginationLink>
+                      </PaginationItem>
+                    )
+                  )}
                   {page < totalPages && (
                     <PaginationItem>
                       <PaginationNext

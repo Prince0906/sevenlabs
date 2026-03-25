@@ -73,23 +73,37 @@ export function AudioPlayer({ audioUrl, voiceName, text }: AudioPlayerProps) {
           <Badge variant="secondary" className="text-xs">
             {voiceName}
           </Badge>
-          <span className="text-muted-foreground line-clamp-1 text-xs">{text}</span>
+          <span className="line-clamp-1 text-xs text-muted-foreground">
+            {text}
+          </span>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline" size="icon-sm" onClick={togglePlay}>
-            {isPlaying ? <Pause className="size-3.5" /> : <Play className="size-3.5" />}
+          <Button
+            variant="outline"
+            size="icon-sm"
+            onClick={togglePlay}
+          >
+            {isPlaying ? (
+              <Pause className="size-3.5" />
+            ) : (
+              <Play className="size-3.5" />
+            )}
           </Button>
-          <Button variant="ghost" size="icon-sm" onClick={restart}>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={restart}
+          >
             <RotateCcw className="size-3.5" />
           </Button>
           <div className="flex flex-1 items-center gap-2">
-            <div className="bg-muted relative h-1.5 flex-1 overflow-hidden rounded-full">
+            <div className="relative h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
               <div
-                className="bg-primary absolute inset-y-0 left-0 transition-all"
+                className="absolute inset-y-0 left-0 bg-primary transition-all"
                 style={{ width: `${progress}%` }}
               />
             </div>
-            <span className="text-muted-foreground font-mono text-xs">
+            <span className="font-mono text-xs text-muted-foreground">
               {formatTime(currentTime)} / {formatTime(duration)}
             </span>
           </div>

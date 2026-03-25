@@ -4,7 +4,9 @@ test.describe("Navigation", () => {
   test("sign-in page has SevenLabs branding", async ({ page }) => {
     await page.goto("/sign-in");
 
-    await expect(page.getByRole("heading", { name: /sevenlabs/i })).toBeVisible({ timeout: 10000 });
+    await expect(
+      page.getByRole("heading", { name: /sevenlabs/i })
+    ).toBeVisible({ timeout: 10000 });
   });
 
   test("org-selection page is accessible", async ({ page }) => {

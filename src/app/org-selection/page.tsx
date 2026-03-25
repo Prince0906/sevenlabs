@@ -2,7 +2,7 @@ import { OrganizationList } from "@clerk/nextjs";
 
 export default function OrgSelectionPage() {
   return (
-    <div className="bg-background flex min-h-screen items-center justify-center">
+    <div className="flex min-h-screen items-center justify-center bg-background">
       <OrganizationList
         hidePersonal
         afterCreateOrganizationUrl="/"
@@ -16,4 +16,4 @@ export default function OrgSelectionPage() {
       />
     </div>
   );
-}
+};

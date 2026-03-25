@@ -6,7 +6,13 @@ import { toast } from "sonner";
 import { Plus, AudioLines } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
@@ -68,7 +74,13 @@ function formatCategory(category: string) {
     .replace(/^\w/, (c) => c.toUpperCase());
 }
 
-function VoiceCard({ voice, onUse }: { voice: Voice; onUse: (id: string) => void }) {
+function VoiceCard({
+  voice,
+  onUse,
+}: {
+  voice: Voice;
+  onUse: (id: string) => void;
+}) {
   return (
     <Card size="sm">
       <CardHeader>
@@ -82,7 +94,9 @@ function VoiceCard({ voice, onUse }: { voice: Voice; onUse: (id: string) => void
           </Badge>
         </CardTitle>
         {voice.description && (
-          <CardDescription className="line-clamp-2">{voice.description}</CardDescription>
+          <CardDescription className="line-clamp-2">
+            {voice.description}
+          </CardDescription>
         )}
       </CardHeader>
       <CardContent>
@@ -91,7 +105,9 @@ function VoiceCard({ voice, onUse }: { voice: Voice; onUse: (id: string) => void
             <Badge variant="outline" className="text-[10px] font-normal">
               {formatCategory(voice.category)}
             </Badge>
-            <span className="text-muted-foreground text-xs">{voice.language}</span>
+            <span className="text-xs text-muted-foreground">
+              {voice.language}
+            </span>
           </div>
           <Button variant="outline" size="sm" onClick={() => onUse(voice.id)}>
             Use Voice
@@ -182,8 +198,12 @@ export default function VoicesPage() {
     <div className="p-6">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight">Voice Library</h1>
-          <p className="text-muted-foreground text-sm">Browse and manage your voices</p>
+          <h1 className="text-xl font-semibold tracking-tight">
+            Voice Library
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Browse and manage your voices
+          </p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger
@@ -197,7 +217,9 @@ export default function VoicesPage() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Create Voice</DialogTitle>
-              <DialogDescription>Add a new custom voice to your library.</DialogDescription>
+              <DialogDescription>
+                Add a new custom voice to your library.
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div className="space-y-2">
@@ -261,9 +283,15 @@ export default function VoicesPage() {
 
       <Tabs defaultValue="all">
         <TabsList>
-          <TabsTrigger value="all">All Voices ({voices.length})</TabsTrigger>
-          <TabsTrigger value="system">System ({systemVoices.length})</TabsTrigger>
-          <TabsTrigger value="custom">Custom ({customVoices.length})</TabsTrigger>
+          <TabsTrigger value="all">
+            All Voices ({voices.length})
+          </TabsTrigger>
+          <TabsTrigger value="system">
+            System ({systemVoices.length})
+          </TabsTrigger>
+          <TabsTrigger value="custom">
+            Custom ({customVoices.length})
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="all">
@@ -282,7 +310,11 @@ export default function VoicesPage() {
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {voices.map((voice) => (
-                <VoiceCard key={voice.id} voice={voice} onUse={handleUseVoice} />
+                <VoiceCard
+                  key={voice.id}
+                  voice={voice}
+                  onUse={handleUseVoice}
+                />
               ))}
             </div>
           )}
@@ -296,13 +328,19 @@ export default function VoicesPage() {
                   <AudioLines />
                 </EmptyMedia>
                 <EmptyTitle>No system voices</EmptyTitle>
-                <EmptyDescription>Run the seed script to add system voices.</EmptyDescription>
+                <EmptyDescription>
+                  Run the seed script to add system voices.
+                </EmptyDescription>
               </EmptyHeader>
             </Empty>
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {systemVoices.map((voice) => (
-                <VoiceCard key={voice.id} voice={voice} onUse={handleUseVoice} />
+                <VoiceCard
+                  key={voice.id}
+                  voice={voice}
+                  onUse={handleUseVoice}
+                />
               ))}
             </div>
           )}
@@ -316,13 +354,19 @@ export default function VoicesPage() {
                   <AudioLines />
                 </EmptyMedia>
                 <EmptyTitle>No custom voices</EmptyTitle>
-                <EmptyDescription>Create your first custom voice to get started.</EmptyDescription>
+                <EmptyDescription>
+                  Create your first custom voice to get started.
+                </EmptyDescription>
               </EmptyHeader>
             </Empty>
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {customVoices.map((voice) => (
-                <VoiceCard key={voice.id} voice={voice} onUse={handleUseVoice} />
+                <VoiceCard
+                  key={voice.id}
+                  voice={voice}
+                  onUse={handleUseVoice}
+                />
               ))}
             </div>
           )}

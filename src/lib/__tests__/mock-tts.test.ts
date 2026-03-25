@@ -68,7 +68,10 @@ describe("generateMockAudio", () => {
     const result1 = await generateMockAudio("Same text");
     const result2 = await generateMockAudio("Same text");
 
-    createdFiles.push(join(audioDir, result1.filename), join(audioDir, result2.filename));
+    createdFiles.push(
+      join(audioDir, result1.filename),
+      join(audioDir, result2.filename)
+    );
 
     expect(result1.filename).not.toBe(result2.filename);
   });
