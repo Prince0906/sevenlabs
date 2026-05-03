@@ -2,8 +2,7 @@
 
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/db";
-import { uploadReferenceVoice } from "@/lib/chatterbox";
-import { uploadAudio, deleteObject } from "@/lib/r2";
+import { uploadAudio, deleteObject, getSignedUrl } from "@/lib/s3";
 import type { VoiceCategory } from "@/generated/prisma/client";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -126,7 +125,8 @@ export async function getVoice(id: string): Promise<VoiceItem | null> {
 
 /**
  * Create a custom cloned voice.
- * Uploads reference audio to Chatterbox for cloning, stores in R2, saves to DB.
+ * Uploads reference audio to S3 and saves to DB.
+ * The reference audio URL is used during TTS generation for voice cloning.
  */
 export async function createCustomVoice(
   formData: FormData
@@ -156,13 +156,13 @@ export async function createCustomVoice(
       return { success: false, error: "Audio file must be under 10MB" };
     }
 
-    // Upload reference audio to Chatterbox for voice cloning
-    const chatterboxVoiceId = await uploadReferenceVoice(audioFile, name);
-
-    // Also store the reference audio in R2 for backup
-    const r2Key = `voices/${orgId}/${Date.now()}-${name.toLowerCase().replace(/\s+/g, "-")}.wav`;
+    // Store the reference audio in S3
+    const s3Key = `voices/${orgId}/${Date.now()}-${name.toLowerCase().replace(/\s+/g, "-")}.wav`;
     const audioArrayBuffer = await audioFile.arrayBuffer();
-    await uploadAudio(r2Key, Buffer.from(audioArrayBuffer), audioFile.type || "audio/wav");
+    await uploadAudio(s3Key, Buffer.from(audioArrayBuffer), audioFile.type || "audio/wav");
+
+    // Generate a long-lived signed URL for Replicate to access during TTS
+    const referenceUrl = await getSignedUrl(s3Key, 86400 * 365); // 1 year
 
     // Save to database
     const voice = await prisma.voice.create({
@@ -173,8 +173,8 @@ export async function createCustomVoice(
         category,
         language,
         variant: "CUSTOM",
-        r2ObjectKey: r2Key,
-        chatterboxVoiceId,
+        r2ObjectKey: s3Key,
+        chatterboxVoiceId: referenceUrl,
         previewText:
           language === "hi"
             ? "नमस्ते, मैं आपकी क्लोन की गई आवाज़ हूँ।"
@@ -213,7 +213,7 @@ export async function deleteCustomVoice(
       return { success: false, error: "Voice not found or cannot be deleted" };
     }
 
-    // Delete R2 object if exists
+    // Delete S3 object if exists
     if (voice.r2ObjectKey) {
       await deleteObject(voice.r2ObjectKey).catch(console.error);
     }

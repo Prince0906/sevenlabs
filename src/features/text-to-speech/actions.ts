@@ -3,7 +3,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/db";
 import { synthesizeSpeech } from "@/lib/chatterbox";
-import { uploadAudio, getSignedUrl } from "@/lib/r2";
+import { uploadAudio, getSignedUrl } from "@/lib/s3";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -68,24 +68,27 @@ export async function generateSpeech(
       return { success: false, error: "Text exceeds 5000 character limit" };
     }
 
-    // Look up the voice to get the chatterbox voice ID
+    // Look up the voice to get reference audio URL (for custom cloned voices)
     const voice = await prisma.voice.findUnique({
       where: { id: input.voiceId },
-      select: { chatterboxVoiceId: true, name: true },
+      select: { chatterboxVoiceId: true, name: true, language: true },
     });
 
-    const chatterboxVoice = voice?.chatterboxVoiceId ?? input.voiceName;
-
-    // Call Chatterbox TTS API
+    // Call Chatterbox TTS via Replicate
     const audioBuffer = await synthesizeSpeech({
       text: input.text,
-      voice: chatterboxVoice,
-      temperature: input.temperature ?? 0.7,
+      language: input.language ?? voice?.language ?? "en-US",
+      temperature: input.temperature ?? 0.8,
+      exaggeration: 0.5,
+      // If voice has a reference audio URL (custom cloned voice), pass it
+      referenceAudioUrl: voice?.chatterboxVoiceId?.startsWith("http")
+        ? voice.chatterboxVoiceId
+        : undefined,
     });
 
-    // Upload to R2
-    const r2Key = `generations/${orgId}/${Date.now()}.wav`;
-    await uploadAudio(r2Key, Buffer.from(audioBuffer), "audio/wav");
+    // Upload to S3
+    const s3Key = `generations/${orgId}/${Date.now()}.wav`;
+    await uploadAudio(s3Key, Buffer.from(audioBuffer), "audio/wav");
 
     // Save generation record
     const generation = await prisma.generation.create({
@@ -95,7 +98,7 @@ export async function generateSpeech(
         text: input.text,
         voiceName: input.voiceName,
         language: input.language ?? "en-US",
-        r2ObjectKey: r2Key,
+        r2ObjectKey: s3Key,
         temperature: input.temperature ?? 0.7,
         topP: input.topP ?? 0.9,
         topK: input.topK ?? 50,
@@ -104,7 +107,7 @@ export async function generateSpeech(
     });
 
     // Get signed URL for immediate playback
-    const audioUrl = await getSignedUrl(r2Key);
+    const audioUrl = await getSignedUrl(s3Key);
 
     return {
       success: true,

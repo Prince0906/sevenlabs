@@ -1,6 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/db";
-import { getSignedUrl } from "@/lib/r2";
+import { getSignedUrl } from "@/lib/s3";
 import { NextResponse } from "next/server";
 
 /**
