@@ -1,120 +1,91 @@
+import Replicate from "replicate";
 import { env } from "./env";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export interface SpeechParams {
   text: string;
-  voice: string;
+  language?: string;
   temperature?: number;
-  speed?: number;
   exaggeration?: number;
+  referenceAudioUrl?: string;
 }
 
-export interface ChatterboxVoice {
-  voice_id: string;
-  name: string;
+// ─── Replicate Client ────────────────────────────────────────────────────────
+
+const replicate = new Replicate({
+  auth: env.REPLICATE_API_TOKEN,
+});
+
+// Chatterbox Multilingual — supports 23 languages including Hindi
+const MODEL_ID =
+  "resemble-ai/chatterbox-multilingual:9cfba4c265e685f840612be835424f8c33bdee685d7466ece7684b0d9d4c0b1c";
+
+// Map our language codes to Chatterbox language IDs
+function getLanguageId(lang?: string): string {
+  if (!lang) return "en";
+  if (lang.startsWith("hi")) return "hi";
+  if (lang.startsWith("en")) return "en";
+  return lang.split("-")[0]; // "en-US" → "en"
 }
 
-// ─── Helper ──────────────────────────────────────────────────────────────────
-
-function getHeaders(): Record<string, string> {
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
-
-  if (env.CHATTERBOX_API_KEY) {
-    headers["Authorization"] = `Bearer ${env.CHATTERBOX_API_KEY}`;
-  }
-
-  return headers;
-}
-
-// ─── API Client ──────────────────────────────────────────────────────────────
+// ─── API Functions ───────────────────────────────────────────────────────────
 
 /**
- * Generate speech audio from text using the Chatterbox TTS API.
+ * Generate speech audio from text using Chatterbox Multilingual via Replicate.
  * Returns raw audio data as an ArrayBuffer.
  */
 export async function synthesizeSpeech(
   params: SpeechParams
 ): Promise<ArrayBuffer> {
-  const response = await fetch(`${env.CHATTERBOX_API_URL}/v1/audio/speech`, {
-    method: "POST",
-    headers: getHeaders(),
-    body: JSON.stringify({
-      model: "chatterbox",
-      input: params.text,
-      voice: params.voice,
-      response_format: "wav",
-      temperature: params.temperature ?? 0.7,
-      speed: params.speed ?? 1.0,
-    }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text().catch(() => "Unknown error");
-    throw new Error(
-      `Chatterbox API error (${response.status}): ${errorText}`
-    );
-  }
-
-  return response.arrayBuffer();
-}
-
-/**
- * Upload a reference audio clip for voice cloning.
- * Returns the voice name/ID assigned by Chatterbox.
- */
-export async function uploadReferenceVoice(
-  audioFile: File | Blob,
-  voiceName: string
-): Promise<string> {
-  const formData = new FormData();
-  formData.append("file", audioFile);
-  formData.append("name", voiceName);
-
-  const headers: Record<string, string> = {};
-  if (env.CHATTERBOX_API_KEY) {
-    headers["Authorization"] = `Bearer ${env.CHATTERBOX_API_KEY}`;
-  }
-
-  const response = await fetch(
-    `${env.CHATTERBOX_API_URL}/upload_reference`,
-    {
-      method: "POST",
-      headers,
-      body: formData,
-    }
-  );
-
-  if (!response.ok) {
-    const errorText = await response.text().catch(() => "Unknown error");
-    throw new Error(
-      `Voice upload error (${response.status}): ${errorText}`
-    );
-  }
-
-  const data = await response.json();
-  return data.voice_id ?? data.name ?? voiceName;
-}
-
-/**
- * List available voices from the Chatterbox API.
- */
-export async function listChatterboxVoices(): Promise<ChatterboxVoice[]> {
   try {
-    const response = await fetch(`${env.CHATTERBOX_API_URL}/v1/audio/voices`, {
-      method: "GET",
-      headers: getHeaders(),
-    });
+    const input: Record<string, unknown> = {
+      text: params.text,
+      language: getLanguageId(params.language),
+    };
 
-    if (!response.ok) {
-      return [];
+    // Optional: reference audio for voice cloning
+    if (params.referenceAudioUrl) {
+      input.reference_audio = params.referenceAudioUrl;
     }
 
-    const data = await response.json();
-    return data.voices ?? [];
-  } catch {
-    return [];
+    console.log("[synthesizeSpeech] Calling Replicate with language:", input.language);
+
+    const output = await replicate.run(MODEL_ID, { input });
+
+    // output is a FileOutput — use .url() to get the URL
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const fileOutput = output as any;
+
+    let audioUrl: string;
+    if (typeof fileOutput?.url === "function") {
+      audioUrl = fileOutput.url();
+    } else if (typeof fileOutput === "string") {
+      audioUrl = fileOutput;
+    } else if (fileOutput instanceof URL) {
+      audioUrl = fileOutput.toString();
+    } else {
+      // Try to read as buffer directly
+      const buffer = Buffer.from(fileOutput);
+      if (buffer.length > 0) return buffer.buffer;
+      throw new Error(`Unexpected output type: ${typeof fileOutput}`);
+    }
+
+    console.log("[synthesizeSpeech] Audio URL:", audioUrl);
+
+    // Download the audio file
+    const response = await fetch(audioUrl);
+    if (!response.ok) {
+      throw new Error(`Failed to download audio: ${response.status}`);
+    }
+
+    return response.arrayBuffer();
+  } catch (error) {
+    console.error("[synthesizeSpeech] Replicate error:", error);
+    throw new Error(
+      error instanceof Error
+        ? `TTS generation failed: ${error.message}`
+        : "TTS generation failed"
+    );
   }
 }

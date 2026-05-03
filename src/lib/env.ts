@@ -7,15 +7,14 @@ export const env = createEnv({
     DATABASE_URL: z.string().min(1),
     APP_URL: z.string().min(1),
 
-    // Chatterbox TTS API
-    CHATTERBOX_API_URL: z.string().url(),
-    CHATTERBOX_API_KEY: z.string().optional(),
+    // Replicate (TTS via cloud-hosted Chatterbox)
+    REPLICATE_API_TOKEN: z.string().min(1),
 
-    // Cloudflare R2 Storage
-    R2_ACCOUNT_ID: z.string().min(1),
-    R2_ACCESS_KEY_ID: z.string().min(1),
-    R2_SECRET_ACCESS_KEY: z.string().min(1),
-    R2_BUCKET_NAME: z.string().min(1),
+    // AWS S3 (audio storage — also used by Terraform for DevOps)
+    AWS_ACCESS_KEY_ID: z.string().min(1),
+    AWS_SECRET_ACCESS_KEY: z.string().min(1),
+    AWS_REGION: z.string().default("us-east-1"),
+    S3_BUCKET_NAME: z.string().min(1),
 
     // Polar Billing (deferred — optional for now)
     POLAR_ACCESS_TOKEN: z.string().optional(),
