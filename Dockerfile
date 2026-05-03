@@ -1,0 +1,68 @@
+# ─────────────────────────────────────────────────────────────────
+# Stage 1: Install dependencies
+# ─────────────────────────────────────────────────────────────────
+FROM node:20-alpine AS deps
+
+WORKDIR /app
+
+# Copy package files only (for better layer caching)
+COPY package.json package-lock.json ./
+
+# Install all dependencies (including devDeps needed for prisma generate)
+RUN npm ci
+
+# ─────────────────────────────────────────────────────────────────
+# Stage 2: Build the application
+# ─────────────────────────────────────────────────────────────────
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Copy installed dependencies from previous stage
+COPY --from=deps /app/node_modules ./node_modules
+
+# Copy full source code
+COPY . .
+
+# Build Next.js with standalone output (skipping env validation at build time)
+ENV SKIP_ENV_VALIDATION=true
+ENV NEXT_TELEMETRY_DISABLED=1
+
+ARG NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=$NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+
+RUN npm run build
+
+# ─────────────────────────────────────────────────────────────────
+# Stage 3: Production runner (minimal image)
+# ─────────────────────────────────────────────────────────────────
+FROM node:20-alpine AS runner
+
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+
+# Create non-root user for security
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nextjs
+
+# Copy only the standalone build output (much smaller than full build)
+COPY --from=builder /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+# Switch to non-root user
+USER nextjs
+
+# Expose application port
+EXPOSE 3000
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
+
+# Healthcheck — ECS uses this to verify the container is alive
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1
+
+# Start the server
+CMD ["node", "server.js"]

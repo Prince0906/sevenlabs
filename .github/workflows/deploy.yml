@@ -1,0 +1,115 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+
+jobs:
+  test:
+    name: Phase 1 - Testing
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Run tests with JUnit reporter
+        run: npm run test:ci
+        
+      - name: Upload test reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-reports
+          path: test-reports/
+
+  terraform:
+    name: Phase 2 - Infrastructure (Terraform)
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+      TF_VAR_aws_region: ${{ secrets.AWS_REGION }}
+      TF_VAR_database_url: ${{ secrets.DATABASE_URL }}
+      TF_VAR_clerk_secret_key: ${{ secrets.CLERK_SECRET_KEY }}
+      TF_VAR_next_public_clerk_publishable_key: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
+      TF_VAR_replicate_api_token: ${{ secrets.REPLICATE_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+
+      - name: Ensure S3 Bucket for Terraform State exists
+        run: |
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          BUCKET_NAME="sevenlabs-tfstate-bucket-${ACCOUNT_ID}"
+          echo "TF_STATE_BUCKET=${BUCKET_NAME}" >> $GITHUB_ENV
+          
+          if aws s3api head-bucket --bucket "$BUCKET_NAME" 2>/dev/null; then
+            echo "Bucket $BUCKET_NAME already exists."
+          else
+            echo "Bucket $BUCKET_NAME does not exist. Creating..."
+            aws s3 mb s3://$BUCKET_NAME --region ${{ secrets.AWS_REGION }}
+            aws s3api put-bucket-versioning --bucket $BUCKET_NAME --versioning-configuration Status=Enabled
+          fi
+
+      - name: Terraform Init
+        working-directory: ./terraform
+        run: terraform init -backend-config="bucket=${{ env.TF_STATE_BUCKET }}"
+
+      - name: Terraform Validate
+        working-directory: ./terraform
+        run: terraform validate
+
+      - name: Terraform Plan
+        working-directory: ./terraform
+        run: terraform plan
+
+      - name: Terraform Apply
+        working-directory: ./terraform
+        run: terraform apply -auto-approve
+
+  deploy:
+    name: Phase 3 - Docker Build & ECS Deploy
+    needs: terraform
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag, and push image to Amazon ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: sevenlabs-repo
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build \
+            --build-arg NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }} \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY:latest \
+            .
+          docker push -a $ECR_REGISTRY/$ECR_REPOSITORY
+
+      - name: Force new deployment on ECS Fargate
+        run: |
+          aws ecs update-service --cluster sevenlabs-cluster --service sevenlabs-service --force-new-deployment
