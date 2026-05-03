@@ -43,6 +43,10 @@ model Voice {
   language    String        @default("en-US")
   variant     VoiceVariant
   r2ObjectKey String?
+  previewText String?
+
+  // The voice identifier used by Chatterbox API (e.g. reference voice name)
+  chatterboxVoiceId String?
 
   generations Generation[]
 
@@ -63,11 +67,15 @@ model Generation {
 
   text              String
   voiceName         String
+  language          String  @default("en-US")
   r2ObjectKey       String?
   temperature       Float
   topP              Float
   topK              Int
   repetitionPenalty Float
+
+  // Duration of the generated audio in seconds
+  durationMs Int?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
