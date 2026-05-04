@@ -59,6 +59,10 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
+# IMPORTANT: Next.js standalone does NOT auto-copy custom generated directories.
+# We must manually copy the Prisma client that was generated in src/generated/prisma
+COPY --from=builder --chown=nextjs:nodejs /app/src/generated/prisma ./src/generated/prisma
+
 # Switch to non-root user
 USER nextjs
 
