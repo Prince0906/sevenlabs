@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [ "main" ]
 
+permissions:
+  contents: read
+  checks: write
+  actions: read
+
 env:
   AWS_REGION: ${{ secrets.AWS_REGION }}
 
