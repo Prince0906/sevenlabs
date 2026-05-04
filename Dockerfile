@@ -3,10 +3,14 @@
 # ─────────────────────────────────────────────────────────────────
 FROM node:20-alpine AS deps
 
+# openssl is needed by Prisma on Alpine
+RUN apk add --no-cache openssl
+
 WORKDIR /app
 
-# Copy package files only (for better layer caching)
+# Copy package files and Prisma schema (postinstall runs "prisma generate")
 COPY package.json package-lock.json ./
+COPY prisma ./prisma
 
 # Install all dependencies (including devDeps needed for prisma generate)
 RUN npm ci
