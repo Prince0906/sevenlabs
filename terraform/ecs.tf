@@ -16,9 +16,11 @@ resource "aws_ecs_task_definition" "app" {
   container_definitions = jsonencode([
     {
       name = "${var.project_name}-container"
-      # For initial provisioning, we can use a small dummy image so the service starts
-      # before our actual GitHub Action builds and pushes the real image.
-      image     = "nginx:alpine"
+      # Placeholder image — GitHub Actions will replace this with the real image
+      # on first deploy. Using nginx with a port redirect isn't feasible, so we
+      # use the ECR image if it exists, otherwise this service may fail initial
+      # health checks until the CI pipeline pushes the real image.
+      image     = "${aws_ecr_repository.app_repo.repository_url}:latest"
       cpu       = 1024
       memory    = 2048
       essential = true
@@ -37,9 +39,10 @@ resource "aws_ecs_task_definition" "app" {
         { name = "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY", value = var.next_public_clerk_publishable_key },
         { name = "REPLICATE_API_TOKEN", value = var.replicate_api_token },
         { name = "S3_BUCKET_NAME", value = aws_s3_bucket.audio_bucket.bucket },
-        { name = "AWS_REGION", value = var.aws_region }
-        # Note: AWS credentials (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN)
-        # are automatically provided to the container by ECS through the task_role_arn.
+        { name = "AWS_REGION", value = var.aws_region },
+        { name = "AWS_ACCESS_KEY_ID", value = var.aws_access_key_id },
+        { name = "AWS_SECRET_ACCESS_KEY", value = var.aws_secret_access_key },
+        { name = "AWS_SESSION_TOKEN", value = var.aws_session_token }
       ]
       logConfiguration = {
         logDriver = "awslogs"
