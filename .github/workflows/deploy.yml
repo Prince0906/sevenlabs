@@ -196,12 +196,14 @@ jobs:
             --output text)
 
           echo "📋 New task definition: $NEW_TASK_ARN"
+          echo "NEW_TASK_ARN=$NEW_TASK_ARN" >> $GITHUB_ENV
 
       - name: Deploy to ECS Fargate
         run: |
           aws ecs update-service \
             --cluster sevenlabs-cluster \
             --service sevenlabs-service \
+            --task-definition $NEW_TASK_ARN \
             --force-new-deployment \
             --region ${{ secrets.AWS_REGION }}
 
