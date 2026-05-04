@@ -54,6 +54,15 @@ jobs:
           name: test-reports
           path: test-reports/
 
+      - name: Publish test results
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: "Vitest Results"
+          path: test-reports/junit.xml
+          reporter: java-junit
+          fail-on-error: true
+
 # ───────────────────────────────────────────────────────────────────
 # Phase 2 — Infrastructure Provisioning (Terraform)
 # ───────────────────────────────────────────────────────────────────
