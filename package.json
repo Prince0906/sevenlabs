@@ -9,7 +9,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "copy:vad": "mkdir -p public/vad && cp -R node_modules/@ricky0123/vad-web/dist/. public/vad/",
+    "copy:vad": "mkdir -p public/vad && cp -R node_modules/@ricky0123/vad-web/dist/. public/vad/ && cp -R node_modules/onnxruntime-web/dist/*.mjs public/vad/ && cp -R node_modules/onnxruntime-web/dist/*.wasm public/vad/",
     "postinstall": "prisma generate && npm run copy:vad",
     "db:push": "prisma db push",
     "prisma:seed": "tsx prisma/seed.ts",
