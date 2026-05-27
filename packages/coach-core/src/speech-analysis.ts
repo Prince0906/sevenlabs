@@ -41,7 +41,9 @@ export function analyzeSpeech(input: AnalyzeSpeechInput): SpeechMetrics {
     0.001
   );
   const wordCount = words.length;
-  const wpm = Math.round((wordCount / speakingDurationSec) * 60);
+  // Use actual audio duration for WPM — Whisper word timestamps can be
+  // compressed, inflating WPM when VAD clips speech tightly.
+  const wpm = Math.round((wordCount / turnDurationSec) * 60);
 
   const pausesMs: number[] = [];
   for (let i = 1; i < words.length; i++) {

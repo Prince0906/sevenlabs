@@ -33,6 +33,13 @@ export function PracticeVad({
       const vad = await MicVAD.new({
         baseAssetPath: "/vad/",
         onnxWASMBasePath: "/vad/",
+        // Wait longer before deciding speech has ended — users pause to think
+        redemptionMs: 2000,
+        // Require higher confidence before triggering speech start
+        positiveSpeechThreshold: 0.8,
+        negativeSpeechThreshold: 0.3,
+        // Require a minimum speech duration before triggering
+        minSpeechMs: 500,
         onSpeechStart: () => callbacksRef.current.onSpeechStart(),
         onSpeechEnd: (audio) => {
           const wavBuffer = utils.encodeWAV(audio);

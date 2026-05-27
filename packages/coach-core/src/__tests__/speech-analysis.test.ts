@@ -9,7 +9,8 @@ describe("analyzeSpeech", () => {
       turnDurationSec: 8,
     });
 
-    expect(metrics.wpm).toBeGreaterThan(100);
+    // 12 words / 8 seconds = 90 WPM (uses actual turn duration, not word span)
+    expect(metrics.wpm).toBe(90);
     expect(metrics.pauseCount).toBe(0);
     expect(metrics.fillerCount).toBe(0);
     expect(metrics.turnDurationSec).toBe(8);
