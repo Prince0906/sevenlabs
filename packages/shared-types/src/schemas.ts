@@ -16,8 +16,15 @@ export const speechMetricsSchema = z.object({
   turnDurationSec: z.number().nonnegative(),
 });
 
+export const coachingModeSchema = z.enum([
+  "interview",
+  "pitch",
+  "presentation",
+  "delivery",
+]);
+
 export const createSessionRequestSchema = z.object({
-  mode: z.string().default("delivery"),
+  mode: coachingModeSchema.default("delivery"),
 });
 
 export const createSessionResponseSchema = z.object({

@@ -48,12 +48,16 @@ export function usePracticeSession() {
     setPhase("your-turn");
   }, []);
 
-  const startSession = useCallback(async () => {
+  const startSession = useCallback(async (mode: string = "delivery") => {
     setStarting(true);
     try {
       setError(null);
       setTurns([]);
-      const res = await fetch("/api/coach/session", { method: "POST" });
+      const res = await fetch("/api/coach/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode }),
+      });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error ?? "Failed to start session");

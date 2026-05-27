@@ -1,8 +1,8 @@
 import {
   analyzeSpeech,
   buildCoachUserMessage,
-  COACH_SYSTEM_PROMPT,
-  OPENING_COACH_TEXT,
+  getCoachConfig,
+  getRandomPrompt,
 } from "@sevenlabs/coach-core";
 import type { TurnCompleteResponse } from "@sevenlabs/shared-types";
 import { prisma } from "@/lib/db";
@@ -25,13 +25,19 @@ export async function createPracticeSession(
   userId: string,
   mode: string = "delivery"
 ) {
+  const config = getCoachConfig(mode);
+  const practicePrompt = getRandomPrompt(mode);
+  const openingText = practicePrompt
+    ? `${config.openingText}\n\nHere's your prompt: "${practicePrompt}"`
+    : config.openingText;
+
   const session = await prisma.practiceSession.create({
     data: { userId, mode },
   });
 
   let openingCoachAudioUrl: string | undefined;
   try {
-    const audio = await synthesizeCoachSpeech(OPENING_COACH_TEXT);
+    const audio = await synthesizeCoachSpeech(openingText);
     const key = `practice/${userId}/${session.id}/opening.mp3`;
     await uploadAudio(key, audio, "audio/mpeg");
     openingCoachAudioUrl = await getSignedUrl(key);
@@ -39,7 +45,7 @@ export async function createPracticeSession(
       data: {
         sessionId: session.id,
         role: "COACH",
-        coachText: OPENING_COACH_TEXT,
+        coachText: openingText,
         audioKey: key,
       },
     });
@@ -48,14 +54,14 @@ export async function createPracticeSession(
       data: {
         sessionId: session.id,
         role: "COACH",
-        coachText: OPENING_COACH_TEXT,
+        coachText: openingText,
       },
     });
   }
 
   return {
     sessionId: session.id,
-    openingCoachText: OPENING_COACH_TEXT,
+    openingCoachText: openingText,
     openingCoachAudioUrl,
   };
 }
@@ -134,9 +140,10 @@ export async function processTurn(
     },
   });
 
+  const coachConfig = getCoachConfig(session.mode);
   const coachText = await generateCoachText(
-    COACH_SYSTEM_PROMPT,
-    buildCoachUserMessage(transcript || "(no speech detected)", metrics, turnNumber)
+    coachConfig.systemPrompt,
+    buildCoachUserMessage(transcript || "(no speech detected)", metrics, turnNumber, session.mode)
   );
 
   let coachAudioUrl: string | undefined;

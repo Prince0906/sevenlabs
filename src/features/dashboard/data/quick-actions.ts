@@ -22,18 +22,18 @@ export const quickActions: QuickAction[] = [
     title: "Practice a job interview",
     description: "Rehearse answering behavioral and technical questions out loud",
     gradient: "from-violet-500 to-violet-100",
-    href: "/practice",
+    href: "/practice?mode=interview",
   },
   {
     title: "Practice a pitch",
     description: "Nail your startup or project pitch with delivery coaching",
     gradient: "from-pink-400 to-pink-100",
-    href: "/practice",
+    href: "/practice?mode=pitch",
   },
   {
     title: "Practice a presentation",
     description: "Work on pacing and confidence for your next talk or demo",
     gradient: "from-orange-400 to-orange-100",
-    href: "/practice",
+    href: "/practice?mode=presentation",
   },
 ];
