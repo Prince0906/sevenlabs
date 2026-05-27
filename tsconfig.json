@@ -19,7 +19,9 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@sevenlabs/coach-core": ["./packages/coach-core/src/index.ts"],
+      "@sevenlabs/shared-types": ["./packages/shared-types/src/index.ts"]
     }
   },
   "include": [
@@ -30,5 +32,5 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "apps/coach-api"]
 }

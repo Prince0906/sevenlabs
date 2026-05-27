@@ -2,6 +2,8 @@
 
 import Image from "next/image";
 import { usePathname } from "next/navigation";
+import Link from "next/link";
+import { useSession, signOut } from "next-auth/react";
 
 import {
     Sidebar,
@@ -17,25 +19,24 @@ import {
     SidebarRail,
     SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
-    OrganizationSwitcher,
-    UserButton,
-    useClerk
-} from "@clerk/nextjs";
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
     type LucideIcon,
     Home,
-    LayoutGrid,
-    AudioLines,
-    Volume2,
-    Settings,
     Headphones,
+    Mic,
+    LogOut,
+    ChevronsUpDown,
 } from "lucide-react";
-import Link from "next/link";
-// import { UsageContainer } from "@/features/billing/components/usage-container";
-// import { VoiceCreateDialog } from "@/features/voices/components/voice-create-dialog";
-import { useState } from "react";
 
 interface MenuItem {
     title: string;
@@ -94,133 +95,99 @@ function NavSection({ label, items, pathname }: NavSectionProps) {
     );
 }
 
+function userInitials(name?: string | null, email?: string | null) {
+    const source = name?.trim() || email?.split("@")[0] || "";
+    if (!source) return "?";
+    const parts = source.split(/\s+/);
+    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+    return source.slice(0, 2).toUpperCase();
+}
+
+function UserMenu() {
+    const { data, status } = useSession();
+
+    if (status === "loading") {
+        return (
+            <Skeleton className="h-8.5 w-full group-data-[collapsible=icon]:size-8 rounded-md border border-border bg-card" />
+        );
+    }
+
+    const user = data?.user;
+    const name = user?.name ?? user?.email ?? "Account";
+    const email = user?.email ?? "";
+
+    return (
+        <DropdownMenu>
+            <DropdownMenuTrigger className="flex items-center w-full gap-2 bg-card border border-border rounded-md pl-1 pr-2 py-1 shadow-[0px_1px_1.5px_0px_rgba(44,54,53,0.03)] hover:bg-accent/30 transition-colors group-data-[collapsible=icon]:w-auto group-data-[collapsible=icon]:p-1">
+                <Avatar className="size-6">
+                    {user?.image ? <AvatarImage src={user.image} alt={name} /> : null}
+                    <AvatarFallback className="text-[10px]">
+                        {userInitials(user?.name, user?.email)}
+                    </AvatarFallback>
+                </Avatar>
+                <span className="text-[13px] tracking-tight font-medium text-foreground truncate flex-1 text-left group-data-[collapsible=icon]:hidden">
+                    {name}
+                </span>
+                <ChevronsUpDown className="size-4 text-sidebar-foreground group-data-[collapsible=icon]:hidden" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>
+                    <div className="font-medium truncate">{name}</div>
+                    {email && <div className="text-xs text-muted-foreground truncate font-normal">{email}</div>}
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => signOut({ callbackUrl: "/sign-in" })}>
+                    <LogOut className="size-4 mr-2" />
+                    Sign out
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
+    );
+}
+
 export function DashboardSidebar() {
     const pathname = usePathname();
-    const clerk = useClerk();
-    const [voiceDialogOpen, setVoiceDialogOpen] = useState(false);
 
     const mainMenuItems: MenuItem[] = [
-        {
-            title: "Dashboard",
-            url: "/",
-            icon: Home,
-        },
-        {
-            title: "Explore voices",
-            url: "/voices",
-            icon: LayoutGrid,
-        },
-        {
-            title: "Text to speech",
-            url: "/text-to-speech",
-            icon: AudioLines,
-        },
-        {
-            title: "Voice cloning",
-            icon: Volume2,
-            onClick: () => setVoiceDialogOpen(true),
-        },
+        { title: "Dashboard", url: "/", icon: Home },
+        { title: "Practice", url: "/practice", icon: Mic },
     ];
 
     const othersMenuItems: MenuItem[] = [
-        {
-            title: "Settings",
-            icon: Settings,
-            onClick: () => clerk.openOrganizationProfile(),
-        },
-        {
-            title: "Help and support",
-            url: "mailto:cristiahydra@gmail.com",
-            icon: Headphones,
-        },
+        { title: "Help and support", url: "mailto:cristiahydra@gmail.com", icon: Headphones },
     ];
 
     return (
-        <>
-            {/* <VoiceCreateDialog
-      open={voiceDialogOpen}
-      onOpenChange={setVoiceDialogOpen}
-    /> */}
-            <Sidebar collapsible="icon">
-                <SidebarHeader className="flex flex-col gap-4 pt-4">
-                    <div
-                        className="flex items-center gap-2 pl-1 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:pl-0">
-                        <Image
-                            src="/logo.svg"
-                            alt="Seven Labs"
-                            width={24}
-                            height={24}
-                            className="rounded-sm"
-                        />
-                        <span className="group-data-[collapsible=icon]:hidden font-semibold text-lg tracking-tighter text-foreground">
-                            Seven Labs
-                        </span>
-                        <SidebarTrigger className="ml-auto lg:hidden" />
-                    </div>
-                    <SidebarMenu>
-                        <SidebarMenuItem>
-                            <OrganizationSwitcher
-                                hidePersonal
-                                fallback={
-                                    <Skeleton
-                                        className="h-8.5 w-full group-data-[collapsible=icon]:size-8 rounded-md border bg-white"
-                                    />
-                                }
-                                appearance={{
-                                    elements: {
-                                        rootBox:
-                                            "w-full! group-data-[collapsible=icon]:w-auto! group-data-[collapsible=icon]:flex! group-data-[collapsible=icon]:justify-center!",
-                                        organizationSwitcherTrigger:
-                                            "w-full! justify-between! bg-white! border! border-border! rounded-md! pl-1! pr-2! py-1! gap-3! group-data-[collapsible=icon]:w-auto! group-data-[collapsible=icon]:p-1! shadow-[0px_1px_1.5px_0px_rgba(44,54,53,0.03)]!",
-                                        organizationPreview: "gap-2!",
-                                        organizationPreviewAvatarBox: "size-6! rounded-sm!",
-                                        organizationPreviewTextContainer:
-                                            "text-xs! tracking-tight! font-medium! text-foreground! group-data-[collapsible=icon]:hidden!",
-                                        organizationPreviewMainIdentifier: "text-[13px]!",
-                                        organizationSwitcherTriggerIcon:
-                                            "size-4! text-sidebar-foreground! group-data-[collapsible=icon]:hidden!",
-                                    },
-                                }}
-                            />
-                        </SidebarMenuItem>
-                    </SidebarMenu>
-                </SidebarHeader>
-                <div className="border-b border-dashed border-border" />
-                <SidebarContent>
-                    <NavSection items={mainMenuItems} pathname={pathname} />
-                    <NavSection
-                        label="Others"
-                        items={othersMenuItems}
-                        pathname={pathname}
+        <Sidebar collapsible="icon">
+            <SidebarHeader className="flex flex-col gap-4 pt-4">
+                <div className="flex items-center gap-2 pl-1 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:pl-0">
+                    <Image
+                        src="/logo.svg"
+                        alt="Seven Labs"
+                        width={24}
+                        height={24}
+                        className="rounded-sm"
                     />
-                </SidebarContent>
-                <div className="border-b border-dashed border-border" />
-                <SidebarFooter className="gap-3 py-3">
-                    {/* <UsageContainer /> */}
-                    <SidebarMenu>
-                        <SidebarMenuItem>
-                            <UserButton
-                                showName
-                                fallback={
-                                    <Skeleton className="h-8.5 w-full group-data-[collapsible=icon]:size-8 rounded-md border border-border bg-white" />
-                                }
-                                appearance={{
-                                    elements: {
-                                        rootBox:
-                                            "w-full! group-data-[collapsible=icon]:w-auto! group-data-[collapsible=icon]:flex! group-data-[collapsible=icon]:justify-center!",
-                                        userButtonTrigger:
-                                            "w-full! justify-between! bg-white! border! border-border! rounded-md! pl-1! pr-2! py-1! shadow-[0px_1px_1.5px_0px_rgba(44,54,53,0.03)]! group-data-[collapsible=icon]:w-auto! group-data-[collapsible=icon]:p-1! group-data-[collapsible=icon]:after:hidden! [--border:color-mix(in_srgb,transparent,var(--clerk-color-neutral,#000000)_15%)]!",
-                                        userButtonBox: "flex-row-reverse! gap-2!",
-                                        userButtonOuterIdentifier: "text-[13px]! tracking-tight! font-medium! text-foreground! pl-0! group-data-[collapsible=icon]:hidden!",
-                                        userButtonAvatarBox: "size-6!",
-                                    }
-                                }}
-                            />
-                        </SidebarMenuItem>
-                    </SidebarMenu>
-                </SidebarFooter>
-                <SidebarRail />
-            </Sidebar>
-        </>
+                    <span className="group-data-[collapsible=icon]:hidden font-semibold text-lg tracking-tighter text-foreground">
+                        Seven Labs
+                    </span>
+                    <SidebarTrigger className="ml-auto lg:hidden" />
+                </div>
+            </SidebarHeader>
+            <div className="border-b border-dashed border-border" />
+            <SidebarContent>
+                <NavSection items={mainMenuItems} pathname={pathname} />
+                <NavSection label="Others" items={othersMenuItems} pathname={pathname} />
+            </SidebarContent>
+            <div className="border-b border-dashed border-border" />
+            <SidebarFooter className="gap-3 py-3">
+                <SidebarMenu>
+                    <SidebarMenuItem>
+                        <UserMenu />
+                    </SidebarMenuItem>
+                </SidebarMenu>
+            </SidebarFooter>
+            <SidebarRail />
+        </Sidebar>
     );
 }

@@ -1,22 +1,27 @@
 "use client";
 
-import { useUser } from "@clerk/nextjs";
+import { useSession } from "next-auth/react";
 import { Headphones, ThumbsUp } from "lucide-react";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 
+function displayName(user: { name?: string | null; email?: string | null } | undefined) {
+  if (!user) return "there";
+  if (user.name) return user.name.split(" ")[0];
+  if (user.email) return user.email.split("@")[0];
+  return "there";
+}
+
 export function DashboardHeader() {
-  const { isLoaded, user } = useUser();
+  const { status, data } = useSession();
 
   return (
     <div className="flex items-start justify-between">
       <div className="space-y-1">
-        <p className="text-sm text-muted-foreground">
-          Nice to see you
-        </p>
+        <p className="text-sm text-muted-foreground">Nice to see you</p>
         <h1 className="text-2xl lg:text-3xl font-semibold tracking-tight">
-          {isLoaded ? (user?.fullName ?? user?.firstName ?? "there") : "..."}
+          {status === "loading" ? "..." : displayName(data?.user)}
         </h1>
       </div>
 
@@ -34,8 +39,6 @@ export function DashboardHeader() {
           </Link>
         </Button>
       </div>
-
-      
     </div>
   );
-};
+}

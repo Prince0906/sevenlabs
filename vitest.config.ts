@@ -3,6 +3,7 @@ import path from "path";
 
 export default defineConfig({
   test: {
+    include: ["src/**/*.test.ts", "packages/**/*.test.ts"],
     environment: "node",
     reporters: ["default", "junit"],
     outputFile: {
@@ -17,6 +18,14 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "@sevenlabs/coach-core": path.resolve(
+        __dirname,
+        "./packages/coach-core/src/index.ts"
+      ),
+      "@sevenlabs/shared-types": path.resolve(
+        __dirname,
+        "./packages/shared-types/src/index.ts"
+      ),
     },
   },
 });

@@ -14,18 +14,30 @@ variable "database_url" {
   default   = ""
 }
 
-variable "clerk_secret_key" {
+variable "openai_api_key" {
   type      = string
   sensitive = true
   default   = ""
 }
 
-variable "next_public_clerk_publishable_key" {
+# Auth.js (NextAuth v5)
+variable "auth_secret" {
+  type      = string
+  sensitive = true
+  default   = ""
+}
+
+variable "auth_url" {
   type    = string
   default = ""
 }
 
-variable "replicate_api_token" {
+variable "google_client_id" {
+  type    = string
+  default = ""
+}
+
+variable "google_client_secret" {
   type      = string
   sensitive = true
   default   = ""

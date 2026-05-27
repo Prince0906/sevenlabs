@@ -82,9 +82,12 @@ jobs:
       AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
       TF_VAR_aws_region: ${{ secrets.AWS_REGION }}
       TF_VAR_database_url: ${{ secrets.DATABASE_URL }}
-      TF_VAR_clerk_secret_key: ${{ secrets.CLERK_SECRET_KEY }}
-      TF_VAR_next_public_clerk_publishable_key: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
-      TF_VAR_replicate_api_token: ${{ secrets.REPLICATE_API_TOKEN }}
+      TF_VAR_openai_api_key: ${{ secrets.OPENAI_API_KEY }}
+      # Auth.js
+      TF_VAR_auth_secret: ${{ secrets.AUTH_SECRET }}
+      TF_VAR_auth_url: ${{ secrets.AUTH_URL }}
+      TF_VAR_google_client_id: ${{ secrets.GOOGLE_CLIENT_ID }}
+      TF_VAR_google_client_secret: ${{ secrets.GOOGLE_CLIENT_SECRET }}
       TF_VAR_aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
       TF_VAR_aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       TF_VAR_aws_session_token: ${{ secrets.AWS_SESSION_TOKEN }}
@@ -137,11 +140,41 @@ jobs:
           echo "s3_bucket=$(terraform output -raw s3_bucket_name)" >> $GITHUB_OUTPUT
 
 # ───────────────────────────────────────────────────────────────────
+# Phase 2.5 — Apply Prisma database migrations
+# ───────────────────────────────────────────────────────────────────
+# Runs after Terraform (so infra is in place) and before the new image is
+# deployed (so the schema is current before the new code starts serving
+# traffic). `prisma migrate deploy` is idempotent — no-op if there are no
+# new migrations to apply.
+  migrate:
+    name: "Phase 2.5 - Apply DB migrations"
+    needs: terraform
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Apply Prisma migrations
+        run: npx prisma migrate deploy
+
+      - name: Verify migration status
+        run: npx prisma migrate status
+
+# ───────────────────────────────────────────────────────────────────
 # Phase 3 — Docker Build & ECS Deployment
 # ───────────────────────────────────────────────────────────────────
   deploy:
     name: "Phase 3 - Docker Build & ECS Deploy"
-    needs: terraform
+    needs: migrate
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     env:
@@ -162,7 +195,6 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
         run: |
           docker build \
-            --build-arg NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }} \
             -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
             -t $ECR_REGISTRY/$ECR_REPOSITORY:latest \
             .

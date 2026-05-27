@@ -35,9 +35,13 @@ resource "aws_ecs_task_definition" "app" {
         { name = "NODE_ENV", value = "production" },
         { name = "PORT", value = "3000" },
         { name = "DATABASE_URL", value = var.database_url },
-        { name = "CLERK_SECRET_KEY", value = var.clerk_secret_key },
-        { name = "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY", value = var.next_public_clerk_publishable_key },
-        { name = "REPLICATE_API_TOKEN", value = var.replicate_api_token },
+        { name = "OPENAI_API_KEY", value = var.openai_api_key },
+        # Auth.js
+        { name = "AUTH_SECRET", value = var.auth_secret },
+        { name = "AUTH_URL", value = coalesce(var.auth_url, "http://${aws_lb.main.dns_name}") },
+        { name = "GOOGLE_CLIENT_ID", value = var.google_client_id },
+        { name = "GOOGLE_CLIENT_SECRET", value = var.google_client_secret },
+        # AWS / S3
         { name = "S3_BUCKET_NAME", value = aws_s3_bucket.audio_bucket.bucket },
         { name = "AWS_REGION", value = var.aws_region },
         { name = "AWS_ACCESS_KEY_ID", value = var.aws_access_key_id },
