@@ -25,28 +25,59 @@ export function usePracticeSession() {
   const [error, setError] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
+    mountedRef.current = true;
     return () => {
-      audioRef.current?.pause();
+      mountedRef.current = false;
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = "";
+        audioRef.current = null;
+      }
     };
+  }, []);
+
+  const stopAudio = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.src = "";
+      audioRef.current = null;
+    }
   }, []);
 
   const playAudio = useCallback(async (url?: string) => {
     if (!url) {
-      setPhase("your-turn");
+      if (mountedRef.current) setPhase("your-turn");
       return;
     }
-    setPhase("coach-speaking");
+    if (mountedRef.current) setPhase("coach-speaking");
+    stopAudio();
     const audio = new Audio(url);
     audioRef.current = audio;
-    await new Promise<void>((resolve, reject) => {
-      audio.onended = () => resolve();
-      audio.onerror = () => reject(new Error("Audio playback failed"));
-      audio.play().catch(reject);
-    });
-    setPhase("your-turn");
-  }, []);
+    try {
+      await new Promise<void>((resolve, reject) => {
+        audio.onended = () => resolve();
+        audio.onerror = () => reject(new Error("Audio playback failed"));
+        audio.play().catch(reject);
+      });
+    } catch {
+      // Audio was stopped or failed — don't transition phase
+      if (!mountedRef.current) return;
+    }
+    if (mountedRef.current && audioRef.current === audio) {
+      setPhase("your-turn");
+    }
+  }, [stopAudio]);
+
+  const stopSession = useCallback(() => {
+    stopAudio();
+    setSessionId(null);
+    setPhase("idle");
+    setError(null);
+    setStarting(false);
+  }, [stopAudio]);
 
   const startSession = useCallback(async (mode: string = "delivery") => {
     setStarting(true);
@@ -67,11 +98,12 @@ export function usePracticeSession() {
         openingCoachText: string;
         openingCoachAudioUrl?: string;
       };
+      if (!mountedRef.current) return;
       setSessionId(data.sessionId);
       setOpeningCoachText(data.openingCoachText);
       await playAudio(data.openingCoachAudioUrl);
     } finally {
-      setStarting(false);
+      if (mountedRef.current) setStarting(false);
     }
   }, [playAudio]);
 
@@ -93,6 +125,7 @@ export function usePracticeSession() {
       }
 
       const data = (await res.json()) as TurnCompleteResponse;
+      if (!mountedRef.current) return;
       setTurns((prev) => [
         ...prev,
         {
@@ -117,6 +150,7 @@ export function usePracticeSession() {
     setError,
     starting,
     startSession,
+    stopSession,
     submitTurn,
   };
 }

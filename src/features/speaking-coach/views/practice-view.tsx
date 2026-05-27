@@ -21,6 +21,7 @@ import {
   Presentation,
   AudioWaveform,
   ArrowRight,
+  Square,
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -101,6 +102,7 @@ export function PracticeView() {
     setError,
     starting,
     startSession,
+    stopSession,
     submitTurn,
   } = usePracticeSession();
 
@@ -132,6 +134,11 @@ export function PracticeView() {
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to start");
     }
+  };
+
+  const handleStop = () => {
+    stopSession();
+    turnCounter.current = 0;
   };
 
   const showModeSelector = !selectedMode && phase === "idle" && !sessionId;
@@ -217,7 +224,7 @@ export function PracticeView() {
                         ? "Recording your speech..."
                         : phase === "analyzing"
                           ? "Processing your delivery metrics..."
-                          : "Listen to your coach's feedback"}
+                          : "Listen to the coach, then it's your turn"}
                 </p>
               </div>
               <div className="ml-auto flex items-center gap-2">
@@ -228,6 +235,16 @@ export function PracticeView() {
                   <Badge variant="outline" className="font-mono text-[10px]">
                     Turn {turns.length}
                   </Badge>
+                )}
+                {sessionId && (
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={handleStop}
+                  >
+                    <Square className="size-3.5" />
+                    Stop
+                  </Button>
                 )}
                 <Button variant="outline" size="sm" asChild>
                   <Link href="/practice/history">
@@ -290,7 +307,35 @@ export function PracticeView() {
             </Card>
           )}
 
-          {/* Active session — coach speaking or waiting */}
+          {/* Phase banner — clear instruction for what to do now */}
+          {sessionId && phase === "coach-speaking" && (
+            <div className="flex items-center gap-3 rounded-lg border border-violet-200 bg-violet-50 px-4 py-3 dark:border-violet-800 dark:bg-violet-950/30">
+              <MessageSquare className="size-5 text-violet-500 shrink-0" />
+              <p className="text-sm font-medium text-violet-700 dark:text-violet-300">
+                Coach is speaking — listen to the feedback before your next turn
+              </p>
+            </div>
+          )}
+          {sessionId && (phase === "your-turn" || phase === "listening") && (
+            <div className="flex items-center gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 dark:border-emerald-800 dark:bg-emerald-950/30">
+              <Mic className="size-5 text-emerald-500 shrink-0" />
+              <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
+                {phase === "listening"
+                  ? "Listening... keep speaking, I'll wait for you to finish"
+                  : "Your turn — speak when you're ready, your mic is active"}
+              </p>
+            </div>
+          )}
+          {sessionId && phase === "analyzing" && (
+            <div className="flex items-center gap-3 rounded-lg border border-cyan-200 bg-cyan-50 px-4 py-3 dark:border-cyan-800 dark:bg-cyan-950/30">
+              <Spinner className="size-4 text-cyan-500 shrink-0" />
+              <p className="text-sm font-medium text-cyan-700 dark:text-cyan-300">
+                Analyzing your delivery — hang tight...
+              </p>
+            </div>
+          )}
+
+          {/* Active session — coach opening message */}
           {sessionId && phase !== "idle" && turns.length === 0 && (
             <Card>
               <CardContent className="flex items-center gap-4 py-6">
