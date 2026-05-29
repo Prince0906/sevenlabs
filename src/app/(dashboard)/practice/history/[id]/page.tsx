@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { useParams } from "next/navigation";
-import { Volume2 } from "lucide-react";
+import { AudioPlayer } from "@/components/audio-player";
 import type {
   RubricScores,
   SpeechMetrics,
@@ -116,6 +116,9 @@ export default function SessionDetailPage() {
                               You · Turn {userTurnNumbers.get(t.id)}
                             </p>
                           </div>
+                          {t.audioUrl && (
+                            <AudioPlayer src={t.audioUrl} label="Your answer" />
+                          )}
                           <MetricsPanel
                             metrics={metrics}
                             transcript={t.transcript ?? ""}
@@ -140,14 +143,7 @@ export default function SessionDetailPage() {
                             </p>
                           )}
                           {t.audioUrl && (
-                            <div className="flex items-center gap-2 pt-1">
-                              <Volume2 className="size-3.5 text-muted-foreground" />
-                              <audio
-                                controls
-                                src={t.audioUrl}
-                                className="h-8 w-full max-w-xs"
-                              />
-                            </div>
+                            <AudioPlayer src={t.audioUrl} label="Coach audio" />
                           )}
                         </div>
                       );
