@@ -14,7 +14,11 @@ export const authConfig = {
   ],
   callbacks: {
     authorized({ auth, request: { nextUrl } }) {
-      const isPublic = PUBLIC_PATHS.some((p) => nextUrl.pathname.startsWith(p));
+      const { pathname } = nextUrl;
+      // "/" is the public marketing landing (exact match — startsWith would
+      // make every route public). The authed dashboard lives at /dashboard.
+      const isPublic =
+        pathname === "/" || PUBLIC_PATHS.some((p) => pathname.startsWith(p));
       if (isPublic) return true;
       return !!auth?.user;
     },
