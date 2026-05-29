@@ -1,124 +1,165 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { motion } from "framer-motion";
 import { useParams } from "next/navigation";
+import { Volume2 } from "lucide-react";
+import type {
+  RubricScores,
+  SpeechMetrics,
+} from "@sevenlabs/shared-types";
+import { rubricScoresSchema, speechMetricsSchema } from "@sevenlabs/shared-types";
 import { PageHeader } from "@/components/page-header";
-import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/spinner";
+import { pageTransition } from "@/lib/motion";
 import { MetricsPanel } from "@/features/speaking-coach/components/metrics-panel";
-import { MessageSquare, Mic, Volume2 } from "lucide-react";
-import type { SpeechMetrics } from "@sevenlabs/shared-types";
+import { RubricScoreBlock } from "@/features/speaking-coach/components/rubric-score-block";
+import { SessionResults } from "@/features/speaking-coach/components/session-results";
 
-interface Turn {
+interface RawTurn {
   id: string;
   role: string;
   transcript: string | null;
   coachText: string | null;
-  metricsJson: SpeechMetrics | null;
+  metricsJson: unknown;
+  rubricScoresJson: unknown;
   audioUrl: string | null;
   createdAt: string;
 }
 
+function parseMetrics(json: unknown): SpeechMetrics | null {
+  if (!json) return null;
+  const r = speechMetricsSchema.safeParse(json);
+  return r.success ? r.data : null;
+}
+
+function parseRubric(json: unknown): RubricScores | null {
+  if (!json) return null;
+  const r = rubricScoresSchema.safeParse(json);
+  return r.success ? r.data : null;
+}
+
 export default function SessionDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const [turns, setTurns] = useState<Turn[]>([]);
+  const [rawTurns, setRawTurns] = useState<RawTurn[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!id) return;
     fetch(`/api/coach/sessions/${id}`)
       .then((r) => r.json())
-      .then((d) => setTurns(d.turns ?? []))
+      .then((d) => setRawTurns(d.turns ?? []))
       .finally(() => setLoading(false));
   }, [id]);
 
   const userTurnNumbers = new Map<string, number>();
   let counter = 0;
-  for (const t of turns) {
+  for (const t of rawTurns) {
     if (t.role === "USER") {
       counter += 1;
       userTurnNumbers.set(t.id, counter);
     }
   }
 
+  const summaryTurns = useMemo(
+    () =>
+      rawTurns
+        .filter((t) => t.role === "USER")
+        .map((t) => ({
+          metrics: parseMetrics(t.metricsJson),
+          rubricScores: parseRubric(t.rubricScoresJson),
+        })),
+    [rawTurns]
+  );
+
+  const hasRubricData = summaryTurns.some((t) => t.rubricScores);
+
   return (
     <div className="flex flex-1 flex-col">
       <PageHeader title="Session detail" />
 
       <div className="flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-4xl space-y-6 p-4 lg:p-8">
+        <motion.div
+          variants={pageTransition}
+          initial="initial"
+          animate="animate"
+          className="mx-auto max-w-3xl space-y-8 p-6 lg:p-10"
+        >
           {loading ? (
             <div className="flex items-center justify-center py-20">
               <Spinner className="size-6" />
             </div>
-          ) : turns.length === 0 ? (
+          ) : rawTurns.length === 0 ? (
             <p className="py-20 text-center text-sm text-muted-foreground">
               No turns found for this session.
             </p>
           ) : (
-            <div className="space-y-4">
-              {turns.map((t) => {
-                if (t.role === "USER") {
-                  return (
-                    <div
-                      key={t.id}
-                      className="space-y-3 rounded-xl border bg-card p-4 lg:p-6"
-                    >
-                      <div className="flex items-center gap-2">
-                        <div className="flex size-7 items-center justify-center rounded-full bg-emerald-500/10">
-                          <Mic className="size-3.5 text-emerald-600 dark:text-emerald-400" />
-                        </div>
-                        <span className="text-sm font-medium">You</span>
-                        <Badge variant="secondary" className="text-[10px]">
-                          Turn {userTurnNumbers.get(t.id)}
-                        </Badge>
-                      </div>
-                      <MetricsPanel
-                        metrics={t.metricsJson}
-                        transcript={t.transcript ?? ""}
-                      />
-                    </div>
-                  );
-                }
+            <>
+              {hasRubricData && <SessionResults turns={summaryTurns} />}
 
-                if (t.role === "COACH") {
-                  return (
-                    <div
-                      key={t.id}
-                      className="flex gap-3 rounded-xl bg-violet-500/5 p-4 lg:p-6"
-                    >
-                      <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-violet-500/10">
-                        <MessageSquare className="size-3.5 text-violet-600 dark:text-violet-400" />
-                      </div>
-                      <div className="space-y-2">
-                        <p className="text-xs font-medium text-violet-600 dark:text-violet-400">
-                          Coach
-                        </p>
-                        {t.coachText && (
-                          <p className="text-sm leading-relaxed">
-                            {t.coachText}
-                          </p>
-                        )}
-                        {t.audioUrl && (
-                          <div className="flex items-center gap-2">
-                            <Volume2 className="size-3.5 text-muted-foreground" />
-                            <audio
-                              controls
-                              src={t.audioUrl}
-                              className="h-8 w-full max-w-xs"
-                            />
+              <div className="space-y-4">
+                <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+                  Turn-by-turn
+                </p>
+                <div className="space-y-4">
+                  {rawTurns.map((t) => {
+                    if (t.role === "USER") {
+                      const metrics = parseMetrics(t.metricsJson);
+                      const rubric = parseRubric(t.rubricScoresJson);
+                      return (
+                        <div
+                          key={t.id}
+                          className="space-y-4 rounded-lg border bg-card p-5 lg:p-6"
+                        >
+                          <div className="flex items-baseline justify-between">
+                            <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+                              You · Turn {userTurnNumbers.get(t.id)}
+                            </p>
                           </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                }
+                          <MetricsPanel
+                            metrics={metrics}
+                            transcript={t.transcript ?? ""}
+                          />
+                          {rubric && <RubricScoreBlock rubricScores={rubric} />}
+                        </div>
+                      );
+                    }
 
-                return null;
-              })}
-            </div>
+                    if (t.role === "COACH") {
+                      return (
+                        <div
+                          key={t.id}
+                          className="space-y-3 rounded-lg border bg-card p-5 lg:p-6"
+                        >
+                          <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+                            Coach
+                          </p>
+                          {t.coachText && (
+                            <p className="text-sm leading-relaxed">
+                              {t.coachText}
+                            </p>
+                          )}
+                          {t.audioUrl && (
+                            <div className="flex items-center gap-2 pt-1">
+                              <Volume2 className="size-3.5 text-muted-foreground" />
+                              <audio
+                                controls
+                                src={t.audioUrl}
+                                className="h-8 w-full max-w-xs"
+                              />
+                            </div>
+                          )}
+                        </div>
+                      );
+                    }
+
+                    return null;
+                  })}
+                </div>
+              </div>
+            </>
           )}
-        </div>
+        </motion.div>
       </div>
     </div>
   );

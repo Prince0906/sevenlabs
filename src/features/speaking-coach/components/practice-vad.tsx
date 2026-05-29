@@ -7,23 +7,27 @@ interface PracticeVadProps {
   enabled: boolean;
   onSpeechStart: () => void;
   onSpeechEnd: (audio: Blob) => void;
+  /** Live mic amplitude (0..1) per processed frame, for the voice orb. */
+  onAudioLevel?: (level: number) => void;
 }
 
 export function PracticeVad({
   enabled,
   onSpeechStart,
   onSpeechEnd,
+  onAudioLevel,
 }: PracticeVadProps) {
   const vadRef = useRef<MicVAD | null>(null);
-  const callbacksRef = useRef({ onSpeechStart, onSpeechEnd });
+  const callbacksRef = useRef({ onSpeechStart, onSpeechEnd, onAudioLevel });
 
   useEffect(() => {
-    callbacksRef.current = { onSpeechStart, onSpeechEnd };
-  }, [onSpeechStart, onSpeechEnd]);
+    callbacksRef.current = { onSpeechStart, onSpeechEnd, onAudioLevel };
+  }, [onSpeechStart, onSpeechEnd, onAudioLevel]);
 
   useEffect(() => {
     if (!enabled) {
       vadRef.current?.pause();
+      callbacksRef.current.onAudioLevel?.(0);
       return;
     }
 
@@ -40,6 +44,12 @@ export function PracticeVad({
         negativeSpeechThreshold: 0.3,
         // Require a minimum speech duration before triggering
         minSpeechMs: 500,
+        onFrameProcessed: (_probs, frame) => {
+          let sum = 0;
+          for (let i = 0; i < frame.length; i++) sum += frame[i] * frame[i];
+          const rms = Math.sqrt(sum / frame.length);
+          callbacksRef.current.onAudioLevel?.(Math.min(1, rms * 5));
+        },
         onSpeechStart: () => callbacksRef.current.onSpeechStart(),
         onSpeechEnd: (audio) => {
           const wavBuffer = utils.encodeWAV(audio);

@@ -1,9 +1,12 @@
 "use client";
 
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
+
+import { Logo } from "@/components/logo";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { BRAND } from "@/lib/brand";
 
 import {
     Sidebar,
@@ -149,28 +152,22 @@ export function DashboardSidebar() {
     const pathname = usePathname();
 
     const mainMenuItems: MenuItem[] = [
-        { title: "Dashboard", url: "/", icon: Home },
+        { title: "Dashboard", url: "/dashboard", icon: Home },
         { title: "Practice", url: "/practice", icon: Mic },
     ];
 
     const othersMenuItems: MenuItem[] = [
-        { title: "Help and support", url: "mailto:cristiahydra@gmail.com", icon: Headphones },
+        { title: "Help and support", url: `mailto:${BRAND.supportEmail}`, icon: Headphones },
     ];
 
     return (
         <Sidebar collapsible="icon">
             <SidebarHeader className="flex flex-col gap-4 pt-4">
                 <div className="flex items-center gap-2 pl-1 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:pl-0">
-                    <Image
-                        src="/logo.svg"
-                        alt="Seven Labs"
-                        width={24}
-                        height={24}
-                        className="rounded-sm"
-                    />
-                    <span className="group-data-[collapsible=icon]:hidden font-semibold text-lg tracking-tighter text-foreground">
-                        Seven Labs
+                    <span className="hidden size-7 shrink-0 items-center justify-center rounded-md bg-foreground font-display text-sm font-semibold text-background group-data-[collapsible=icon]:flex">
+                        A
                     </span>
+                    <Logo className="group-data-[collapsible=icon]:hidden" />
                     <SidebarTrigger className="ml-auto lg:hidden" />
                 </div>
             </SidebarHeader>
@@ -180,8 +177,11 @@ export function DashboardSidebar() {
                 <NavSection label="Others" items={othersMenuItems} pathname={pathname} />
             </SidebarContent>
             <div className="border-b border-dashed border-border" />
-            <SidebarFooter className="gap-3 py-3">
+            <SidebarFooter className="gap-2 py-3">
                 <SidebarMenu>
+                    <SidebarMenuItem>
+                        <ThemeToggle />
+                    </SidebarMenuItem>
                     <SidebarMenuItem>
                         <UserMenu />
                     </SidebarMenuItem>

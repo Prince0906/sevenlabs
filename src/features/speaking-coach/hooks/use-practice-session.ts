@@ -1,20 +1,26 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { SpeechMetrics, TurnCompleteResponse } from "@sevenlabs/shared-types";
+import type {
+  RubricScores,
+  SpeechMetrics,
+  TurnCompleteResponse,
+} from "@sevenlabs/shared-types";
 
 export type PracticePhase =
   | "idle"
   | "coach-speaking"
   | "your-turn"
   | "listening"
-  | "analyzing";
+  | "analyzing"
+  | "summary";
 
 export interface TurnRecord {
   clientTurnId: string;
   transcript: string;
   metrics: SpeechMetrics | null;
   coachText: string;
+  rubricScores: RubricScores | null;
 }
 
 export function usePracticeSession() {
@@ -73,10 +79,25 @@ export function usePracticeSession() {
 
   const stopSession = useCallback(() => {
     stopAudio();
-    setSessionId(null);
-    setPhase("idle");
     setError(null);
     setStarting(false);
+    setTurns((prev) => {
+      if (prev.length > 0) {
+        setPhase("summary");
+      } else {
+        setSessionId(null);
+        setPhase("idle");
+      }
+      return prev;
+    });
+  }, [stopAudio]);
+
+  const exitSummary = useCallback(() => {
+    stopAudio();
+    setSessionId(null);
+    setPhase("idle");
+    setTurns([]);
+    setError(null);
   }, [stopAudio]);
 
   const startSession = useCallback(async (mode: string = "delivery") => {
@@ -133,6 +154,7 @@ export function usePracticeSession() {
           transcript: data.transcript,
           metrics: data.metrics,
           coachText: data.coachText,
+          rubricScores: data.rubricScores ?? null,
         },
       ]);
       await playAudio(data.coachAudioUrl);
@@ -151,6 +173,7 @@ export function usePracticeSession() {
     starting,
     startSession,
     stopSession,
+    exitSummary,
     submitTurn,
   };
 }
