@@ -3,10 +3,28 @@ resource "aws_s3_bucket" "audio_bucket" {
   force_destroy = true
 }
 
-resource "aws_s3_bucket_versioning" "audio_bucket_versioning" {
+# Versioning intentionally left OFF. Practice audio doesn't need history, and
+# versioning would retain every overwrite/delete forever — slow storage creep
+# and you can never truly delete. Unversioned keeps cost near zero.
+
+# Auto-expire audio after 30 days (recordings have little long-term value) and
+# clean up failed multipart uploads, so storage can't grow into a real cost.
+resource "aws_s3_bucket_lifecycle_configuration" "audio_bucket_lifecycle" {
   bucket = aws_s3_bucket.audio_bucket.id
-  versioning_configuration {
+
+  rule {
+    id     = "expire-audio"
     status = "Enabled"
+
+    filter {} # all objects
+
+    expiration {
+      days = 30
+    }
+
+    abort_incomplete_multipart_upload {
+      days_after_initiation = 7
+    }
   }
 }
 
