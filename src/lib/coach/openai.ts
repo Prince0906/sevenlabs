@@ -80,6 +80,43 @@ export async function generateCoachText(
   return content;
 }
 
+export async function scoreAgainstRubric(
+  systemPrompt: string,
+  userMessage: string
+): Promise<unknown> {
+  const res = await fetch(`${OPENAI_BASE}/chat/completions`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${env.OPENAI_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userMessage },
+      ],
+      max_tokens: 500,
+      temperature: 0.3,
+      response_format: { type: "json_object" },
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`GPT rubric scoring failed: ${res.status} ${err}`);
+  }
+
+  const data = (await res.json()) as {
+    choices?: Array<{ message?: { content?: string } }>;
+  };
+  const content = (data.choices?.[0]?.message?.content ?? "").trim();
+  if (!content) {
+    throw new Error("OpenAI returned empty rubric scoring response");
+  }
+  return JSON.parse(content);
+}
+
 export async function synthesizeCoachSpeech(text: string): Promise<Buffer> {
   const res = await fetch(`${OPENAI_BASE}/audio/speech`, {
     method: "POST",

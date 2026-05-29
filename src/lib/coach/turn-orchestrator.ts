@@ -1,14 +1,21 @@
 import {
   analyzeSpeech,
   buildCoachUserMessage,
+  buildRubricUserMessage,
   getCoachConfig,
   getRandomPrompt,
+  getRubricForCompany,
 } from "@sevenlabs/coach-core";
-import type { TurnCompleteResponse } from "@sevenlabs/shared-types";
+import {
+  rubricScoresSchema,
+  type RubricScores,
+  type TurnCompleteResponse,
+} from "@sevenlabs/shared-types";
 import { prisma } from "@/lib/db";
 import { uploadAudio, getSignedUrl } from "@/lib/s3";
 import {
   generateCoachText,
+  scoreAgainstRubric,
   synthesizeCoachSpeech,
   transcribeAudio,
 } from "./openai";
@@ -98,6 +105,8 @@ export async function processTurn(
     });
 
     const metrics = (existing.metricsJson ?? null) as TurnCompleteResponse["metrics"] | null;
+    const rubricScores =
+      (existing.rubricScoresJson as RubricScores | null) ?? null;
     let coachAudioUrl: string | undefined;
     if (coachTurn?.audioKey) {
       coachAudioUrl = await getSignedUrl(coachTurn.audioKey);
@@ -110,6 +119,7 @@ export async function processTurn(
       metrics,
       coachText: coachTurn?.coachText ?? "",
       coachAudioUrl,
+      rubricScores,
       duplicate: true,
     };
   }
@@ -146,6 +156,31 @@ export async function processTurn(
     buildCoachUserMessage(transcript || "(no speech detected)", metrics, turnNumber, session.mode)
   );
 
+  let rubricScores: RubricScores | null = null;
+  if (session.mode === "interview" && transcript) {
+    const user = await prisma.user.findUnique({
+      where: { id: input.userId },
+      select: { targetCompanies: true },
+    });
+    const company = user?.targetCompanies?.[0];
+    const rubric = company ? getRubricForCompany(company) : null;
+    if (rubric) {
+      try {
+        const raw = await scoreAgainstRubric(
+          rubric.systemPrompt,
+          buildRubricUserMessage(transcript)
+        );
+        rubricScores = rubricScoresSchema.parse(raw);
+        await prisma.practiceTurn.update({
+          where: { id: userTurn.id },
+          data: { rubricScoresJson: rubricScores },
+        });
+      } catch (err) {
+        console.error("[rubric-scoring]", err);
+      }
+    }
+  }
+
   let coachAudioUrl: string | undefined;
   let coachAudioKey: string | undefined;
   try {
@@ -173,6 +208,7 @@ export async function processTurn(
     metrics,
     coachText,
     coachAudioUrl,
+    rubricScores,
   };
 }
 
@@ -185,8 +221,7 @@ export async function listSessions(userId: string) {
       turns: {
         where: { role: "USER" },
         orderBy: { createdAt: "asc" },
-        take: 1,
-        select: { transcript: true, metricsJson: true },
+        select: { transcript: true, metricsJson: true, rubricScoresJson: true },
       },
       _count: { select: { turns: true } },
     },

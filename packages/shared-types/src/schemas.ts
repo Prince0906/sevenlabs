@@ -38,6 +38,20 @@ export const turnCompleteRequestSchema = z.object({
   clientTurnId: z.string().min(1),
 });
 
+export const signalLevelSchema = z.enum(["NEW_GRAD", "SDE_II", "SENIOR"]);
+
+export const matchedLPSchema = z.object({
+  name: z.string(),
+  signalLevel: signalLevelSchema,
+  evidence: z.string(),
+});
+
+export const rubricScoresSchema = z.object({
+  matchedLPs: z.array(matchedLPSchema).max(3),
+  overallSignal: signalLevelSchema,
+  weakestArea: z.string(),
+});
+
 export const turnCompleteResponseSchema = z.object({
   turnId: z.string(),
   transcript: z.string(),
@@ -46,6 +60,7 @@ export const turnCompleteResponseSchema = z.object({
   coachText: z.string(),
   coachAudioUrl: z.string().optional(),
   duplicate: z.boolean().optional(),
+  rubricScores: rubricScoresSchema.nullable().optional(),
 });
 
 export const wsClientTurnAudioSchema = z.object({
@@ -88,4 +103,7 @@ export const wsServerErrorSchema = z.object({
 
 export type WordTimestamp = z.infer<typeof wordTimestampSchema>;
 export type SpeechMetrics = z.infer<typeof speechMetricsSchema>;
+export type SignalLevel = z.infer<typeof signalLevelSchema>;
+export type MatchedLP = z.infer<typeof matchedLPSchema>;
+export type RubricScores = z.infer<typeof rubricScoresSchema>;
 export type TurnCompleteResponse = z.infer<typeof turnCompleteResponseSchema>;
