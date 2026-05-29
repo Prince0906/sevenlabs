@@ -24,6 +24,9 @@ model User {
   image         String?
   passwordHash  String?
 
+  targetCompanies String[] @default(["amazon"])
+  interviewDate   DateTime?
+
   accounts Account[]
   sessions Session[]
 
@@ -108,12 +111,13 @@ model PracticeTurn {
   sessionId String
   session   PracticeSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
-  role         PracticeTurnRole
-  clientTurnId String?
-  transcript   String?
-  metricsJson  Json?
-  audioKey     String?
-  coachText    String?
+  role             PracticeTurnRole
+  clientTurnId     String?
+  transcript       String?
+  metricsJson      Json?
+  rubricScoresJson Json?
+  audioKey         String?
+  coachText        String?
 
   createdAt DateTime @default(now())
 
