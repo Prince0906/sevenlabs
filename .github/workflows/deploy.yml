@@ -2,22 +2,17 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
 
 permissions:
   contents: read
   checks: write
-  actions: read
+  packages: write
 
-env:
-  AWS_REGION: ${{ secrets.AWS_REGION }}
-
-# ───────────────────────────────────────────────────────────────────
-# Phase 1 — Code Quality & Testing
-# ───────────────────────────────────────────────────────────────────
 jobs:
+  # ── Phase 1 — Lint ────────────────────────────────────────────────
   lint:
     name: "Phase 1a - Lint"
     runs-on: ubuntu-latest
@@ -26,14 +21,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
+          cache: "npm"
+      - run: npm ci
+      - run: npm run lint
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run ESLint
-        run: npm run lint
-
+  # ── Phase 1 — Tests ───────────────────────────────────────────────
   test:
     name: "Phase 1b - Tests"
     runs-on: ubuntu-latest
@@ -42,16 +34,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
+          cache: "npm"
+      - run: npm ci
       - name: Run unit & integration tests
         run: npm run test:ci
         env:
           SKIP_ENV_VALIDATION: "true"
-
       - name: Upload test reports
         uses: actions/upload-artifact@v4
         if: always()
@@ -59,96 +47,11 @@ jobs:
           name: test-reports
           path: test-reports/
 
-      - name: Publish test results
-        uses: dorny/test-reporter@v1
-        if: always()
-        with:
-          name: "Vitest Results"
-          path: test-reports/junit.xml
-          reporter: java-junit
-          fail-on-error: true
-
-# ───────────────────────────────────────────────────────────────────
-# Phase 2 — Infrastructure Provisioning (Terraform)
-# ───────────────────────────────────────────────────────────────────
-  terraform:
-    name: "Phase 2 - Infrastructure (Terraform)"
-    needs: [lint, test]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    env:
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
-      TF_VAR_aws_region: ${{ secrets.AWS_REGION }}
-      TF_VAR_database_url: ${{ secrets.DATABASE_URL }}
-      TF_VAR_openai_api_key: ${{ secrets.OPENAI_API_KEY }}
-      # Auth.js
-      TF_VAR_auth_secret: ${{ secrets.AUTH_SECRET }}
-      TF_VAR_auth_url: ${{ secrets.AUTH_URL }}
-      TF_VAR_google_client_id: ${{ secrets.GOOGLE_CLIENT_ID }}
-      TF_VAR_google_client_secret: ${{ secrets.GOOGLE_CLIENT_SECRET }}
-      TF_VAR_aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      TF_VAR_aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      TF_VAR_aws_session_token: ${{ secrets.AWS_SESSION_TOKEN }}
-    outputs:
-      ecr_repository_url: ${{ steps.tf_output.outputs.ecr_url }}
-      s3_bucket_name: ${{ steps.tf_output.outputs.s3_bucket }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_wrapper: false
-
-      - name: Ensure Terraform state S3 bucket exists
-        run: |
-          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-          BUCKET_NAME="sevenlabs-tfstate-bucket-${ACCOUNT_ID}"
-          echo "TF_STATE_BUCKET=${BUCKET_NAME}" >> $GITHUB_ENV
-
-          if aws s3api head-bucket --bucket "$BUCKET_NAME" 2>/dev/null; then
-            echo "✅ State bucket $BUCKET_NAME already exists."
-          else
-            echo "📦 Creating state bucket $BUCKET_NAME..."
-            aws s3 mb "s3://${BUCKET_NAME}" --region "${{ secrets.AWS_REGION }}"
-            aws s3api put-bucket-versioning \
-              --bucket "$BUCKET_NAME" \
-              --versioning-configuration Status=Enabled
-          fi
-
-      - name: Terraform Init
-        working-directory: ./terraform
-        run: terraform init -backend-config="bucket=${{ env.TF_STATE_BUCKET }}"
-
-      - name: Terraform Validate
-        working-directory: ./terraform
-        run: terraform validate
-
-      - name: Terraform Plan
-        working-directory: ./terraform
-        run: terraform plan -out=tfplan
-
-      - name: Terraform Apply
-        working-directory: ./terraform
-        run: terraform apply -auto-approve tfplan
-
-      - name: Export Terraform outputs
-        id: tf_output
-        working-directory: ./terraform
-        run: |
-          echo "ecr_url=$(terraform output -raw ecr_repository_url)" >> $GITHUB_OUTPUT
-          echo "s3_bucket=$(terraform output -raw s3_bucket_name)" >> $GITHUB_OUTPUT
-
-# ───────────────────────────────────────────────────────────────────
-# Phase 2.5 — Apply Prisma database migrations
-# ───────────────────────────────────────────────────────────────────
-# Runs after Terraform (so infra is in place) and before the new image is
-# deployed (so the schema is current before the new code starts serving
-# traffic). `prisma migrate deploy` is idempotent — no-op if there are no
-# new migrations to apply.
+  # ── Phase 2 — Apply DB migrations (idempotent) ────────────────────
+  # Runs before deploy so the schema is current before the new code serves.
   migrate:
-    name: "Phase 2.5 - Apply DB migrations"
-    needs: terraform
+    name: "Phase 2 - DB migrations"
+    needs: [lint, test]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     env:
@@ -158,92 +61,75 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
+          cache: "npm"
+      - run: npm ci
+      - run: npx prisma migrate deploy
+      - run: npx prisma migrate status
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Apply Prisma migrations
-        run: npx prisma migrate deploy
-
-      - name: Verify migration status
-        run: npx prisma migrate status
-
-# ───────────────────────────────────────────────────────────────────
-# Phase 3 — Docker Build & ECS Deployment
-# ───────────────────────────────────────────────────────────────────
+  # ── Phase 3 — Build image, push to GHCR, deploy to the EC2 box ────
   deploy:
-    name: "Phase 3 - Docker Build & ECS Deploy"
+    name: "Phase 3 - Build & deploy to EC2"
     needs: migrate
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    env:
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
+      - name: Compute lowercase image name
+        id: img
+        run: echo "name=ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
 
-      - name: Build, tag, and push Docker image
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: sevenlabs-repo
-          IMAGE_TAG: ${{ github.sha }}
-        run: |
-          docker build \
-            -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
-            -t $ECR_REGISTRY/$ECR_REPOSITORY:latest \
-            .
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Update ECS task definition with new image
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: sevenlabs-repo
-          IMAGE_TAG: ${{ github.sha }}
-        run: |
-          # Get current task definition
-          TASK_DEF=$(aws ecs describe-task-definition \
-            --task-definition sevenlabs-task \
-            --region ${{ secrets.AWS_REGION }} \
-            --query 'taskDefinition' \
-            --output json)
+      - name: Build & push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ steps.img.outputs.name }}:latest
+            ${{ steps.img.outputs.name }}:${{ github.sha }}
 
-          # Update the image in the container definition
-          NEW_TASK_DEF=$(echo $TASK_DEF | \
-            jq --arg IMAGE "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" \
-            '.containerDefinitions[0].image = $IMAGE |
-             del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)')
+      - name: Copy compose + Caddyfile to the box
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "deploy/docker-compose.yml,deploy/Caddyfile"
+          target: "/opt/sevenlabs"
+          strip_components: 1
 
-          # Register the new task definition
-          NEW_TASK_ARN=$(aws ecs register-task-definition \
-            --region ${{ secrets.AWS_REGION }} \
-            --cli-input-json "$NEW_TASK_DEF" \
-            --query 'taskDefinition.taskDefinitionArn' \
-            --output text)
-
-          echo "📋 New task definition: $NEW_TASK_ARN"
-          echo "NEW_TASK_ARN=$NEW_TASK_ARN" >> $GITHUB_ENV
-
-      - name: Deploy to ECS Fargate
-        run: |
-          aws ecs update-service \
-            --cluster sevenlabs-cluster \
-            --service sevenlabs-service \
-            --task-definition $NEW_TASK_ARN \
-            --force-new-deployment \
-            --region ${{ secrets.AWS_REGION }}
-
-      - name: Verify ECS service is running
-        run: |
-          echo "⏳ Waiting for ECS service to stabilize..."
-          aws ecs wait services-stable \
-            --cluster sevenlabs-cluster \
-            --services sevenlabs-service \
-            --region ${{ secrets.AWS_REGION }} || echo "⚠️ Service did not stabilize within timeout (this is normal for first deploy)"
-          echo "✅ Deployment triggered successfully!"
+      - name: Write env + pull + restart
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            set -euo pipefail
+            cd /opt/sevenlabs
+            cat > .env <<'ENVEOF'
+            NODE_ENV=production
+            PORT=3000
+            APP_IMAGE=${{ steps.img.outputs.name }}:${{ github.sha }}
+            SITE_ADDRESS=${{ secrets.SITE_ADDRESS }}
+            DATABASE_URL=${{ secrets.DATABASE_URL }}
+            OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+            AUTH_SECRET=${{ secrets.AUTH_SECRET }}
+            AUTH_URL=${{ secrets.AUTH_URL }}
+            GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
+            GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
+            S3_BUCKET_NAME=${{ secrets.S3_BUCKET_NAME }}
+            AWS_REGION=${{ secrets.AWS_REGION }}
+            AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
+            AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            ENVEOF
+            docker compose pull
+            docker compose up -d
+            docker image prune -f

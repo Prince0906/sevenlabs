@@ -8,55 +8,20 @@ variable "project_name" {
   default = "sevenlabs"
 }
 
-variable "database_url" {
-  type      = string
-  sensitive = true
-  default   = ""
-}
-
-variable "openai_api_key" {
-  type      = string
-  sensitive = true
-  default   = ""
-}
-
-# Auth.js (NextAuth v5)
-variable "auth_secret" {
-  type      = string
-  sensitive = true
-  default   = ""
-}
-
-variable "auth_url" {
+# t3.micro is Free Tier eligible (750 hrs/mo for the first 12 months).
+# The app is built in CI and only *run* on the box, so 1 GB RAM is plenty.
+variable "instance_type" {
   type    = string
-  default = ""
+  default = "t3.micro"
 }
 
-variable "google_client_id" {
-  type    = string
-  default = ""
+variable "ssh_public_key" {
+  type        = string
+  description = "SSH public key contents for access to the app box (e.g. file(\"~/.ssh/aloud.pub\"))."
 }
 
-variable "google_client_secret" {
-  type      = string
-  sensitive = true
-  default   = ""
-}
-
-variable "aws_access_key_id" {
-  type      = string
-  sensitive = true
-  default   = ""
-}
-
-variable "aws_secret_access_key" {
-  type      = string
-  sensitive = true
-  default   = ""
-}
-
-variable "aws_session_token" {
-  type      = string
-  sensitive = true
-  default   = ""
+variable "admin_ssh_cidr" {
+  type        = string
+  description = "CIDR allowed to SSH in. Set to your IP (e.g. 1.2.3.4/32). Defaults open — tighten this."
+  default     = "0.0.0.0/0"
 }

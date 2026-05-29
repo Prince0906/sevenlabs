@@ -1,0 +1,6 @@
+# SITE_ADDRESS=":80"            -> HTTP only on the public IP (interim, no domain)
+# SITE_ADDRESS="app.example.com" -> Caddy obtains a Let's Encrypt cert automatically
+{$SITE_ADDRESS} {
+	encode gzip
+	reverse_proxy app:3000
+}

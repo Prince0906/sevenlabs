@@ -5,26 +5,23 @@ terraform {
       version = "~> 5.0"
     }
   }
-  backend "s3" {
-    # The bucket name will be passed dynamically during terraform init via GitHub Actions
-    key    = "state/terraform.tfstate"
-    region = "us-east-1"
-  }
+  # Local state keeps a solo, low-cost setup simple (no state bucket to bootstrap).
+  # To collaborate or harden later: create an S3 bucket and switch to an
+  # `backend "s3"` block, then `terraform init -migrate-state`.
 }
 
 provider "aws" {
   region = var.aws_region
 }
 
-# Fetch current account ID for dynamic ARNs
 data "aws_caller_identity" "current" {}
 
-# Use default VPC since AWS Learner Lab restricts VPC creation
+# Use the account's default VPC + public subnets — no custom networking and no
+# NAT gateway (a NAT would add ~$32/mo). The app box gets a public IP directly.
 data "aws_vpc" "default" {
   default = true
 }
 
-# Fetch subnets for the default VPC
 data "aws_subnets" "default" {
   filter {
     name   = "vpc-id"

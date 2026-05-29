@@ -1,0 +1,30 @@
+# Runs on the EC2 box. CI ships this file + the Caddyfile + a generated .env,
+# then runs `docker compose pull && docker compose up -d`.
+# Variable substitution (${...}) and the app's env both come from ./.env.
+
+services:
+  app:
+    image: ${APP_IMAGE:-ghcr.io/prince0906/sevenlabs:latest}
+    restart: unless-stopped
+    env_file: .env
+    expose:
+      - "3000"
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      # A bare ":80" serves HTTP on the public IP (interim, no domain yet).
+      # Set SITE_ADDRESS to your domain (e.g. app.example.com) for auto-HTTPS.
+      SITE_ADDRESS: ${SITE_ADDRESS:-:80}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:
