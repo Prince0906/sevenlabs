@@ -181,7 +181,17 @@ export async function mintRealtimeEphemeral(params: {
         type: "realtime",
         model: env.OPENAI_REALTIME_MODEL,
         instructions: params.instructions,
-        audio: { output: { voice: params.voice } },
+        audio: {
+          output: { voice: params.voice },
+          // Enable input transcription + server VAD AT MINT so it can't be
+          // forgotten or raced by the client. Without it OpenAI emits no
+          // input_audio_transcription.completed events and the judge would
+          // score an empty interview. (REALTIME_CLIENT_PLAN.md decision 2.)
+          input: {
+            transcription: { model: "gpt-4o-transcribe" },
+            turn_detection: { type: "server_vad" },
+          },
+        },
       },
       safety_identifier: params.safetyIdentifier,
     }),

@@ -9,7 +9,13 @@ import { mintRealtimeEphemeral, ProviderError } from "@/lib/coach/openai";
 import { spendCentsForElapsed, isOverCeiling } from "@/lib/mock/spend";
 
 const bodySchema = z.object({
-  reason: z.enum(["ttl_expiry", "resume_interrupted"]).default("ttl_expiry"),
+  // ttl_expiry / seat_handoff re-mint a LIVE session (no flip, no recharge);
+  // resume_interrupted flips INTERRUPTED -> LIVE. seatIndex selects which panel
+  // seat's persona+voice to mint (handoff swaps voice mid-panel).
+  reason: z
+    .enum(["ttl_expiry", "resume_interrupted", "seat_handoff"])
+    .default("ttl_expiry"),
+  seatIndex: z.number().int().nonnegative().default(0),
 });
 
 function safetyId(userId: string): string {
@@ -42,7 +48,7 @@ export async function POST(
     }
 
     const { id } = await params;
-    const { reason } = bodySchema.parse(
+    const { reason, seatIndex } = bodySchema.parse(
       await request.json().catch(() => ({}))
     );
 
@@ -52,7 +58,7 @@ export async function POST(
         status: true,
         startedAt: true,
         scenario: {
-          select: { panelSeats: { orderBy: { seatOrder: "asc" }, take: 1 } },
+          select: { panelSeats: { orderBy: { seatOrder: "asc" } } },
         },
       },
     });
@@ -84,19 +90,19 @@ export async function POST(
       }
     }
 
-    const lead = mock.scenario.panelSeats[0];
-    if (!lead) {
+    const seat = mock.scenario.panelSeats[seatIndex];
+    if (!seat) {
       return NextResponse.json({ error: "Scenario unavailable" }, { status: 404 });
     }
     const instructions =
       reason === "resume_interrupted"
-        ? `${lead.systemPrompt}\n\nThe session was briefly interrupted and is resuming. Pick up naturally from where the conversation left off.`
-        : lead.systemPrompt;
+        ? `${seat.systemPrompt}\n\nThe session was briefly interrupted and is resuming. Pick up naturally from where the conversation left off.`
+        : seat.systemPrompt;
 
     try {
       const ephemeral = await mintRealtimeEphemeral({
         instructions,
-        voice: lead.voice,
+        voice: seat.voice,
         safetyIdentifier: safetyId(userId),
       });
       // Resume flips INTERRUPTED→LIVE only if it's still interrupted (CAS).

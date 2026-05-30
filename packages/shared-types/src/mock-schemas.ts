@@ -90,6 +90,102 @@ export const turnEventsSchema = z.object({
   realtimeMsConsumed: z.number().nonnegative().optional(),
 });
 
+// ── Client-facing request/response contracts for /api/mock/* ────────────────
+// These let the browser client import typed contracts. Response schemas mirror
+// what the routes actually return; keep them in lockstep with the routes.
+
+/** POST /sessions/:id/mint body (mirrors the route's bodySchema). */
+export const mintRequestSchema = z.object({
+  reason: z
+    .enum(["ttl_expiry", "resume_interrupted", "seat_handoff"])
+    .default("ttl_expiry"),
+  seatIndex: z.number().int().nonnegative().default(0),
+});
+
+/** One panel seat as returned to the browser by POST /sessions. */
+export const panelSeatPublicSchema = z.object({
+  id: z.string(),
+  personaName: z.string(),
+  ownedLPs: z.array(z.string()),
+  isBarRaiser: z.boolean(),
+  voice: z.string(),
+});
+
+/** The config-locked, use-once ephemeral the browser opens WebRTC with. */
+export const realtimeEphemeralSchema = z.object({
+  value: z.string(),
+  expiresAt: z.number(),
+  model: z.string(),
+  realtimeUrl: z.string(),
+});
+
+/** POST /sessions success body. */
+export const createMockSessionResponseSchema = z.object({
+  sessionId: z.string(),
+  seats: z.array(panelSeatPublicSchema),
+  ephemeral: realtimeEphemeralSchema,
+  spend: z.object({
+    sessionCeilingUsd: z.number(),
+    maxDurationSec: z.number(),
+    estimatedUsd: z.number(),
+  }),
+});
+
+/** GET /sessions/:id rehydrate body. maxSeq is -1 when no turns exist yet. */
+export const statusResponseSchema = z.object({
+  status: mockStatusSchema,
+  scenarioId: z.string(),
+  maxSeq: z.number().int(),
+});
+
+/** POST /sessions/:id/turns success body. metrics is null when word timings
+ * are absent (the live realtime path sends words:[] -> metrics:null). */
+export const turnResponseSchema = z.object({
+  turnId: z.string(),
+  seq: z.number().int().nonnegative(),
+  duplicate: z.boolean(),
+  metrics: z.unknown().nullable(),
+  sessionExpired: z.boolean().optional(),
+});
+
+/** The persisted reportJson returned by GET /report when COMPLETED. Matches
+ * src/lib/mock/panel-orchestrator.ts reportJson EXACTLY — do not let it drift.
+ * `confidence` is the single composure score (0-100); in live mode it can be 0
+ * when no USER-turn delivery metrics survived (decision 5) — render gracefully. */
+export const mockReportDimensionSchema = z.object({
+  key: z.string(),
+  seatId: z.string().nullable(),
+  signalLevel: signalLevelSchema,
+  score: z.number().int().min(0).max(100),
+  evidence: z.string(),
+  gap: z.string(),
+});
+
+export const mockReportSchema = z.object({
+  verdict: panelVerdictSchema,
+  confidence: z.number().int().min(0).max(100),
+  dimensions: z.array(mockReportDimensionSchema),
+  oneRep: z
+    .object({
+      questionId: z.string(),
+      lp: z.string(),
+      text: z.string(),
+      estMinutes: z.number(),
+    })
+    .nullable(),
+});
+
+export type MintRequest = z.infer<typeof mintRequestSchema>;
+export type PanelSeatPublic = z.infer<typeof panelSeatPublicSchema>;
+export type RealtimeEphemeral = z.infer<typeof realtimeEphemeralSchema>;
+export type CreateMockSessionResponse = z.infer<
+  typeof createMockSessionResponseSchema
+>;
+export type StatusResponse = z.infer<typeof statusResponseSchema>;
+export type TurnResponse = z.infer<typeof turnResponseSchema>;
+export type MockReport = z.infer<typeof mockReportSchema>;
+export type MockReportDimension = z.infer<typeof mockReportDimensionSchema>;
+
 export type Inclination = z.infer<typeof inclinationSchema>;
 export type ScoreDimensionT = z.infer<typeof scoreDimensionSchema>;
 export type MockStatusT = z.infer<typeof mockStatusSchema>;
