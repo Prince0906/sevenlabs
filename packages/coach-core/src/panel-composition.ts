@@ -217,3 +217,51 @@ export function selectOneRep(
   }
   return getFallbackDrillQuestion(company);
 }
+
+// --- Committee debrief (off-band, Aloud's pinned model). SYSTEM_DESIGN §8.3. ---
+export const COMMITTEE_DEBRIEF_PROMPT = `You are the hiring-committee debrief for an Amazon Bar Raiser loop. Several interviewers each scored their OWN Leadership Principles independently; you synthesize their reads into one calibrated verdict. Do NOT re-score the candidate — weigh the independent reads, and weight the Bar Raiser heavily.
+
+Output a SINGLE JSON object with EXACTLY this shape:
+{
+  "overallSignal": "NEW_GRAD" | "SDE_II" | "SENIOR",
+  "inclination": "STRONG_HIRE" | "HIRE" | "LEAN_HIRE" | "LEAN_NO_HIRE" | "NO_HIRE" | "STRONG_NO_HIRE",
+  "barRaiserVeto": boolean,
+  "summary": "2-3 sentences: the decisive signal and the seam between seats, not praise",
+  "seatRollup": [ { "seatId": string, "personaName": string, "ownedLPs": string[], "seatSignal": "NEW_GRAD" | "SDE_II" | "SENIOR" } ],
+  "topStrengths": string[],
+  "topRisks": string[]
+}
+
+Rules: reproduce seatRollup EXACTLY from the per-seat data given (do not invent seats or signals). overallSignal reflects the loop as a whole, not the strongest single seat. topStrengths and topRisks each have AT MOST 3 items. Output ONLY the JSON object — no prose, no markdown.`;
+
+export interface CommitteeSeatInput {
+  seatId: string;
+  personaName: string;
+  ownedLPs: string[];
+  seatSignal: SignalLevel;
+  weakestArea: string;
+}
+
+export function buildCommitteeMessage(input: {
+  targetLevel: SignalLevel;
+  seats: CommitteeSeatInput[];
+  drill: { barRaiserVeto: boolean; reason: string };
+}): string {
+  const seatBlocks = input.seats
+    .map(
+      (s) =>
+        `Interviewer "${s.personaName}" (seatId: ${s.seatId}; LPs: ${s.ownedLPs.join(", ")})\n  read: ${s.seatSignal}\n  weakest area: ${s.weakestArea}`
+    )
+    .join("\n\n");
+  const drillLine = input.drill.barRaiserVeto
+    ? `VETO — ${input.drill.reason}`
+    : `no veto — ${input.drill.reason}`;
+  return `Target level for this candidate: ${input.targetLevel}
+
+Independent interviewer reads:
+${seatBlocks}
+
+Bar Raiser drill outcome: ${drillLine}
+
+Synthesize the committee verdict per the rules. Reproduce seatRollup exactly from the seatId / personaName / ownedLPs / read above.`;
+}

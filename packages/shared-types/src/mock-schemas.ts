@@ -80,15 +80,15 @@ export const confidenceMetricSchema = z.object({
   difficultyApplied: z.number().int().min(1).max(5).nullable(),
 });
 
-/** Per-turn events the browser checkpoints from the realtime session. */
-export const turnEventsSchema = z
-  .object({
-    interruptions: z.number().int().nonnegative().optional(),
-    latencyToAnswerMs: z.number().nonnegative().optional(),
-    bargeIns: z.number().int().nonnegative().optional(),
-    realtimeMsConsumed: z.number().nonnegative().optional(),
-  })
-  .passthrough();
+/** Per-turn events the browser checkpoints from the realtime session.
+ * Strict (no passthrough) so the type is clean JSON for Prisma; extend explicitly
+ * (e.g. barge-in timestamp arrays) when P2 Resilience needs richer capture. */
+export const turnEventsSchema = z.object({
+  interruptions: z.number().int().nonnegative().optional(),
+  latencyToAnswerMs: z.number().nonnegative().optional(),
+  bargeIns: z.number().int().nonnegative().optional(),
+  realtimeMsConsumed: z.number().nonnegative().optional(),
+});
 
 export type Inclination = z.infer<typeof inclinationSchema>;
 export type ScoreDimensionT = z.infer<typeof scoreDimensionSchema>;

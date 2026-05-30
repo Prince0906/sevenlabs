@@ -30,9 +30,12 @@ export {
   finalizeVerdict,
   computeComposure,
   selectOneRep,
+  COMMITTEE_DEBRIEF_PROMPT,
+  buildCommitteeMessage,
   DIFFICULTY_TO_INT,
   DIFFICULTY_WEIGHT,
   type SeatRubricOutput,
   type DimensionScoreInsert,
   type TurnLite,
+  type CommitteeSeatInput,
 } from "./panel-composition";

@@ -8,6 +8,8 @@ import {
   finalizeVerdict,
   computeComposure,
   selectOneRep,
+  buildCommitteeMessage,
+  COMMITTEE_DEBRIEF_PROMPT,
   type SeatRubricOutput,
 } from "../panel-composition";
 import { getDrillQuestionStrict } from "../question-bank";
@@ -175,5 +177,30 @@ describe("selectOneRep (drill fallback)", () => {
     ]);
     expect(rep).not.toBeNull();
     expect(rep!.lp).toBe("Ownership");
+  });
+});
+
+describe("committee debrief", () => {
+  it("the prompt pins the verdict JSON shape", () => {
+    expect(COMMITTEE_DEBRIEF_PROMPT).toContain("seatRollup");
+    expect(COMMITTEE_DEBRIEF_PROMPT).toContain("inclination");
+  });
+  it("the message embeds each seat read + the Bar Raiser outcome", () => {
+    const msg = buildCommitteeMessage({
+      targetLevel: "SENIOR",
+      seats: [
+        {
+          seatId: "s1",
+          personaName: "Priya",
+          ownedLPs: ["Ownership"],
+          seatSignal: "SDE_II",
+          weakestArea: "name the decision you made",
+        },
+      ],
+      drill: { barRaiserVeto: true, reason: "did not hold" },
+    });
+    expect(msg).toContain("Priya");
+    expect(msg).toContain("SENIOR");
+    expect(msg).toContain("VETO");
   });
 });

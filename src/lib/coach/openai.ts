@@ -95,10 +95,12 @@ export async function generateCoachText(
 
 export async function scoreAgainstRubric(
   systemPrompt: string,
-  userMessage: string
+  userMessage: string,
+  signal?: AbortSignal
 ): Promise<unknown> {
   const res = await fetch(`${OPENAI_BASE}/chat/completions`, {
     method: "POST",
+    signal,
     headers: {
       Authorization: `Bearer ${env.OPENAI_API_KEY}`,
       "Content-Type": "application/json",
@@ -217,10 +219,12 @@ export async function mintRealtimeEphemeral(params: {
  */
 export async function judgeCommittee(
   systemPrompt: string,
-  userMessage: string
+  userMessage: string,
+  signal?: AbortSignal
 ): Promise<unknown> {
   const res = await fetch(`${OPENAI_BASE}/chat/completions`, {
     method: "POST",
+    signal,
     headers: {
       Authorization: `Bearer ${env.OPENAI_API_KEY}`,
       "Content-Type": "application/json",
