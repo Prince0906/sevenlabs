@@ -37,6 +37,7 @@ import {
     Home,
     Headphones,
     Mic,
+    Users,
     LogOut,
     ChevronsUpDown,
 } from "lucide-react";
@@ -154,6 +155,7 @@ export function DashboardSidebar() {
     const mainMenuItems: MenuItem[] = [
         { title: "Dashboard", url: "/dashboard", icon: Home },
         { title: "Practice", url: "/practice", icon: Mic },
+        { title: "Bar-Raiser panel", url: "/mock", icon: Users },
     ];
 
     const othersMenuItems: MenuItem[] = [
