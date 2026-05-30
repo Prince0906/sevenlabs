@@ -16,6 +16,8 @@ const TTL_GUARD_MS = 20_000; // re-mint this long before the ephemeral expires
 const CONFERRING_BEAT_MS = 500; // "panel is conferring" handoff beat
 const MAX_RECONNECTS = 3;
 const SPURIOUS_COACH_MIN_WORDS = 3;
+const ICE_DISCONNECT_GRACE_MS = 4000; // ICE "disconnected" is flappy; let it self-heal
+const MAX_POLL_ERRORS = 5; // bounded report-poll retries before giving up
 
 /**
  * The full client orchestration: create -> per-seat connect/handoff -> wrap ->
@@ -55,6 +57,7 @@ export function useMockPanel() {
   const micLevelRef = useRef<number>(0);
   const speakingRef = useRef<boolean>(false);
   const handledPhaseRef = useRef<string>("");
+  const iceDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const activeSeatId = useCallback(
     () => seatsRef.current[stateRef.current.activeSeatIndex]?.id ?? null,
@@ -100,6 +103,10 @@ export function useMockPanel() {
   }, []);
 
   const closePeer = useCallback(() => {
+    if (iceDebounceRef.current) {
+      clearTimeout(iceDebounceRef.current);
+      iceDebounceRef.current = null;
+    }
     peerRef.current?.close();
     peerRef.current = null;
   }, []);
@@ -139,6 +146,7 @@ export function useMockPanel() {
     const ephemeral = ephemeralRef.current;
     const micStream = micStreamRef.current;
     if (!ephemeral || !micStream) return;
+    closePeer(); // never leak a prior peer (handoff/re-mint/reconnect/start re-entry)
     try {
       const peer = await connectRealtime({
         ephemeral,
@@ -184,16 +192,41 @@ export function useMockPanel() {
             dispatch({ type: "COACH_RESPONSE_DONE", cancelled });
           },
           onConnectionStateChange: (st) => {
-            if (st === "disconnected" || st === "failed") dispatch({ type: "DISCONNECTED" });
+            if (st === "connected" || st === "completed") {
+              if (iceDebounceRef.current) {
+                clearTimeout(iceDebounceRef.current);
+                iceDebounceRef.current = null;
+              }
+            } else if (st === "failed") {
+              if (iceDebounceRef.current) {
+                clearTimeout(iceDebounceRef.current);
+                iceDebounceRef.current = null;
+              }
+              dispatch({ type: "DISCONNECTED" });
+            } else if (st === "disconnected" && !iceDebounceRef.current) {
+              // "disconnected" is transient/flappy — only treat as a real drop
+              // if it hasn't self-healed after a grace window.
+              iceDebounceRef.current = setTimeout(() => {
+                iceDebounceRef.current = null;
+                const ice = peerRef.current?.pc.iceConnectionState;
+                if (ice === "disconnected" || ice === "failed") {
+                  dispatch({ type: "DISCONNECTED" });
+                }
+              }, ICE_DISCONNECT_GRACE_MS);
+            }
           },
-          onError: () => {},
+          onError: () => {
+            // A server `error` event or data-channel fault that didn't flip ICE.
+            if (stateRef.current.reachedLive) dispatch({ type: "DISCONNECTED" });
+            else dispatch({ type: "CREATE_ERROR", message: "Connection error" });
+          },
         },
       });
       peerRef.current = peer;
     } catch {
       dispatch({ type: "DISCONNECTED" });
     }
-  }, [enqueueUser, finalizeCoach]);
+  }, [enqueueUser, finalizeCoach, closePeer]);
 
   // ── phase-entry side effects ────────────────────────────────────────────────
   const doCreate = useCallback(async () => {
@@ -329,28 +362,45 @@ export function useMockPanel() {
   }, [closePeer, stopMic]);
 
   const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pollErrorsRef = useRef<number>(0);
   const doPollRef = useRef<() => void>(() => {});
   const doPoll = useCallback(async () => {
     const s = stateRef.current;
     if (!s.sessionId) return;
     const r = await api.getReport(s.sessionId, s.reportEtag);
     if (r.kind === "completed") {
+      pollErrorsRef.current = 0;
       dispatch({ type: "REPORT_COMPLETED", report: r.report, etag: r.etag });
     } else if (r.kind === "failed") {
       dispatch({ type: "REPORT_FAILED", reason: r.reason });
     } else if (r.kind === "debrief") {
+      pollErrorsRef.current = 0;
       pollTimerRef.current = setTimeout(() => doPollRef.current(), r.pollAfterMs);
-    } else if (r.kind === "not-modified") {
-      // already have it
+    } else if (r.kind === "error") {
+      // Transient fetch error: bounded retry so we never strand a blank report.
+      pollErrorsRef.current += 1;
+      if (pollErrorsRef.current >= MAX_POLL_ERRORS) {
+        dispatch({ type: "REPORT_FAILED", reason: "judgment_timeout" });
+      } else {
+        pollTimerRef.current = setTimeout(() => doPollRef.current(), 2000);
+      }
     }
+    // not-modified: keep the report we already have
   }, []);
   useEffect(() => {
     doPollRef.current = () => void doPoll();
   }, [doPoll]);
 
   useEffect(() => {
-    if (handledPhaseRef.current === state.phase) return;
-    handledPhaseRef.current = state.phase;
+    // Re-entry token: a repeated phase normally fires once, but each new
+    // reconnect attempt (reconnectAttempts++ on a re-DISCONNECTED while already
+    // reconnecting) must re-run doReconnect — else it hangs on the first try.
+    const token =
+      state.phase === "reconnecting"
+        ? `reconnecting:${state.reconnectAttempts}`
+        : state.phase;
+    if (handledPhaseRef.current === token) return;
+    handledPhaseRef.current = token;
     switch (state.phase) {
       case "creating":
         void doCreate();
@@ -376,7 +426,7 @@ export function useMockPanel() {
       default:
         break;
     }
-  }, [state.phase, doCreate, doHandoff, doRemint, doReconnect, doWrap, doPoll]);
+  }, [state.phase, state.reconnectAttempts, doCreate, doHandoff, doRemint, doReconnect, doWrap, doPoll]);
 
   // ── TTL watchdog: re-mint near expiry, deferred to a turn boundary ──────────
   useEffect(() => {
@@ -393,6 +443,7 @@ export function useMockPanel() {
   useEffect(() => {
     return () => {
       if (pollTimerRef.current) clearTimeout(pollTimerRef.current);
+      if (iceDebounceRef.current) clearTimeout(iceDebounceRef.current);
       peerRef.current?.close();
       micMeterStopRef.current?.();
       micStreamRef.current?.getTracks().forEach((t) => t.stop());
@@ -402,9 +453,24 @@ export function useMockPanel() {
   // ── public actions ──────────────────────────────────────────────────────────
   const start = useCallback(
     async (scenarioId: string) => {
+      // Reclaim everything from any prior run (retry / start-over enters here
+      // with a peer, mic stream, AudioContext, and poll timer possibly alive).
+      closePeer();
+      stopMic();
+      if (pollTimerRef.current) {
+        clearTimeout(pollTimerRef.current);
+        pollTimerRef.current = null;
+      }
       scenarioRef.current = scenarioId;
       clientReqRef.current = crypto.randomUUID();
       turnsLogRef.current = [];
+      coachAccumRef.current = "";
+      lastCoachDoneAtRef.current = 0;
+      pendingBargeInsRef.current = 0;
+      pendingInterruptionsRef.current = 0;
+      replayOnConnectRef.current = false;
+      speakingRef.current = false;
+      pollErrorsRef.current = 0;
       setLiveTranscript([]);
       setCoachStreaming("");
       dispatch({ type: "START" });
@@ -417,7 +483,7 @@ export function useMockPanel() {
         dispatch({ type: "MIC_DENIED" });
       }
     },
-    [startMicMeter]
+    [startMicMeter, closePeer, stopMic]
   );
 
   const endAndScore = useCallback(() => dispatch({ type: "END_REQUESTED" }), []);

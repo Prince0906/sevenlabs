@@ -46,8 +46,10 @@ export function MockPanelView({ scenarioId = SCENARIO_ID }: { scenarioId?: strin
   let body: ReactNode = null;
   if (p.phase === "idle") {
     body = <Intro onStart={() => void p.start(scenarioId)} />;
-  } else if (p.phase === "report" && p.report) {
-    body = <ReportBody report={p.report} />;
+  } else if (p.phase === "report") {
+    // Report can be entered (via adopt / not-renewable-COMPLETED) before the
+    // payload is fetched — show the deliberating state, not a blank page.
+    body = p.report ? <ReportBody report={p.report} /> : <Deliberating />;
   } else if (p.phase === "wrapping" || p.phase === "debrief-polling") {
     body = <Deliberating />;
   } else if (p.phase === "error" && p.recovery) {

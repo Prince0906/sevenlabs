@@ -62,9 +62,30 @@ export async function connectRealtime(params: {
   // Remote (coach) audio sink. Detached on close; the element is owned here.
   const remoteAudio = new Audio();
   remoteAudio.autoplay = true;
+  // Autoplay can be blocked (Safari/iOS, gesture-less handoff/re-mint). On
+  // rejection, retry play() on the next user gesture rather than going silently
+  // mute while transcripts keep streaming.
+  let audioGestureHandler: (() => void) | null = null;
+  const clearAudioGesture = () => {
+    if (audioGestureHandler) {
+      document.removeEventListener("pointerdown", audioGestureHandler);
+      audioGestureHandler = null;
+    }
+  };
+  const playRemote = () => {
+    remoteAudio
+      .play()
+      .then(clearAudioGesture)
+      .catch(() => {
+        if (!audioGestureHandler) {
+          audioGestureHandler = () => playRemote();
+          document.addEventListener("pointerdown", audioGestureHandler);
+        }
+      });
+  };
   pc.ontrack = (e) => {
     remoteAudio.srcObject = e.streams[0] ?? new MediaStream([e.track]);
-    void remoteAudio.play().catch(() => {});
+    playRemote();
   };
 
   pc.oniceconnectionstatechange = () => {
@@ -121,10 +142,16 @@ export async function connectRealtime(params: {
       case "response.done":
         callbacks.onCoachResponseDone?.(msg.response?.status === "cancelled");
         break;
+      case "error":
+        // A server-side error event (e.g. a rejected conversation.item.create
+        // on re-mint replay) — surface it instead of silently degrading.
+        callbacks.onError?.(msg);
+        break;
       default:
         break;
     }
   };
+  dc.onerror = () => callbacks.onError?.(new Error("data channel error"));
 
   try {
     const offer = await pc.createOffer();
@@ -155,18 +182,24 @@ export async function connectRealtime(params: {
     sendSessionUpdate: (sessionPatch) =>
       send({ type: "session.update", session: sessionPatch }),
     pushHistory: (role, text) =>
+      // GA content-part types: user items use "input_text", assistant items use
+      // "text". "output_text" is an OUTPUT-only type the server emits — using it
+      // here gets the replayed assistant turn rejected, dropping coach context
+      // on re-mint (the load-bearing persona-coherence path).
       send({
         type: "conversation.item.create",
         item: {
           type: "message",
           role,
-          content: [{ type: role === "user" ? "input_text" : "output_text", text }],
+          ...(role === "assistant" ? { status: "completed" } : {}),
+          content: [{ type: role === "user" ? "input_text" : "text", text }],
         },
       }),
     setOutputGain: (gain) => {
       remoteAudio.volume = Math.min(1, Math.max(0, gain));
     },
     close: () => {
+      clearAudioGesture();
       try {
         remoteAudio.pause();
         remoteAudio.srcObject = null;
