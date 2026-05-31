@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { log } from "@/lib/log";
 
 const bodySchema = z.object({
   date: z.string().datetime().nullable(),
@@ -29,7 +30,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ ok: true });
   } catch (error) {
-    console.error("[POST /api/user/interview-date]", error);
+    log.error("[POST /api/user/interview-date]", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

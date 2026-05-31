@@ -26,11 +26,16 @@ model User {
 
   targetCompanies String[] @default(["amazon"])
   interviewDate   DateTime?
+  targetLevel     SignalLevel @default(NEW_GRAD)
 
   accounts Account[]
   sessions Session[]
 
   practiceSessions PracticeSession[]
+
+  mockSessions      MockSession[]
+  confidenceMetrics ConfidenceMetric[]
+  drillAssignments  DrillAssignment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -123,4 +128,261 @@ model PracticeTurn {
 
   @@unique([sessionId, clientTurnId])
   @@index([sessionId])
+}
+
+// ============================================================
+// Confidence Engine (real-time adversarial panel) — additive (P0)
+// See SYSTEM_DESIGN.md §11–§14. Everything above is untouched.
+// MockTurn.role reuses PracticeTurnRole; role=COACH means "interviewer seat".
+// ============================================================
+
+enum SignalLevel {
+  NEW_GRAD
+  SDE_II
+  SENIOR
+}
+
+enum LlmProvider {
+  OPENAI
+  ANTHROPIC
+  GEMINI
+}
+
+enum InterviewType {
+  BEHAVIORAL
+  SYSTEM_DESIGN
+  CODING_VERBAL
+  HIRING_MANAGER
+  BAR_RAISER_PANEL
+}
+
+enum ScenarioDifficulty {
+  WARMUP
+  CALIBRATED
+  ADVERSARIAL
+}
+
+enum MockStatus {
+  PENDING
+  LIVE
+  DEBRIEF
+  COMPLETED
+  ABANDONED
+  FAILED
+  INTERRUPTED
+}
+
+enum ScoreDimension {
+  LP
+  STAR_STRUCTURE
+  TECHNICAL_DEPTH
+  COMMUNICATION
+  DELIVERY
+}
+
+enum DrillStatus {
+  ASSIGNED
+  COMPLETED
+  SKIPPED
+}
+
+enum JobStatus {
+  PENDING
+  RUNNING
+  DONE
+  FAILED
+}
+
+model Scenario {
+  id          String             @id @default(cuid())
+  company     String
+  type        InterviewType
+  difficulty  ScenarioDifficulty
+  targetLevel SignalLevel
+  title       String
+  promptText  String             @db.Text
+  lpFocus     String[]
+  estMinutes  Int                @default(20)
+  isActive    Boolean            @default(true)
+
+  panelSeats   PanelSeat[]
+  mockSessions MockSession[]
+  createdAt    DateTime           @default(now())
+
+  @@index([company, type, targetLevel, difficulty])
+  @@index([isActive])
+}
+
+model PanelSeat {
+  id           String   @id @default(cuid())
+  scenarioId   String
+  scenario     Scenario @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
+  seatOrder    Int
+  personaName  String
+  ownedLPs     String[]
+  isBarRaiser  Boolean  @default(false)
+  voice        String
+  systemPrompt String   @db.Text
+
+  @@unique([scenarioId, seatOrder])
+  @@index([scenarioId])
+}
+
+model MockSession {
+  id              String       @id @default(cuid())
+  userId          String
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  scenarioId      String
+  scenario        Scenario     @relation(fields: [scenarioId], references: [id])
+  clientRequestId String?
+  apiKeyId        String?
+  provider        LlmProvider  @default(OPENAI)
+  modelUsed       String
+  judgeModel      String?
+  status          MockStatus   @default(PENDING)
+  targetLevel     SignalLevel
+  startedAt       DateTime?
+  endedAt         DateTime?
+  durationSec     Int?
+  spendCents      Int          @default(0)
+  transcriptKey   String?
+  audioOptIn      Boolean      @default(false)
+  audioKey        String?
+  overallSignal   SignalLevel?
+  confidence      Int?
+  passed          Boolean?
+  reportJson      Json?
+
+  turns            MockTurn[]
+  dimensionScores  DimensionScore[]
+  verdict          PanelVerdict?
+  drills           DrillAssignment[]  @relation("SourceSession")
+  confidencePoints ConfidenceMetric[]
+  job              JudgmentJob?
+  reservation      SpendReservation?
+  createdAt        DateTime           @default(now())
+
+  @@unique([userId, clientRequestId])
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([userId, status])
+  @@index([scenarioId])
+}
+
+model MockTurn {
+  id                   String           @id @default(cuid())
+  sessionId            String
+  session              MockSession      @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  seatId               String?
+  role                 PracticeTurnRole
+  seq                  Int
+  transcript           String?          @db.Text
+  metricsJson          Json?
+  events               Json?
+  transcriptionMissing Boolean          @default(false)
+  audioStartMs         Int?
+  audioEndMs           Int?
+  createdAt            DateTime         @default(now())
+
+  @@unique([sessionId, seq])
+  @@index([sessionId, seq])
+}
+
+model DimensionScore {
+  id          String         @id @default(cuid())
+  sessionId   String
+  session     MockSession    @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  userId      String
+  seatId      String?
+  dimension   ScoreDimension @default(LP)
+  key         String
+  score       Int
+  signalLevel SignalLevel
+  evidence    String         @db.Text
+  gap         String         @db.Text
+  createdAt   DateTime       @default(now())
+
+  @@index([sessionId, dimension])
+  @@index([userId, key, createdAt(sort: Desc)])
+}
+
+model PanelVerdict {
+  id            String      @id @default(cuid())
+  sessionId     String      @unique
+  session       MockSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  overallSignal SignalLevel
+  inclination   String
+  barRaiserVeto Boolean     @default(false)
+  summary       String      @db.Text
+  seatRollup    Json
+  topStrengths  String[]
+  topRisks      String[]
+  createdAt     DateTime    @default(now())
+}
+
+model ConfidenceMetric {
+  id                String       @id @default(cuid())
+  userId            String
+  user              User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessionId         String?
+  session           MockSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  score             Int
+  composure         Int
+  resilience        Int?
+  selfEfficacy      Int?
+  difficultyApplied Int?
+  measuredAt        DateTime     @default(now())
+
+  @@index([userId, measuredAt(sort: Desc)])
+}
+
+model DrillAssignment {
+  id              String       @id @default(cuid())
+  userId          String
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sourceSessionId String?
+  sourceSession   MockSession? @relation("SourceSession", fields: [sourceSessionId], references: [id], onDelete: SetNull)
+  questionId      String
+  targetLP        String
+  reason          String       @db.Text
+  status          DrillStatus  @default(ASSIGNED)
+  resultSessionId String?
+  assignedAt      DateTime     @default(now())
+  completedAt     DateTime?
+
+  @@unique([userId, questionId, sourceSessionId])
+  @@index([userId, status])
+}
+
+model JudgmentJob {
+  sessionId  String      @id
+  session    MockSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  status     JobStatus   @default(PENDING)
+  attempts   Int         @default(0)
+  leaseUntil DateTime?
+  lastError  String?
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  @@index([status, leaseUntil])
+}
+
+model RateBucket {
+  key         String
+  windowStart DateTime
+  count       Int      @default(0)
+
+  @@id([key, windowStart])
+}
+
+model GlobalSpend {
+  day    DateTime @id
+  estUsd Decimal  @default(0)
+}
+
+model SpendReservation {
+  sessionId   String      @id
+  session     MockSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  reservedUsd Decimal
+  settledUsd  Decimal?
+  createdAt   DateTime    @default(now())
 }

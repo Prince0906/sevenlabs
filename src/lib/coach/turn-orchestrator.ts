@@ -13,6 +13,7 @@ import {
 } from "@sevenlabs/shared-types";
 import { prisma } from "@/lib/db";
 import { uploadAudio, getSignedUrl } from "@/lib/s3";
+import { log } from "@/lib/log";
 import {
   generateCoachText,
   scoreAgainstRubric,
@@ -176,7 +177,7 @@ export async function processTurn(
           data: { rubricScoresJson: rubricScores },
         });
       } catch (err) {
-        console.error("[rubric-scoring]", err);
+        log.error("[rubric-scoring]", err);
       }
     }
   }

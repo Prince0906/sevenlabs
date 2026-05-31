@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getSessionDetail } from "@/lib/coach/turn-orchestrator";
 import { getSignedUrl } from "@/lib/s3";
+import { log } from "@/lib/log";
 
 export async function GET(
   _request: Request,
@@ -30,7 +31,7 @@ export async function GET(
 
     return NextResponse.json({ ...detail, turns });
   } catch (error) {
-    console.error("[GET /api/coach/sessions/:id]", error);
+    log.error("[GET /api/coach/sessions/:id]", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

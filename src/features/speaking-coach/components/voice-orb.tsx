@@ -33,19 +33,37 @@ const PHASE_GLOW: Record<PracticePhase, string> = {
 };
 
 interface VoiceOrbProps {
-  phase: PracticePhase;
+  phase?: PracticePhase;
   /** Live mic amplitude, 0..1, updated out-of-band by the VAD. */
   levelRef: RefObject<number>;
+  /** Panel overrides — the coach flow leaves these unset and behaves as before. */
+  tint?: string;
+  label?: string;
+  hint?: string;
+  reactive?: boolean;
+  busy?: boolean;
+  /** Dim cue for the handoff "panel is conferring" beat. */
+  dim?: boolean;
   className?: string;
 }
 
-export function VoiceOrb({ phase, levelRef, className }: VoiceOrbProps) {
+export function VoiceOrb({
+  phase = "idle",
+  levelRef,
+  tint,
+  label,
+  hint,
+  reactive: reactiveProp,
+  busy: busyProp,
+  dim,
+  className,
+}: VoiceOrbProps) {
   const coreRef = useRef<HTMLDivElement>(null);
   const ring1Ref = useRef<HTMLDivElement>(null);
   const ring2Ref = useRef<HTMLDivElement>(null);
   const smoothRef = useRef(0);
 
-  const reactive = phase === "your-turn" || phase === "listening";
+  const reactive = reactiveProp ?? (phase === "your-turn" || phase === "listening");
 
   useEffect(() => {
     let raf = 0;
@@ -75,13 +93,16 @@ export function VoiceOrb({ phase, levelRef, className }: VoiceOrbProps) {
     return () => cancelAnimationFrame(raf);
   }, [reactive, levelRef]);
 
-  const glow = PHASE_GLOW[phase];
-  const busy = phase === "analyzing" || phase === "coach-speaking";
+  const glow = tint ?? PHASE_GLOW[phase];
+  const busy = busyProp ?? (phase === "analyzing" || phase === "coach-speaking");
+  const labelText = label ?? PHASE_LABEL[phase];
+  const hintText = hint ?? PHASE_HINT[phase];
 
   return (
     <div
       className={cn(
-        "relative flex flex-col items-center justify-center py-6",
+        "relative flex flex-col items-center justify-center py-6 transition-opacity duration-500",
+        dim && "opacity-35",
         className
       )}
     >
@@ -123,11 +144,9 @@ export function VoiceOrb({ phase, levelRef, className }: VoiceOrbProps) {
       </div>
 
       <div className="relative mt-6 text-center">
-        <p className="text-sm font-medium tabular-nums">{PHASE_LABEL[phase]}</p>
-        {PHASE_HINT[phase] && (
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            {PHASE_HINT[phase]}
-          </p>
+        <p className="text-sm font-medium tabular-nums">{labelText}</p>
+        {hintText && (
+          <p className="mt-0.5 text-xs text-muted-foreground">{hintText}</p>
         )}
       </div>
     </div>

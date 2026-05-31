@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getCockpitData } from "@/lib/coach/aggregates";
+import { log } from "@/lib/log";
 
 export async function GET() {
   try {
@@ -13,7 +14,7 @@ export async function GET() {
     const data = await getCockpitData(userId);
     return NextResponse.json(data);
   } catch (error) {
-    console.error("[GET /api/coach/cockpit]", error);
+    log.error("[GET /api/coach/cockpit]", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

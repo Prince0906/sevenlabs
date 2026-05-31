@@ -6,6 +6,7 @@ import {
 } from "@sevenlabs/shared-types";
 import { auth } from "@/lib/auth";
 import { listSessions } from "@/lib/coach/turn-orchestrator";
+import { log } from "@/lib/log";
 
 export async function GET() {
   try {
@@ -49,7 +50,7 @@ export async function GET() {
 
     return NextResponse.json({ sessions });
   } catch (error) {
-    console.error("[GET /api/coach/sessions]", error);
+    log.error("[GET /api/coach/sessions]", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

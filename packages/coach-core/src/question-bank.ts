@@ -147,6 +147,22 @@ export function getDrillQuestion(
   return matches[Math.floor(Math.random() * matches.length)]!;
 }
 
+/**
+ * Strict variant: returns null (NOT bank[0]) when the LP has no question, so a
+ * gap LP with zero coverage never silently mis-targets the user to Ownership.
+ * The coach still uses getDrillQuestion (unchanged); the panel report uses this.
+ */
+export function getDrillQuestionStrict(
+  company: string,
+  lp: string
+): DrillQuestion | null {
+  const bank = COMPANY_QUESTIONS[company.toLowerCase()];
+  if (!bank) return null;
+  const matches = bank.filter((q) => q.lp.toLowerCase() === lp.toLowerCase());
+  if (matches.length === 0) return null;
+  return matches[Math.floor(Math.random() * matches.length)]!;
+}
+
 export function getFallbackDrillQuestion(company: string): DrillQuestion | null {
   const bank = COMPANY_QUESTIONS[company.toLowerCase()];
   return bank?.[0] ?? null;

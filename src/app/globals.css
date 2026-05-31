@@ -99,46 +99,89 @@
     --sidebar-ring: oklch(0.55 0.08 248);
 }
 
+/*
+ * Warm CINEMATIC DARK — the single app theme (forced on via next-themes, so all
+ * shadcn `dark:` variants activate). Warm near-black, cream ink, a glowing clay
+ * accent, and a luminous Signal trio. Every page inherits this; the Bar-Raiser
+ * panel layers extra room atmosphere on top via .panel-stage.
+ */
 .dark {
-    --background: oklch(0.185 0.008 60);
-    --foreground: oklch(0.955 0.004 80);
-    --card: oklch(0.222 0.008 60);
-    --card-foreground: oklch(0.955 0.004 80);
-    --popover: oklch(0.222 0.008 60);
-    --popover-foreground: oklch(0.955 0.004 80);
-    --primary: oklch(0.955 0.004 80);
-    --primary-foreground: oklch(0.205 0.008 60);
-    --secondary: oklch(0.27 0.008 60);
-    --secondary-foreground: oklch(0.955 0.004 80);
-    --muted: oklch(0.27 0.008 60);
-    --muted-foreground: oklch(0.715 0.008 70);
-    --accent: oklch(0.285 0.008 60);
-    --accent-foreground: oklch(0.955 0.004 80);
-    --destructive: oklch(0.704 0.191 22);
-    --border: oklch(1 0 0 / 9%);
-    --input: oklch(1 0 0 / 14%);
-    --ring: oklch(0.62 0.1 248);
+    --radius: 0.625rem;
 
-    --signal-newgrad: oklch(0.765 0.13 68);
-    --signal-sde2: oklch(0.705 0.13 248);
-    --signal-senior: oklch(0.725 0.14 162);
-    --success: oklch(0.725 0.14 162);
+    --background: oklch(0.205 0.013 52);      /* warm near-black */
+    --foreground: oklch(0.925 0.012 84);      /* warm cream */
+    --card: oklch(0.255 0.013 52);            /* lifted warm-dark surface */
+    --card-foreground: oklch(0.925 0.012 84);
+    --popover: oklch(0.255 0.013 52);
+    --popover-foreground: oklch(0.925 0.012 84);
+    --primary: oklch(0.685 0.13 48);          /* glowing clay — dark text passes AA */
+    --primary-foreground: oklch(0.205 0.013 50);
+    --secondary: oklch(0.305 0.013 52);
+    --secondary-foreground: oklch(0.925 0.012 84);
+    --muted: oklch(0.30 0.012 52);
+    --muted-foreground: oklch(0.745 0.013 74); /* dim warm cream, kept readable on dark */
+    --accent: oklch(0.325 0.014 52);
+    --accent-foreground: oklch(0.925 0.012 84);
+    --destructive: oklch(0.70 0.19 25);
+    --border: oklch(0.40 0.012 58);           /* warm low-contrast line */
+    --input: oklch(0.40 0.012 58);
+    --ring: oklch(0.685 0.13 48);
 
-    --chart-1: oklch(0.725 0.14 162);
-    --chart-2: oklch(0.705 0.13 248);
-    --chart-3: oklch(0.765 0.13 68);
+    --clay: oklch(0.66 0.13 47);              /* clay glow — NON-TEXT accent */
+    --clay-strong: oklch(0.76 0.11 53);       /* light clay for accent TEXT */
+
+    --signal-newgrad: oklch(0.78 0.13 68);
+    --signal-sde2: oklch(0.72 0.13 248);
+    --signal-senior: oklch(0.74 0.14 162);
+    --success: oklch(0.74 0.14 162);
+
+    --chart-1: oklch(0.74 0.14 162);
+    --chart-2: oklch(0.72 0.13 248);
+    --chart-3: oklch(0.78 0.13 68);
     --chart-4: oklch(0.72 0.13 300);
     --chart-5: oklch(0.78 0.13 30);
 
-    --sidebar: oklch(0.205 0.008 60);
-    --sidebar-foreground: oklch(0.72 0.008 70);
-    --sidebar-primary: oklch(0.955 0.004 80);
-    --sidebar-primary-foreground: oklch(0.205 0.008 60);
-    --sidebar-accent: oklch(0.27 0.008 60);
-    --sidebar-accent-foreground: oklch(0.955 0.004 80);
-    --sidebar-border: oklch(1 0 0 / 9%);
-    --sidebar-ring: oklch(0.62 0.1 248);
+    --sidebar: oklch(0.185 0.013 52);          /* a touch darker than the room */
+    --sidebar-foreground: oklch(0.745 0.013 74);
+    --sidebar-primary: oklch(0.685 0.13 48);
+    --sidebar-primary-foreground: oklch(0.205 0.013 50);
+    --sidebar-accent: oklch(0.305 0.013 52);
+    --sidebar-accent-foreground: oklch(0.925 0.012 84);
+    --sidebar-border: oklch(0.38 0.012 58);
+    --sidebar-ring: oklch(0.685 0.13 48);
 }
+
+/*
+ * The Bar-Raiser panel layers extra ROOM atmosphere over the global dark theme:
+ * a warm light source from the top + a vignette pooling the room inward. Tokens
+ * are inherited from the global .dark theme (no redefinition needed).
+ */
+.panel-stage {
+    position: relative;
+    isolation: isolate;
+    background-image:
+        radial-gradient(115% 75% at 50% -8%, color-mix(in oklch, var(--clay) 16%, transparent), transparent 58%),
+        radial-gradient(150% 130% at 50% 42%, transparent 52%, oklch(0.12 0.012 50 / 0.55));
+}
+
+/* Filmic grain — lightens midtones over the dark room, below all content. */
+.panel-stage::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    opacity: 0.06;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+}
+
+/* The speaking presence breathes; a soft, slow swell. */
+@keyframes panel-breathe {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+.panel-breathe { animation: panel-breathe 3.2s ease-in-out infinite; }
 
 @layer base {
     * {
@@ -146,6 +189,10 @@
     }
     body {
         @apply bg-background text-foreground font-sans;
+        /* A faint warm light from the top, fixed to the viewport, so the whole
+         * app shares the room's atmosphere — not just the Bar-Raiser panel. */
+        background-image: radial-gradient(120% 80% at 50% -10%, color-mix(in oklch, var(--clay) 7%, transparent), transparent 62%);
+        background-attachment: fixed;
     }
     /* Editorial display face: optical sizing on, tighter tracking for headlines */
     .font-display {

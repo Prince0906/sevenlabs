@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 
 import { Logo } from "@/components/logo";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { BRAND } from "@/lib/brand";
 
 import {
@@ -37,6 +36,7 @@ import {
     Home,
     Headphones,
     Mic,
+    Users,
     LogOut,
     ChevronsUpDown,
 } from "lucide-react";
@@ -154,6 +154,7 @@ export function DashboardSidebar() {
     const mainMenuItems: MenuItem[] = [
         { title: "Dashboard", url: "/dashboard", icon: Home },
         { title: "Practice", url: "/practice", icon: Mic },
+        { title: "Bar-Raiser panel", url: "/mock", icon: Users },
     ];
 
     const othersMenuItems: MenuItem[] = [
@@ -179,9 +180,6 @@ export function DashboardSidebar() {
             <div className="border-b border-dashed border-border" />
             <SidebarFooter className="gap-2 py-3">
                 <SidebarMenu>
-                    <SidebarMenuItem>
-                        <ThemeToggle />
-                    </SidebarMenuItem>
                     <SidebarMenuItem>
                         <UserMenu />
                     </SidebarMenuItem>

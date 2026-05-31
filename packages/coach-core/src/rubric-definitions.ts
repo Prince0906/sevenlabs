@@ -157,12 +157,12 @@ export const AMAZON_LEADERSHIP_PRINCIPLES: LeadershipPrinciple[] = [
   },
 ];
 
-const AMAZON_SIGNAL_GUIDE = `Signal-level calibration for SDE candidates:
+export const AMAZON_SIGNAL_GUIDE = `Signal-level calibration for SDE candidates:
 - NEW_GRAD: describes team activity ("we did X"), vague timelines, no specific personal decision under ambiguity, no quantified outcome.
 - SDE_II: takes ownership of their part with specifics, mentions tradeoffs considered, some quantified outcome.
 - SENIOR: drives outcomes under ambiguity, makes scoped decisions independently, quantifies impact, articulates tradeoffs explicitly, considers cross-team or long-term implications.`;
 
-const AMAZON_OUTPUT_SPEC = `Output a single JSON object with this exact shape:
+export const AMAZON_OUTPUT_SPEC = `Output a single JSON object with this exact shape:
 {
   "matchedLPs": [
     { "name": "<one of the Amazon LPs above>", "signalLevel": "NEW_GRAD" | "SDE_II" | "SENIOR", "evidence": "<short quote or paraphrase from the transcript>" }
@@ -206,9 +206,12 @@ export function getRubricForCompany(company: string): CompanyRubric | null {
 }
 
 export function buildRubricUserMessage(transcript: string): string {
+  // Collapse any triple-quote runs so a hostile transcript can't close the
+  // delimited block and inject instructions into the off-band scorer (PR10).
+  const safe = transcript.replace(/"{3,}/g, '"');
   return `Candidate's behavioral-answer transcript:
 """
-${transcript}
+${safe}
 """
 
 Score this answer per the rules above and return the JSON object.`;

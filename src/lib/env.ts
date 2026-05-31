@@ -17,6 +17,26 @@ export const env = createEnv({
     // OpenAI (Speaking Coach — Whisper, GPT, TTS)
     OPENAI_API_KEY: z.string().min(1),
 
+    // Confidence engine — real-time voice. Config-driven (see SYSTEM_DESIGN.md):
+    // realtime model/endpoints can change; judgment model stays pinned in code.
+    // Defaults keep the env valid before these are set in prod.
+    OPENAI_REALTIME_MODEL: z.string().default("gpt-realtime"),
+    OPENAI_REALTIME_MINT_URL: z
+      .string()
+      .url()
+      .default("https://api.openai.com/v1/realtime/client_secrets"),
+    // GA SDP-exchange endpoint. The deprecated Beta /v1/realtime?model= shape
+    // is dead; the client POSTs its SDP offer here with the ephemeral as Bearer
+    // and NO ?model= (the model is bound to the ephemeral at mint).
+    OPENAI_REALTIME_URL: z
+      .string()
+      .url()
+      .default("https://api.openai.com/v1/realtime/calls"),
+    REALTIME_USD_PER_MIN: z.coerce.number().default(0.3),
+    SESSION_CEILING_USD: z.coerce.number().default(4),
+    MAX_SESSION_SEC: z.coerce.number().int().default(2700),
+    DAILY_CAP_USD: z.coerce.number().default(50),
+
     // Auth.js (NextAuth v5)
     AUTH_SECRET: z.string().min(1),
     AUTH_URL: z.string().url().optional(),

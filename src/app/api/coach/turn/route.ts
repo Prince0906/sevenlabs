@@ -2,6 +2,7 @@ import { turnCompleteRequestSchema } from "@sevenlabs/shared-types";
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { processTurn } from "@/lib/coach/turn-orchestrator";
+import { log } from "@/lib/log";
 
 export async function POST(request: Request) {
   try {
@@ -40,7 +41,7 @@ export async function POST(request: Request) {
     if (error instanceof Error && error.message === "SESSION_NOT_FOUND") {
       return NextResponse.json({ error: "Session not found" }, { status: 404 });
     }
-    console.error("[POST /api/coach/turn]", error);
+    log.error("[POST /api/coach/turn]", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

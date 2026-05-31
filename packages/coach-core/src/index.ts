@@ -17,6 +17,25 @@ export {
 } from "./rubric-definitions";
 export {
   getDrillQuestion,
+  getDrillQuestionStrict,
   getFallbackDrillQuestion,
   type DrillQuestion,
 } from "./question-bank";
+export { redact, redactUnknown } from "./redaction";
+export {
+  buildSeatRubric,
+  seatScoresToDimensionRows,
+  barRaiserDrillDepth,
+  evaluateDrill,
+  finalizeVerdict,
+  computeComposure,
+  selectOneRep,
+  COMMITTEE_DEBRIEF_PROMPT,
+  buildCommitteeMessage,
+  DIFFICULTY_TO_INT,
+  DIFFICULTY_WEIGHT,
+  type SeatRubricOutput,
+  type DimensionScoreInsert,
+  type TurnLite,
+  type CommitteeSeatInput,
+} from "./panel-composition";

@@ -2,6 +2,7 @@ import { createSessionRequestSchema } from "@sevenlabs/shared-types";
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { createPracticeSession } from "@/lib/coach/turn-orchestrator";
+import { log } from "@/lib/log";
 
 export async function POST(request: Request) {
   try {
@@ -20,7 +21,7 @@ export async function POST(request: Request) {
     const result = await createPracticeSession(userId, parsed.data.mode);
     return NextResponse.json(result);
   } catch (error) {
-    console.error("[POST /api/coach/session]", error);
+    log.error("[POST /api/coach/session]", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
