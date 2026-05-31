@@ -175,6 +175,9 @@ export async function mintRealtimeEphemeral(params: {
     headers: {
       Authorization: `Bearer ${env.OPENAI_API_KEY}`,
       "Content-Type": "application/json",
+      // Abuse identifier travels as a HEADER on the GA endpoint — passing it in
+      // the body returns 400 "Unknown parameter: 'safety_identifier'".
+      "OpenAI-Safety-Identifier": params.safetyIdentifier,
     },
     body: JSON.stringify({
       session: {
@@ -193,7 +196,6 @@ export async function mintRealtimeEphemeral(params: {
           },
         },
       },
-      safety_identifier: params.safetyIdentifier,
     }),
   });
 

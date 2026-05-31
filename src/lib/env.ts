@@ -20,7 +20,7 @@ export const env = createEnv({
     // Confidence engine — real-time voice. Config-driven (see SYSTEM_DESIGN.md):
     // realtime model/endpoints can change; judgment model stays pinned in code.
     // Defaults keep the env valid before these are set in prod.
-    OPENAI_REALTIME_MODEL: z.string().default("gpt-4o-realtime-preview"),
+    OPENAI_REALTIME_MODEL: z.string().default("gpt-realtime"),
     OPENAI_REALTIME_MINT_URL: z
       .string()
       .url()

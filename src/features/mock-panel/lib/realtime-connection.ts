@@ -182,17 +182,18 @@ export async function connectRealtime(params: {
     sendSessionUpdate: (sessionPatch) =>
       send({ type: "session.update", session: sessionPatch }),
     pushHistory: (role, text) =>
-      // GA content-part types: user items use "input_text", assistant items use
-      // "text". "output_text" is an OUTPUT-only type the server emits — using it
-      // here gets the replayed assistant turn rejected, dropping coach context
-      // on re-mint (the load-bearing persona-coherence path).
+      // GA content-part types (verified live against /v1/realtime): user items
+      // use "input_text"; assistant items MUST use "output_text" — the server
+      // rejects "text" with `Invalid value: 'text'. Value must be 'output_text'`,
+      // which would drop coach context on re-mint (the load-bearing
+      // persona-coherence path) and surface a spurious error event.
       send({
         type: "conversation.item.create",
         item: {
           type: "message",
           role,
           ...(role === "assistant" ? { status: "completed" } : {}),
-          content: [{ type: role === "user" ? "input_text" : "text", text }],
+          content: [{ type: role === "user" ? "input_text" : "output_text", text }],
         },
       }),
     setOutputGain: (gain) => {
