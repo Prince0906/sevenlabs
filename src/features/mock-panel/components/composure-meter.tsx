@@ -30,23 +30,28 @@ export function ComposureMeter({ running, maxDurationSec, bargeIns }: ComposureM
   const steadiness = bargeIns === 0 ? "Composed" : bargeIns <= 2 ? "Steady" : "Recovering";
 
   return (
-    <div className="rounded-lg border bg-card/60 px-4 py-3">
+    <div className="border-t border-border pt-4">
       <div className="flex items-baseline justify-between">
-        <span className="text-[11px] uppercase tracking-[0.08em] text-muted-foreground">
+        <span className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
           Composure
         </span>
         <span className="font-mono text-xs tabular-nums text-muted-foreground">
           {fmt(elapsed)} / {fmt(maxDurationSec)}
         </span>
       </div>
-      <div className="mt-2 h-px w-full bg-border">
+      <div className="relative mt-2 h-px w-full bg-border">
         <div
-          className="h-px bg-muted-foreground/50 transition-all duration-1000"
+          className="absolute inset-y-0 left-0 bg-[var(--clay)] transition-all duration-1000"
           style={{ width: `${pct}%` }}
         />
       </div>
       <div className="mt-2 flex items-center justify-between">
-        <span className={cn("text-sm font-medium", steadiness === "Recovering" && "text-muted-foreground")}>
+        <span
+          className={cn(
+            "font-display text-base font-semibold tracking-tight",
+            steadiness === "Recovering" && "text-muted-foreground"
+          )}
+        >
           {steadiness}
         </span>
         <span className="text-[11px] text-muted-foreground/70">

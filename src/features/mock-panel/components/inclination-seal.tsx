@@ -1,6 +1,7 @@
 import type { SignalLevel, Inclination } from "@sevenlabs/shared-types";
 import { SIGNAL_LABEL, SIGNAL_THEME } from "@/lib/signal";
 import { cn } from "@/lib/utils";
+import { SIGNAL_CSS_VAR } from "../lib/seat-theme";
 
 const INCLINATION_LABEL: Record<Inclination, string> = {
   STRONG_HIRE: "Strong Hire",
@@ -26,33 +27,43 @@ export function InclinationSeal({ overallSignal, inclination, barRaiserVeto, sum
   const veto = SIGNAL_THEME.SENIOR; // emerald, the Bar Raiser's tint
 
   return (
-    <section className="space-y-5">
+    <section className="space-y-6">
       <div>
-        <p className="text-[11px] uppercase tracking-[0.08em] text-muted-foreground">Signal reached</p>
-        <p className={cn("mt-1 font-display text-5xl font-semibold tracking-tight", theme.text)}>
+        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">Signal reached</p>
+        <p
+          className={cn("mt-1.5 font-display text-6xl font-semibold tracking-[-0.02em]", theme.text)}
+          style={{ textShadow: `0 0 30px color-mix(in oklch, ${SIGNAL_CSS_VAR[overallSignal]} 50%, transparent)` }}
+        >
           {SIGNAL_LABEL[overallSignal]}
         </p>
-        <p className="mt-2 text-sm">
-          <span className="text-muted-foreground">Committee inclination: </span>
-          <span className={cn("font-medium", barRaiserVeto && "text-muted-foreground line-through")}>
+        <div className="mt-3.5 flex flex-wrap items-center gap-3">
+          <span className="text-[15px] text-muted-foreground">Committee inclination</span>
+          <span
+            className={cn(
+              "inline-block -rotate-2 rounded-md border-2 px-2.5 py-1 font-display text-sm font-semibold uppercase tracking-[0.06em]",
+              barRaiserVeto
+                ? "border-border text-muted-foreground line-through"
+                : "border-[var(--clay)] text-[var(--clay-strong)]"
+            )}
+          >
             {INCLINATION_LABEL[inclination]}
           </span>
-        </p>
+        </div>
       </div>
 
       {barRaiserVeto && (
         <div className={cn("rounded-lg border bg-card p-4", veto.border)} style={{ backgroundColor: "color-mix(in oklch, var(--signal-senior) 8%, var(--card))" }}>
-          <p className={cn("font-display text-sm font-semibold tracking-tight", veto.text)}>
+          <p className={cn("font-display text-[15px] font-semibold tracking-tight", veto.text)}>
             Bar Raiser veto
           </p>
-          <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+          <p className="mt-1 text-[15px] leading-relaxed text-muted-foreground">
             The Bar Raiser could not endorse at this level — a veto is decisive and
             overrides the committee inclination above.
           </p>
         </div>
       )}
 
-      <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">{summary}</p>
+      <p className="max-w-prose text-base leading-relaxed text-foreground/85">{summary}</p>
     </section>
   );
 }

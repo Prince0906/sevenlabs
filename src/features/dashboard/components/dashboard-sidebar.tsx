@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 
 import { Logo } from "@/components/logo";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { BRAND } from "@/lib/brand";
 
 import {
@@ -181,9 +180,6 @@ export function DashboardSidebar() {
             <div className="border-b border-dashed border-border" />
             <SidebarFooter className="gap-2 py-3">
                 <SidebarMenu>
-                    <SidebarMenuItem>
-                        <ThemeToggle />
-                    </SidebarMenuItem>
                     <SidebarMenuItem>
                         <UserMenu />
                     </SidebarMenuItem>

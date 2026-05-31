@@ -20,37 +20,37 @@ export function SeatRollupCard({ seatRollup }: { seatRollup: SeatRollup[] }) {
 
   return (
     <section className="space-y-4">
-      <div className="flex items-baseline justify-between">
-        <h2 className="font-display text-base font-semibold tracking-tight">The panel</h2>
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 className="font-display text-xl font-semibold tracking-tight">The panel</h2>
         <span
           className={cn(
-            "rounded-full px-2.5 py-0.5 text-xs font-semibold",
+            "rounded-md px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.06em]",
             agree ? cn(headlineTheme.bg, headlineTheme.text) : "bg-accent text-muted-foreground"
           )}
         >
-          {agree ? `All ${seatRollup.length} agree: ${SIGNAL_LABEL[signals[0]!]}` : "Split read"}
+          {agree ? `Unanimous · ${SIGNAL_LABEL[signals[0]!]}` : "Split read"}
         </span>
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-2.5">
         {seatRollup.map((seat) => {
           const theme = SIGNAL_THEME[seat.seatSignal];
           const { name, role } = splitPersona(seat.personaName);
           return (
             <div
               key={seat.seatId}
-              className={cn("flex flex-col gap-2 rounded-lg border border-l-2 bg-card p-3", theme.border)}
+              className={cn("flex flex-col gap-2.5 rounded-lg border border-l-2 bg-card p-3.5", theme.border)}
             >
               <div className="flex items-baseline justify-between gap-3">
                 <div className="min-w-0">
-                  <span className="font-display text-sm font-semibold tracking-tight">{name}</span>
+                  <span className="font-display text-lg font-semibold tracking-tight">{name}</span>
                   {role && (
-                    <span className="ml-2 text-[11px] uppercase tracking-[0.08em] text-muted-foreground">
+                    <span className="ml-2 text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
                       {role}
                     </span>
                   )}
                 </div>
-                <span className={cn("flex shrink-0 items-center gap-1.5 text-xs font-medium", theme.text)}>
+                <span className={cn("flex shrink-0 items-center gap-1.5 text-[13px] font-medium", theme.text)}>
                   <span className={cn("size-2 rounded-full", theme.dot)} />
                   {SIGNAL_LABEL[seat.seatSignal]}
                 </span>
@@ -60,7 +60,7 @@ export function SeatRollupCard({ seatRollup }: { seatRollup: SeatRollup[] }) {
                   {seat.ownedLPs.map((lp) => (
                     <span
                       key={lp}
-                      className="rounded-full border border-border px-2 py-0.5 text-[11px] text-muted-foreground"
+                      className="rounded-full border border-border px-2.5 py-0.5 text-xs text-muted-foreground"
                     >
                       {lp}
                     </span>

@@ -84,10 +84,10 @@ export function RecoveryBanner({ kind, onRetry, onEndAndScore, onStartOver }: Re
         c.tone === "error" ? "border-destructive/40" : "border-border"
       )}
     >
-      <Icon className={cn("mt-0.5 size-5 shrink-0", c.tone === "error" ? "text-destructive" : "text-muted-foreground")} />
+      <Icon className={cn("mt-0.5 size-5 shrink-0", c.tone === "error" ? "text-destructive" : "text-[var(--clay-strong)]")} />
       <div className="min-w-0 flex-1">
-        <p className="font-display text-sm font-semibold tracking-tight">{c.title}</p>
-        <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{c.body}</p>
+        <p className="font-display text-[15px] font-semibold tracking-tight">{c.title}</p>
+        <p className="mt-1 text-[15px] leading-relaxed text-muted-foreground">{c.body}</p>
       </div>
       {handler && (
         <Button variant="outline" size="sm" onClick={handler} className="shrink-0">
