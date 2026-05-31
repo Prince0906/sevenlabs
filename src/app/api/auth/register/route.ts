@@ -2,6 +2,7 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { log } from "@/lib/log";
 
 export const runtime = "nodejs";
 
@@ -43,7 +44,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ user });
   } catch (error) {
-    console.error("[POST /api/auth/register]", error);
+    log.error("[POST /api/auth/register]", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
