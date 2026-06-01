@@ -191,25 +191,18 @@ export async function mintRealtimeEphemeral(params: {
           // input_audio_transcription.completed events and the judge would
           // score an empty interview. (REALTIME_CLIENT_PLAN.md decision 2.)
           //
-          // semantic_vad (not server_vad): a model classifier decides end-of-turn
-          // from sentence completion, so a candidate's mid-answer thinking pause
-          // is NOT mistaken for "done" and the interviewer doesn't barge in.
-          // eagerness:"low" lets them take their time. MANUAL TURN CONTROL:
-          // create_response AND interrupt_response are BOTH false — the model
-          // NEVER auto-responds and is NEVER auto-interrupted, but VAD +
-          // transcription events still fire, so the CLIENT drives every
-          // interviewer turn with exactly one response.create. This is the only
-          // way to guarantee the interviewer can't truncate its own sentence by a
-          // racing second response (a stray noise/echo would otherwise auto-fire
-          // a new turn that supersedes the one in progress). (Verified GA contract.)
+          // PUSH-TO-TALK: turn_detection is null — NO automatic voice detection at
+          // all. The candidate owns end-of-turn; the client gates the mic track and
+          // sends input_audio_buffer.commit + response.create when they tap "Done".
+          // This is the only design that cannot cut a long, thoughtful answer off
+          // mid-sentence (any automatic endpointer eventually misjudges a thinking
+          // pause as "done"), and because only deliberate speech is ever committed
+          // it stops the transcription model hallucinating text out of silence.
+          // language:"en" removes the auto-language-detect step that produced
+          // foreign-script boilerplate on near-silent audio. (Verified GA contract.)
           input: {
-            transcription: { model: "gpt-4o-transcribe" },
-            turn_detection: {
-              type: "semantic_vad",
-              eagerness: "low",
-              create_response: false,
-              interrupt_response: false,
-            },
+            transcription: { model: "gpt-4o-transcribe", language: "en" },
+            turn_detection: null,
           },
         },
       },

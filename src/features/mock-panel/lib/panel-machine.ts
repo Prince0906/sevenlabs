@@ -92,9 +92,13 @@ export type PanelAction =
 
 export const HANDOFF_SENTINEL = "handing you to my colleague";
 
-/** Safety cap when the persona's closing sentinel isn't detected. */
+/** Safety cap when the persona's closing sentinel isn't detected. The persona
+ * decides depth and emits the sentinel when its thread is done; this only
+ * force-hands-off a runaway seat. Kept generous so an interviewer can actually
+ * explore a topic instead of racing a small counter (the "forced to finish fast"
+ * feel) — the natural handoff is the sentinel, not this. */
 export function seatBudget(isLast: boolean): number {
-  return isLast ? 4 : 3;
+  return isLast ? 6 : 5;
 }
 
 export function detectsSentinel(transcript: string): boolean {

@@ -35,29 +35,30 @@ export interface RealtimePeer {
   sendSessionUpdate: (sessionPatch: Record<string, unknown>) => void;
   /** Replay one prior turn into a fresh session as conversation context. */
   pushHistory: (role: "user" | "assistant", text: string) => void;
+  /** Push-to-talk: open the mic for the candidate's turn (clear stale audio + unmute). */
+  beginCapture: () => void;
+  /** Push-to-talk "Done": mute the mic and commit the captured audio as a user item. */
+  commitCapture: () => void;
+  /** Push-to-talk abort (too-short/stray tap): mute the mic and discard the buffer uncommitted. */
+  discardCapture: () => void;
   /** 0..1 gain on the remote (coach) audio — used for the handoff dim cue. */
   setOutputGain: (gain: number) => void;
   /** Tear down: pause+detach remote audio, close dc+pc. Leaves micStream alive. */
   close: () => void;
 }
 
-// MUST stay identical to the mint-time turn_detection (src/lib/coach/openai.ts).
-// MANUAL TURN CONTROL: semantic_vad with create_response AND interrupt_response
-// both false — the model never auto-responds and is never auto-interrupted (VAD +
-// transcription events still fire); the hook drives every interviewer turn with
-// one response.create. This guarantees the interviewer can't truncate its own
-// sentence via a racing second response triggered by a stray noise/echo.
+// MUST stay identical to the mint-time config (src/lib/coach/openai.ts).
+// PUSH-TO-TALK: turn_detection is null — no automatic VAD. The candidate owns
+// end-of-turn; beginCapture/commitCapture below gate the mic and the hook sends
+// response.create on "Done". This is the only design that can't cut a long answer
+// off mid-sentence, and committing only deliberate speech stops the transcription
+// model hallucinating text out of silence. language:"en" stops foreign-script drift.
 const INPUT_SESSION_PATCH = {
   type: "realtime",
   audio: {
     input: {
-      transcription: { model: "gpt-4o-transcribe" },
-      turn_detection: {
-        type: "semantic_vad",
-        eagerness: "low",
-        create_response: false,
-        interrupt_response: false,
-      },
+      transcription: { model: "gpt-4o-transcribe", language: "en" },
+      turn_detection: null,
     },
   },
 };
@@ -103,8 +104,12 @@ export async function connectRealtime(params: {
     callbacks.onConnectionStateChange?.(pc.iceConnectionState);
   };
 
-  // Our mic into the peer (server VAD segments it).
-  for (const track of micStream.getAudioTracks()) {
+  // Our mic into the peer. Push-to-talk: the track is added for the life of the
+  // peer but starts MUTED (enabled=false transmits silence), so nothing reaches
+  // the server's input buffer between turns. beginCapture/commitCapture toggle it.
+  const micTracks = micStream.getAudioTracks();
+  for (const track of micTracks) {
+    track.enabled = false;
     pc.addTrack(track, micStream);
   }
 
@@ -115,8 +120,8 @@ export async function connectRealtime(params: {
   };
 
   dc.onopen = () => {
-    // Belt-and-suspenders: re-assert input transcription + semantic VAD. The
-    // caller gates `live` on onSessionUpdated so we never accept speech first.
+    // Belt-and-suspenders: re-assert input transcription + manual turn control
+    // (turn_detection null). The caller gates `live` on onSessionUpdated.
     send({ type: "session.update", session: INPUT_SESSION_PATCH });
     callbacks.onDataChannelOpen?.();
   };
@@ -207,6 +212,20 @@ export async function connectRealtime(params: {
           content: [{ type: role === "user" ? "input_text" : "output_text", text }],
         },
       }),
+    beginCapture: () => {
+      // Drop anything that leaked into the buffer since the last turn, then open
+      // the mic. The model's output audio is unaffected (separate track).
+      send({ type: "input_audio_buffer.clear" });
+      for (const track of micTracks) track.enabled = true;
+    },
+    commitCapture: () => {
+      for (const track of micTracks) track.enabled = false;
+      send({ type: "input_audio_buffer.commit" }); // → committed → transcription; caller sends response.create
+    },
+    discardCapture: () => {
+      for (const track of micTracks) track.enabled = false;
+      send({ type: "input_audio_buffer.clear" });
+    },
     setOutputGain: (gain) => {
       remoteAudio.volume = Math.min(1, Math.max(0, gain));
     },

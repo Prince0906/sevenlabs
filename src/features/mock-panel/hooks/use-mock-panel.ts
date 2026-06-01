@@ -18,6 +18,7 @@ const MAX_RECONNECTS = 3;
 const SPURIOUS_COACH_MIN_WORDS = 3;
 const ICE_DISCONNECT_GRACE_MS = 4000; // ICE "disconnected" is flappy; let it self-heal
 const MAX_POLL_ERRORS = 5; // bounded report-poll retries before giving up
+const MIN_CAPTURE_MS = 500; // push-to-talk: ignore stray taps shorter than this
 
 /**
  * The full client orchestration: create -> per-seat connect/handoff -> wrap ->
@@ -32,6 +33,9 @@ export function useMockPanel() {
     Array<{ role: "USER" | "COACH"; seatId: string | null; text: string }>
   >([]);
   const [coachStreaming, setCoachStreaming] = useState("");
+  // Push-to-talk: whether the candidate's mic is currently open (tapped "Start",
+  // not yet "Done"). Ref mirror so toggleCapture branches synchronously.
+  const [isCapturing, setIsCapturing] = useState(false);
 
   // Mirror state for stable callbacks (avoid stale closures in transport cbs).
   const stateRef = useRef<PanelState>(state);
@@ -62,6 +66,8 @@ export function useMockPanel() {
   // turn landed mid-response and is owed a reply once the current one finishes.
   const responseInFlightRef = useRef<boolean>(false);
   const pendingResponseRef = useRef<boolean>(false);
+  const isCapturingRef = useRef<boolean>(false);
+  const captureStartRef = useRef<number>(0);
   const micLevelRef = useRef<number>(0);
   const speakingRef = useRef<boolean>(false);
   const handledPhaseRef = useRef<string>("");
@@ -186,6 +192,11 @@ export function useMockPanel() {
             }
           },
           onSessionUpdated: () => {
+            // (Re)entering live — clear any stale push-to-talk capture state (e.g.
+            // a disconnect mid-answer); the freshly-(re)connected peer's mic starts
+            // muted, so the candidate taps "Start answering" again.
+            isCapturingRef.current = false;
+            setIsCapturing(false);
             if (greetOnConnectRef.current) {
               greetOnConnectRef.current = false;
               // Manual turn control: open the conversation with the interviewer's
@@ -207,10 +218,12 @@ export function useMockPanel() {
             }
           },
           onUserTranscript: (t) => {
-            if (t.trim()) {
-              enqueueUser(t);
-              requestCoachResponse(); // manual control: drive the interviewer's reply
-            }
+            // Log the transcript for the panel/scoring only. The interviewer's
+            // reply is triggered when the candidate taps "Done" (toggleCapture →
+            // requestCoachResponse), NOT by transcription — so a late, empty, or
+            // hallucinated transcript can't make the interviewer respond, and a
+            // real answer still gets a reply even if the transcript returns empty.
+            if (t.trim()) enqueueUser(t);
           },
           onCoachTranscriptDelta: (d) => {
             coachAccumRef.current += d;
@@ -265,7 +278,14 @@ export function useMockPanel() {
               }, ICE_DISCONNECT_GRACE_MS);
             }
           },
-          onError: () => {
+          onError: (err) => {
+            // A too-short / empty push-to-talk commit is non-fatal (stray tap) —
+            // never tear the session down for it.
+            const code =
+              err && typeof err === "object"
+                ? (err as { error?: { code?: string } }).error?.code
+                : undefined;
+            if (code === "input_audio_buffer_commit_empty") return;
             // A server `error` event or data-channel fault that didn't flip ICE.
             if (stateRef.current.reachedLive) dispatch({ type: "DISCONNECTED" });
             else dispatch({ type: "CREATE_ERROR", message: "Connection error" });
@@ -276,7 +296,7 @@ export function useMockPanel() {
     } catch {
       dispatch({ type: "DISCONNECTED" });
     }
-  }, [enqueueUser, finalizeCoach, closePeer, requestCoachResponse]);
+  }, [enqueueUser, finalizeCoach, closePeer]);
 
   // ── phase-entry side effects ────────────────────────────────────────────────
   const doCreate = useCallback(async () => {
@@ -522,10 +542,13 @@ export function useMockPanel() {
       greetOnConnectRef.current = false;
       responseInFlightRef.current = false;
       pendingResponseRef.current = false;
+      isCapturingRef.current = false;
+      captureStartRef.current = 0;
       speakingRef.current = false;
       pollErrorsRef.current = 0;
       setLiveTranscript([]);
       setCoachStreaming("");
+      setIsCapturing(false);
       dispatch({ type: "START" });
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
@@ -548,6 +571,31 @@ export function useMockPanel() {
     },
     [startMicMeter, closePeer, stopMic]
   );
+
+  // Push-to-talk: tap to start answering, tap "Done" to send. The interviewer's
+  // reply fires on Done (commit + response.create), so a long answer with any
+  // number of thinking pauses is never cut off mid-sentence.
+  const toggleCapture = useCallback(() => {
+    if (isCapturingRef.current) {
+      isCapturingRef.current = false;
+      setIsCapturing(false);
+      speakingRef.current = false;
+      if (Date.now() - captureStartRef.current >= MIN_CAPTURE_MS) {
+        peerRef.current?.commitCapture();
+        requestCoachResponse(); // ask the interviewer to reply to the committed answer
+      } else {
+        peerRef.current?.discardCapture(); // stray/too-short tap — drop it, no empty commit
+      }
+      return;
+    }
+    // Start only on the candidate's turn (live, interviewer not currently speaking).
+    if (stateRef.current.phase !== "live" || stateRef.current.coachResponseInFlight) return;
+    isCapturingRef.current = true;
+    setIsCapturing(true);
+    speakingRef.current = true; // keep the TTL watchdog from re-minting mid-answer
+    captureStartRef.current = Date.now();
+    peerRef.current?.beginCapture();
+  }, [requestCoachResponse]);
 
   const endAndScore = useCallback(() => dispatch({ type: "END_REQUESTED" }), []);
   const retryConnect = useCallback(() => {
@@ -576,8 +624,10 @@ export function useMockPanel() {
     sessionId: state.sessionId,
     liveTranscript,
     coachStreaming,
+    isCapturing,
     micLevelRef,
     start,
+    toggleCapture,
     endAndScore,
     retryConnect,
     startOver,

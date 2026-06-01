@@ -188,6 +188,12 @@ function LiveShell({ p }: { p: ReturnType<typeof useMockPanel> }) {
     label = `${persona.name} is speaking`;
     hint = persona.role || "Interviewer";
     busy = true;
+  } else if (p.phase === "live" && p.isCapturing) {
+    // Push-to-talk: the candidate's mic is open. The orb reacts; nothing ends the
+    // turn until they tap Done, so pauses to think are completely safe.
+    label = "Listening…";
+    hint = "Take your time — tap Done when you've finished";
+    reactive = true;
   } else if (p.phase === "live" && p.committedTurns === 0) {
     // Opening beat: the interviewer speaks first. Don't tell the candidate it's
     // "your turn" while we're still waiting for the panel's first question.
@@ -196,8 +202,7 @@ function LiveShell({ p }: { p: ReturnType<typeof useMockPanel> }) {
     dim = true;
   } else if (p.phase === "live") {
     label = "Your turn";
-    hint = "Speak naturally — your mic is live";
-    reactive = true;
+    hint = "Tap “Start answering” when you're ready";
   }
 
   const seatById = new Map(
@@ -229,6 +234,30 @@ function LiveShell({ p }: { p: ReturnType<typeof useMockPanel> }) {
           dim={dim}
         />
       </motion.div>
+
+      {p.phase === "live" && (
+        <motion.div variants={staggerItem} className="flex flex-col items-center gap-2">
+          {/* Push-to-talk: the candidate owns end-of-turn. Disabled while the
+              interviewer is speaking — you answer after they finish, as in a real interview. */}
+          <Button
+            type="button"
+            size="lg"
+            onClick={p.toggleCapture}
+            disabled={p.coachResponseInFlight}
+            variant={p.isCapturing ? "default" : "outline"}
+            className="rounded-full px-10"
+          >
+            {p.isCapturing ? "Done — send to the panel" : "Start answering"}
+          </Button>
+          <p className="text-xs text-muted-foreground">
+            {p.isCapturing
+              ? "Take your time — pauses are fine. Tap Done when you've finished."
+              : p.coachResponseInFlight
+                ? "Listen to the interviewer…"
+                : "Tap to answer — you control when your turn ends."}
+          </p>
+        </motion.div>
+      )}
 
       <motion.div variants={staggerItem} className="space-y-4">
         <div className="flex items-center gap-3">
