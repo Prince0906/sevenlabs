@@ -13,7 +13,7 @@ import { connectRealtime, type RealtimePeer } from "../lib/realtime-connection";
 import * as api from "../lib/mock-api";
 
 const TTL_GUARD_MS = 20_000; // re-mint this long before the ephemeral expires
-const CONFERRING_BEAT_MS = 500; // "panel is conferring" handoff beat
+const CONFERRING_BEAT_MS = 1500; // "panel is conferring" handoff beat — deliberate, so seat swaps don't feel rushed
 const MAX_RECONNECTS = 3;
 const SPURIOUS_COACH_MIN_WORDS = 3;
 const ICE_DISCONNECT_GRACE_MS = 4000; // ICE "disconnected" is flappy; let it self-heal
@@ -54,6 +54,14 @@ export function useMockPanel() {
   const pendingBargeInsRef = useRef<number>(0);
   const pendingInterruptionsRef = useRef<number>(0);
   const replayOnConnectRef = useRef<boolean>(false);
+  const greetOnConnectRef = useRef<boolean>(false);
+  // Manual turn control (create_response is OFF server-side): the client owns when
+  // the interviewer speaks. responseInFlightRef marks an active interviewer turn
+  // (set when we send response.create, cleared on response.done) so we never race
+  // a second concurrent response; pendingResponseRef remembers that a candidate
+  // turn landed mid-response and is owed a reply once the current one finishes.
+  const responseInFlightRef = useRef<boolean>(false);
+  const pendingResponseRef = useRef<boolean>(false);
   const micLevelRef = useRef<number>(0);
   const speakingRef = useRef<boolean>(false);
   const handledPhaseRef = useRef<string>("");
@@ -112,6 +120,20 @@ export function useMockPanel() {
   }, []);
 
   // ── transport callbacks (read fresh state via stateRef) ─────────────────────
+  // Manual turn trigger: ask the interviewer to take its next turn. Never while
+  // one is in flight (the server rejects a second concurrent response with
+  // "Conversation already has an active response"), and only while live; a
+  // candidate turn that lands mid-response is deferred until response.done.
+  const requestCoachResponse = useCallback(() => {
+    if (stateRef.current.phase !== "live") return;
+    if (responseInFlightRef.current) {
+      pendingResponseRef.current = true;
+      return;
+    }
+    responseInFlightRef.current = true;
+    peerRef.current?.send({ type: "response.create" });
+  }, []);
+
   const enqueueUser = useCallback((transcript: string) => {
     const events: TurnEvents = {};
     if (lastCoachDoneAtRef.current > 0) {
@@ -142,7 +164,12 @@ export function useMockPanel() {
     dispatch({ type: "COACH_DONE", transcript: text });
   }, [activeSeatId]);
 
-  const doConnect = useCallback(async () => {
+  const doConnect = useCallback(async (opts?: { greet?: boolean }) => {
+    // Fresh seat connects (create / handoff) → the interviewer speaks first.
+    // Re-mint / reconnect replay history and resume instead, so no greeting.
+    greetOnConnectRef.current = opts?.greet ?? false;
+    responseInFlightRef.current = false;
+    pendingResponseRef.current = false;
     const ephemeral = ephemeralRef.current;
     const micStream = micStreamRef.current;
     if (!ephemeral || !micStream) return;
@@ -159,6 +186,16 @@ export function useMockPanel() {
             }
           },
           onSessionUpdated: () => {
+            if (greetOnConnectRef.current) {
+              greetOnConnectRef.current = false;
+              // Manual turn control: open the conversation with the interviewer's
+              // first turn. A BARE response.create generates it from the seat
+              // persona (session instructions) — which greets + asks the first
+              // question. No per-response instructions on purpose (they'd OVERRIDE
+              // the persona). Mark in-flight so a fast candidate reply defers.
+              responseInFlightRef.current = true;
+              peerRef.current?.send({ type: "response.create" });
+            }
             const s = stateRef.current;
             if (!s.reachedLive) {
               if (!s.sessionId) return;
@@ -170,7 +207,10 @@ export function useMockPanel() {
             }
           },
           onUserTranscript: (t) => {
-            if (t.trim()) enqueueUser(t);
+            if (t.trim()) {
+              enqueueUser(t);
+              requestCoachResponse(); // manual control: drive the interviewer's reply
+            }
           },
           onCoachTranscriptDelta: (d) => {
             coachAccumRef.current += d;
@@ -190,6 +230,16 @@ export function useMockPanel() {
             lastCoachDoneAtRef.current = Date.now();
             if (cancelled) pendingInterruptionsRef.current += 1;
             dispatch({ type: "COACH_RESPONSE_DONE", cancelled });
+            // Manual control: this interviewer turn is finished. If a candidate
+            // turn arrived while it was speaking, it's owed a reply now (skip if
+            // we've left live — e.g. a handoff/wrap was triggered by this turn).
+            responseInFlightRef.current = false;
+            const owed = pendingResponseRef.current;
+            pendingResponseRef.current = false;
+            if (owed && stateRef.current.phase === "live") {
+              responseInFlightRef.current = true;
+              peerRef.current?.send({ type: "response.create" });
+            }
           },
           onConnectionStateChange: (st) => {
             if (st === "connected" || st === "completed") {
@@ -226,7 +276,7 @@ export function useMockPanel() {
     } catch {
       dispatch({ type: "DISCONNECTED" });
     }
-  }, [enqueueUser, finalizeCoach, closePeer]);
+  }, [enqueueUser, finalizeCoach, closePeer, requestCoachResponse]);
 
   // ── phase-entry side effects ────────────────────────────────────────────────
   const doCreate = useCallback(async () => {
@@ -250,7 +300,7 @@ export function useMockPanel() {
           maxDurationSec: r.data.spend.maxDurationSec,
           ephemeralExpiresAt: r.data.ephemeral.expiresAt,
         });
-        void doConnect();
+        void doConnect({ greet: true });
         break;
       case "duplicate":
         dispatch({ type: "CREATE_DUPLICATE", sessionId: r.sessionId });
@@ -287,7 +337,7 @@ export function useMockPanel() {
     if (r.kind === "ephemeral") {
       ephemeralRef.current = r.ephemeral;
       dispatch({ type: "MINT_OK", ephemeralExpiresAt: r.ephemeral.expiresAt });
-      void doConnect();
+      void doConnect({ greet: true }); // new seat → that interviewer introduces themselves
     } else if (r.kind === "expired") {
       dispatch({ type: "MINT_EXPIRED" });
     } else if (r.kind === "voice-unavailable") {
@@ -469,13 +519,26 @@ export function useMockPanel() {
       pendingBargeInsRef.current = 0;
       pendingInterruptionsRef.current = 0;
       replayOnConnectRef.current = false;
+      greetOnConnectRef.current = false;
+      responseInFlightRef.current = false;
+      pendingResponseRef.current = false;
       speakingRef.current = false;
       pollErrorsRef.current = 0;
       setLiveTranscript([]);
       setCoachStreaming("");
       dispatch({ type: "START" });
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const stream = await navigator.mediaDevices.getUserMedia({
+          // Explicit AEC so the interviewer's own audio (laptop speakers) can't
+          // echo back into the mic and trip a spurious turn. On by default for
+          // WebRTC capture, but stated explicitly — OpenAI's server does NO echo
+          // cancellation, so it is entirely the client's responsibility.
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          },
+        });
         micStreamRef.current = stream;
         startMicMeter(stream);
         dispatch({ type: "MIC_GRANTED" });

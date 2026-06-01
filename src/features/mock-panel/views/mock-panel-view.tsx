@@ -188,6 +188,12 @@ function LiveShell({ p }: { p: ReturnType<typeof useMockPanel> }) {
     label = `${persona.name} is speaking`;
     hint = persona.role || "Interviewer";
     busy = true;
+  } else if (p.phase === "live" && p.committedTurns === 0) {
+    // Opening beat: the interviewer speaks first. Don't tell the candidate it's
+    // "your turn" while we're still waiting for the panel's first question.
+    label = "The interviewer will begin shortly…";
+    hint = "Listen for the first question";
+    dim = true;
   } else if (p.phase === "live") {
     label = "Your turn";
     hint = "Speak naturally — your mic is live";

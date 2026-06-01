@@ -8,7 +8,7 @@ import type { RealtimeEphemeral } from "@sevenlabs/shared-types";
  * (/v1/realtime/calls) with Content-Type: application/sdp + Bearer
  * ephemeral.value and NO ?model= (the model is bound to the ephemeral). On
  * data-channel open we send a session.update enabling input transcription +
- * server VAD (belt-and-suspenders over the mint config) and the caller waits
+ * semantic VAD (belt-and-suspenders over the mint config) and the caller waits
  * for onSessionUpdated before accepting speech. (REALTIME_CLIENT_PLAN.md step 8.)
  */
 export interface RealtimeCallbacks {
@@ -41,12 +41,23 @@ export interface RealtimePeer {
   close: () => void;
 }
 
+// MUST stay identical to the mint-time turn_detection (src/lib/coach/openai.ts).
+// MANUAL TURN CONTROL: semantic_vad with create_response AND interrupt_response
+// both false — the model never auto-responds and is never auto-interrupted (VAD +
+// transcription events still fire); the hook drives every interviewer turn with
+// one response.create. This guarantees the interviewer can't truncate its own
+// sentence via a racing second response triggered by a stray noise/echo.
 const INPUT_SESSION_PATCH = {
   type: "realtime",
   audio: {
     input: {
       transcription: { model: "gpt-4o-transcribe" },
-      turn_detection: { type: "server_vad" },
+      turn_detection: {
+        type: "semantic_vad",
+        eagerness: "low",
+        create_response: false,
+        interrupt_response: false,
+      },
     },
   },
 };
@@ -104,7 +115,7 @@ export async function connectRealtime(params: {
   };
 
   dc.onopen = () => {
-    // Belt-and-suspenders: re-assert input transcription + server VAD. The
+    // Belt-and-suspenders: re-assert input transcription + semantic VAD. The
     // caller gates `live` on onSessionUpdated so we never accept speech first.
     send({ type: "session.update", session: INPUT_SESSION_PATCH });
     callbacks.onDataChannelOpen?.();

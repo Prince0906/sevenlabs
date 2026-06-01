@@ -186,13 +186,30 @@ export async function mintRealtimeEphemeral(params: {
         instructions: params.instructions,
         audio: {
           output: { voice: params.voice },
-          // Enable input transcription + server VAD AT MINT so it can't be
+          // Enable input transcription + turn detection AT MINT so it can't be
           // forgotten or raced by the client. Without it OpenAI emits no
           // input_audio_transcription.completed events and the judge would
           // score an empty interview. (REALTIME_CLIENT_PLAN.md decision 2.)
+          //
+          // semantic_vad (not server_vad): a model classifier decides end-of-turn
+          // from sentence completion, so a candidate's mid-answer thinking pause
+          // is NOT mistaken for "done" and the interviewer doesn't barge in.
+          // eagerness:"low" lets them take their time. MANUAL TURN CONTROL:
+          // create_response AND interrupt_response are BOTH false — the model
+          // NEVER auto-responds and is NEVER auto-interrupted, but VAD +
+          // transcription events still fire, so the CLIENT drives every
+          // interviewer turn with exactly one response.create. This is the only
+          // way to guarantee the interviewer can't truncate its own sentence by a
+          // racing second response (a stray noise/echo would otherwise auto-fire
+          // a new turn that supersedes the one in progress). (Verified GA contract.)
           input: {
             transcription: { model: "gpt-4o-transcribe" },
-            turn_detection: { type: "server_vad" },
+            turn_detection: {
+              type: "semantic_vad",
+              eagerness: "low",
+              create_response: false,
+              interrupt_response: false,
+            },
           },
         },
       },
