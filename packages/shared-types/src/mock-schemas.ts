@@ -199,6 +199,30 @@ export const mockReportSchema = z.object({
   fluency: fluencySchema.nullish(),
 });
 
+// A1 — real-interview outcome capture (ROADMAP Inc 1). The one label a model
+// cannot manufacture; bound to the session's prior prediction for calibration.
+export const interviewOutcomeSchema = z.enum([
+  "ADVANCED",
+  "REJECTED",
+  "GHOSTED",
+  "OFFER",
+  "PENDING",
+]);
+
+export const outcomeRequestSchema = z.object({
+  result: interviewOutcomeSchema,
+  offerLevel: signalLevelSchema.nullish(), // only when result = OFFER
+  note: z.string().max(2000).optional(),
+});
+
+export const outcomeResponseSchema = z.object({
+  sessionId: z.string(),
+  result: interviewOutcomeSchema,
+  predictedSignal: signalLevelSchema.nullable(),
+  predictedWeakest: z.string().nullable(),
+  capturedAt: z.string(),
+});
+
 export type MintRequest = z.infer<typeof mintRequestSchema>;
 export type PanelSeatPublic = z.infer<typeof panelSeatPublicSchema>;
 export type RealtimeEphemeral = z.infer<typeof realtimeEphemeralSchema>;
@@ -210,6 +234,9 @@ export type TurnResponse = z.infer<typeof turnResponseSchema>;
 export type MockReport = z.infer<typeof mockReportSchema>;
 export type MockReportDimension = z.infer<typeof mockReportDimensionSchema>;
 export type MockFluency = z.infer<typeof fluencySchema>;
+export type InterviewOutcomeT = z.infer<typeof interviewOutcomeSchema>;
+export type OutcomeRequest = z.infer<typeof outcomeRequestSchema>;
+export type OutcomeResponse = z.infer<typeof outcomeResponseSchema>;
 
 export type Inclination = z.infer<typeof inclinationSchema>;
 export type ScoreDimensionT = z.infer<typeof scoreDimensionSchema>;

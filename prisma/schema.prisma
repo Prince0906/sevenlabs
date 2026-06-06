@@ -36,6 +36,7 @@ model User {
   mockSessions      MockSession[]
   confidenceMetrics ConfidenceMetric[]
   drillAssignments  DrillAssignment[]
+  outcomes          Outcome[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -193,6 +194,17 @@ enum JobStatus {
   FAILED
 }
 
+// Real-world result of the interview this mock prepared for. The single label a
+// foundation model cannot manufacture — captured against our prior prediction so
+// the (prediction → outcome) pair is the calibration corpus. ROADMAP Inc 1 (A1).
+enum InterviewOutcome {
+  ADVANCED // moved to the next round
+  REJECTED // did not advance
+  GHOSTED  // never heard back
+  OFFER    // received an offer
+  PENDING  // outcome not known yet (default while waiting)
+}
+
 model Scenario {
   id          String             @id @default(cuid())
   company     String
@@ -260,6 +272,7 @@ model MockSession {
   confidencePoints ConfidenceMetric[]
   job              JudgmentJob?
   reservation      SpendReservation?
+  outcome          Outcome?
   createdAt        DateTime           @default(now())
 
   @@unique([userId, clientRequestId])
@@ -369,6 +382,32 @@ model JudgmentJob {
   updatedAt  DateTime    @updatedAt
 
   @@index([status, leaseUntil])
+}
+
+// One real-interview outcome per mock session. predicted* are snapshotted at
+// capture time so the labeled pair survives rubric/model churn (ROADMAP A1; the
+// keystone the confidence calibration and the whole moat read from).
+model Outcome {
+  id        String      @id @default(cuid())
+  userId    String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessionId String      @unique
+  session   MockSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  result     InterviewOutcome @default(PENDING)
+  offerLevel SignalLevel? // only meaningful when result = OFFER
+  note       String?          @db.Text
+
+  // Snapshot of what the panel predicted for this session, taken at capture time.
+  predictedSignal  SignalLevel?
+  predictedWeakest String? // the weakest DimensionScore.key at capture time
+  rubricVersion    String? // forward-compat; populated once verdicts are version-pinned (Inc 2)
+
+  capturedAt DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([userId, capturedAt(sort: Desc)])
+  @@index([result])
 }
 
 model RateBucket {
