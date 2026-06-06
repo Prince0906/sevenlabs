@@ -1,10 +1,20 @@
 import type { SpeechMetrics, WordTimestamp } from "@sevenlabs/shared-types";
 
+// Single-token disfluencies Whisper actually emits. Elongated hesitations
+// ("ufff", "ahhh", "ummm") get transcribed with varying repeat counts, so the
+// common spellings are listed explicitly. The multi-word phrases below are
+// matched per-token elsewhere, so they only catch their first token today —
+// kept for documentation, not relied on.
 const FILLER_WORDS = new Set([
   "um",
+  "umm",
   "uh",
+  "uhh",
   "er",
+  "erm",
   "ah",
+  "uff",
+  "hmm",
   "like",
   "you know",
   "sort of",

@@ -10,6 +10,7 @@ export {
 } from "./coach-prompt";
 export {
   AMAZON_LEADERSHIP_PRINCIPLES,
+  REACT_JS_COMPETENCIES,
   buildRubricUserMessage,
   getRubricForCompany,
   type CompanyRubric,
@@ -29,6 +30,7 @@ export {
   evaluateDrill,
   finalizeVerdict,
   computeComposure,
+  aggregateFluency,
   selectOneRep,
   COMMITTEE_DEBRIEF_PROMPT,
   buildCommitteeMessage,
@@ -38,4 +40,5 @@ export {
   type DimensionScoreInsert,
   type TurnLite,
   type CommitteeSeatInput,
+  type FluencyAggregate,
 } from "./panel-composition";

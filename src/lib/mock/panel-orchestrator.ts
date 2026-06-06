@@ -15,6 +15,7 @@ import {
   evaluateDrill,
   finalizeVerdict,
   computeComposure,
+  aggregateFluency,
   selectOneRep,
   buildCommitteeMessage,
   COMMITTEE_DEBRIEF_PROMPT,
@@ -44,10 +45,12 @@ async function withTimeout<T>(
 
 async function scoreSeat(
   seat: { id: string; ownedLPs: string[]; isBarRaiser: boolean },
+  company: string,
   targetLevel: SignalLevel,
   fullTranscript: string
 ): Promise<SeatRubricOutput | null> {
   const { systemPrompt } = buildSeatRubric({
+    company,
     ownedLPs: seat.ownedLPs,
     isBarRaiser: seat.isBarRaiser,
     targetLevel,
@@ -107,7 +110,7 @@ export async function runJudgment(sessionId: string): Promise<void> {
 
   // Independent per-seat scoring (timeout + retry).
   const scored = await Promise.all(
-    seats.map((s) => scoreSeat(s, targetLevel, fullTranscript))
+    seats.map((s) => scoreSeat(s, company, targetLevel, fullTranscript))
   );
 
   const barRaiserIdx = seats.findIndex((s) => s.id === barRaiserSeat.id);
@@ -168,6 +171,24 @@ export async function runJudgment(sessionId: string): Promise<void> {
 
   const composure = computeComposure(userTurnMetrics, difficultyInt);
 
+  // End-report fluency rollup (no live meters). null when no answer had usable
+  // word timings (e.g. the audio path never ran) → the UI shows a fallback.
+  const fluencyAgg = aggregateFluency(userTurnMetrics);
+  const fluency = fluencyAgg
+    ? {
+        ...fluencyAgg,
+        perAnswer: userTurnMetrics
+          .filter((m) => m.turnDurationSec > 0 && m.wpm > 0)
+          .map((m) => ({
+            wpm: m.wpm,
+            fillerCount: m.fillerCount,
+            pauseCount: m.pauseCount,
+            longestPauseMs: m.longestPauseMs,
+            turnDurationSec: m.turnDurationSec,
+          })),
+      }
+    : null;
+
   const gapPriorityLPs = [...dimensionRows]
     .sort((a, b) => a.score - b.score)
     .map((r) => r.key);
@@ -199,6 +220,7 @@ export async function runJudgment(sessionId: string): Promise<void> {
           estMinutes: oneRep.estMinutes,
         }
       : null,
+    fluency,
   };
 
   await prisma.$transaction([

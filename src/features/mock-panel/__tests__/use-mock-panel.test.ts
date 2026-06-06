@@ -58,12 +58,12 @@ describe("panelReducer — seat handoff", () => {
   it("hands off via the exchange budget cap when the sentinel is absent", () => {
     let s = driveToLive();
     // Below the cap it must NOT force a handoff (no more "forced to finish fast").
-    for (let i = 0; i < 4; i++) s = panelReducer(s, { type: "USER_TURN" });
+    for (let i = 0; i < 7; i++) s = panelReducer(s, { type: "USER_TURN" });
     s = panelReducer(s, { type: "COACH_DONE", transcript: "tell me more" });
     expect(s.phase).toBe("live");
-    // At the cap (5 for a non-last seat) it force-hands-off as a safety valve.
+    // At the cap (8 for a non-last seat) it force-hands-off as a safety valve.
     s = panelReducer(s, { type: "USER_TURN" });
-    expect(s.exchangeCount).toBe(5);
+    expect(s.exchangeCount).toBe(8);
     s = panelReducer(s, { type: "COACH_DONE", transcript: "ok, next question" });
     expect(s.phase).toBe("handing-off");
   });
@@ -81,8 +81,8 @@ describe("panelReducer — seat handoff", () => {
     s = reconnectToLive(s);
     expect(s.activeSeatIndex).toBe(2);
 
-    // last seat: no sentinel, safety cap of 6
-    for (let i = 0; i < 6; i++) s = panelReducer(s, { type: "USER_TURN" });
+    // last seat: no sentinel, safety cap of 10
+    for (let i = 0; i < 10; i++) s = panelReducer(s, { type: "USER_TURN" });
     s = panelReducer(s, { type: "COACH_DONE", transcript: "thank you" });
     expect(s.phase).toBe("wrapping");
     expect(s.completedSeatIndexes).toEqual([0, 1]);

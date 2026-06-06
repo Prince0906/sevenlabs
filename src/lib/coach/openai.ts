@@ -20,11 +20,14 @@ export class ProviderError extends Error {
 
 export async function transcribeAudio(
   audioBuffer: Buffer,
-  mimeType: string
+  mimeType: string,
+  // Whisper infers the codec from the filename extension, so a webm/mp4 answer
+  // must NOT be sent as "utterance.wav" — callers pass a matching name.
+  filename: string = "utterance.wav"
 ): Promise<{ transcript: string; words: WordTimestamp[]; durationSec: number }> {
   const formData = new FormData();
   const blob = new Blob([new Uint8Array(audioBuffer)], { type: mimeType });
-  formData.append("file", blob, "utterance.wav");
+  formData.append("file", blob, filename);
   formData.append("model", "whisper-1");
   formData.append("response_format", "verbose_json");
   formData.append("timestamp_granularities[]", "word");

@@ -72,6 +72,28 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Rate limited" }, { status: 429 });
     }
 
+    // Self-heal stranded sessions before the cap check: a tab-close or dropped
+    // connection mid-panel leaves a row in LIVE/INTERRUPTED that nothing else
+    // reaps, so it would trip the single-live cap forever. Past MAX_SESSION_SEC
+    // a session is over the ceiling and can't even re-mint (see mint route), so
+    // it is definitively dead. SYSTEM_DESIGN §13.
+    const staleCutoff = new Date(Date.now() - env.MAX_SESSION_SEC * 1000);
+    const stale = await prisma.mockSession.findMany({
+      where: {
+        userId,
+        status: { in: ["LIVE", "INTERRUPTED"] },
+        startedAt: { lt: staleCutoff },
+      },
+      select: { id: true },
+    });
+    if (stale.length > 0) {
+      await prisma.mockSession.updateMany({
+        where: { id: { in: stale.map((s) => s.id) } },
+        data: { status: "ABANDONED", endedAt: new Date() },
+      });
+      await Promise.all(stale.map((s) => settleReservation(s.id, 0)));
+    }
+
     // Single-LIVE-session concurrency cap.
     const liveCount = await prisma.mockSession.count({
       where: { userId, status: "LIVE" },

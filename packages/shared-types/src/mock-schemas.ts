@@ -161,6 +161,29 @@ export const mockReportDimensionSchema = z.object({
   gap: z.string(),
 });
 
+/** End-report fluency / delivery rollup, derived from per-answer Whisper word
+ * timings (coach-core analyzeSpeech). OPTIONAL on the report: historical sessions
+ * (and any run where no answer audio was analyzed) won't have it — render a
+ * graceful fallback. Mirrors panel-orchestrator.ts reportJson.fluency EXACTLY. */
+export const fluencySchema = z.object({
+  answersScored: z.number().int().nonnegative(),
+  meanWpm: z.number().nonnegative(),
+  fillerCount: z.number().int().nonnegative(),
+  fillerPer100: z.number().nonnegative(),
+  pauseCount: z.number().int().nonnegative(),
+  longestPauseMs: z.number().nonnegative(),
+  speakingRatio: z.number().min(0).max(1),
+  perAnswer: z.array(
+    z.object({
+      wpm: z.number().nonnegative(),
+      fillerCount: z.number().int().nonnegative(),
+      pauseCount: z.number().int().nonnegative(),
+      longestPauseMs: z.number().nonnegative(),
+      turnDurationSec: z.number().nonnegative(),
+    })
+  ),
+});
+
 export const mockReportSchema = z.object({
   verdict: panelVerdictSchema,
   confidence: z.number().int().min(0).max(100),
@@ -173,6 +196,7 @@ export const mockReportSchema = z.object({
       estMinutes: z.number(),
     })
     .nullable(),
+  fluency: fluencySchema.nullish(),
 });
 
 export type MintRequest = z.infer<typeof mintRequestSchema>;
@@ -185,6 +209,7 @@ export type StatusResponse = z.infer<typeof statusResponseSchema>;
 export type TurnResponse = z.infer<typeof turnResponseSchema>;
 export type MockReport = z.infer<typeof mockReportSchema>;
 export type MockReportDimension = z.infer<typeof mockReportDimensionSchema>;
+export type MockFluency = z.infer<typeof fluencySchema>;
 
 export type Inclination = z.infer<typeof inclinationSchema>;
 export type ScoreDimensionT = z.infer<typeof scoreDimensionSchema>;

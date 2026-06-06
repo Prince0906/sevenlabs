@@ -20,6 +20,20 @@ const ICE_DISCONNECT_GRACE_MS = 4000; // ICE "disconnected" is flappy; let it se
 const MAX_POLL_ERRORS = 5; // bounded report-poll retries before giving up
 const MIN_CAPTURE_MS = 500; // push-to-talk: ignore stray taps shorter than this
 
+/** Pick a MediaRecorder mime Whisper can transcribe; undefined → browser default. */
+function pickRecorderMime(): string | undefined {
+  if (typeof MediaRecorder === "undefined") return undefined;
+  for (const c of [
+    "audio/webm;codecs=opus",
+    "audio/webm",
+    "audio/ogg;codecs=opus",
+    "audio/mp4",
+  ]) {
+    if (MediaRecorder.isTypeSupported?.(c)) return c;
+  }
+  return undefined;
+}
+
 /**
  * The full client orchestration: create -> per-seat connect/handoff -> wrap ->
  * debrief-poll -> report, with every recovery path. The pure state machine
@@ -68,6 +82,13 @@ export function useMockPanel() {
   const pendingResponseRef = useRef<boolean>(false);
   const isCapturingRef = useRef<boolean>(false);
   const captureStartRef = useRef<number>(0);
+  // Fluency capture: a per-answer MediaRecorder taps the mic during the PTT
+  // window; on Done the blob is uploaded for Whisper word-timing analysis. The
+  // clientTurnId is minted at capture-start so the audio upload and the text turn
+  // (enqueued later on transcription) share one join key.
+  const currentClientTurnIdRef = useRef<string>("");
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const recordedChunksRef = useRef<Blob[]>([]);
   const micLevelRef = useRef<number>(0);
   const speakingRef = useRef<boolean>(false);
   const handledPhaseRef = useRef<string>("");
@@ -150,7 +171,14 @@ export function useMockPanel() {
     pendingBargeInsRef.current = 0;
     pendingInterruptionsRef.current = 0;
     const seatId = activeSeatId();
-    queueRef.current?.enqueue({ role: "USER", transcript, seatId, words: [], events });
+    queueRef.current?.enqueue({
+      role: "USER",
+      transcript,
+      seatId,
+      words: [],
+      events,
+      clientTurnId: currentClientTurnIdRef.current || undefined,
+    });
     turnsLogRef.current.push({ role: "user", text: transcript });
     setLiveTranscript((prev) => [...prev, { role: "USER", seatId, text: transcript }]);
     dispatch({ type: "USER_TURN" });
@@ -350,6 +378,10 @@ export function useMockPanel() {
     const s = stateRef.current;
     if (!s.sessionId) return;
     await queueRef.current?.drainBeforeComplete();
+    // Let the interviewer's closing line ("…Handing you to my colleague.") finish
+    // playing before tearing the peer down — closePeer() pauses the remote audio,
+    // which otherwise clips the handoff mid-sentence (2026-06-02 live test #3).
+    await peerRef.current?.awaitPlayoutEnd();
     closePeer();
     await new Promise((res) => setTimeout(res, CONFERRING_BEAT_MS));
     const nextIndex = s.activeSeatIndex + 1;
@@ -423,6 +455,7 @@ export function useMockPanel() {
     const s = stateRef.current;
     if (!s.sessionId) return;
     await queueRef.current?.drainBeforeComplete();
+    await peerRef.current?.awaitPlayoutEnd(); // let any final interviewer line finish
     closePeer();
     stopMic();
     const r = await api.complete(s.sessionId, s.hitCeiling ? "ceiling" : undefined);
@@ -514,6 +547,15 @@ export function useMockPanel() {
     return () => {
       if (pollTimerRef.current) clearTimeout(pollTimerRef.current);
       if (iceDebounceRef.current) clearTimeout(iceDebounceRef.current);
+      const rec = recorderRef.current;
+      if (rec) {
+        rec.onstop = null; // unmount: stop without uploading
+        try {
+          if (rec.state !== "inactive") rec.stop();
+        } catch {
+          /* ignore */
+        }
+      }
       peerRef.current?.close();
       micMeterStopRef.current?.();
       micStreamRef.current?.getTracks().forEach((t) => t.stop());
@@ -544,6 +586,20 @@ export function useMockPanel() {
       pendingResponseRef.current = false;
       isCapturingRef.current = false;
       captureStartRef.current = 0;
+      currentClientTurnIdRef.current = "";
+      {
+        const rec = recorderRef.current;
+        recorderRef.current = null;
+        recordedChunksRef.current = [];
+        if (rec) {
+          rec.onstop = null;
+          try {
+            if (rec.state !== "inactive") rec.stop();
+          } catch {
+            /* ignore */
+          }
+        }
+      }
       speakingRef.current = false;
       pollErrorsRef.current = 0;
       setLiveTranscript([]);
@@ -572,15 +628,60 @@ export function useMockPanel() {
     [startMicMeter, closePeer, stopMic]
   );
 
+  // Fluency capture lifecycle (parallel to the realtime conversation, best-effort).
+  const startTurnRecorder = useCallback(() => {
+    recordedChunksRef.current = [];
+    recorderRef.current = null;
+    const stream = micStreamRef.current;
+    if (!stream || typeof MediaRecorder === "undefined") return;
+    try {
+      const mime = pickRecorderMime();
+      const rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+      rec.ondataavailable = (e) => {
+        if (e.data.size > 0) recordedChunksRef.current.push(e.data);
+      };
+      rec.start();
+      recorderRef.current = rec;
+    } catch {
+      recorderRef.current = null;
+    }
+  }, []);
+
+  const stopTurnRecorder = useCallback((upload: boolean) => {
+    const rec = recorderRef.current;
+    recorderRef.current = null;
+    if (!rec) {
+      recordedChunksRef.current = [];
+      return;
+    }
+    const sessionId = stateRef.current.sessionId;
+    const clientTurnId = currentClientTurnIdRef.current;
+    rec.onstop = () => {
+      const chunks = recordedChunksRef.current;
+      recordedChunksRef.current = [];
+      if (!upload || chunks.length === 0 || !sessionId || !clientTurnId) return;
+      const blob = new Blob(chunks, { type: rec.mimeType || "audio/webm" });
+      if (blob.size > 0) void api.uploadTurnAudio(sessionId, clientTurnId, blob);
+    };
+    try {
+      if (rec.state !== "inactive") rec.stop();
+    } catch {
+      recordedChunksRef.current = [];
+    }
+  }, []);
+
   // Push-to-talk: tap to start answering, tap "Done" to send. The interviewer's
   // reply fires on Done (commit + response.create), so a long answer with any
-  // number of thinking pauses is never cut off mid-sentence.
+  // number of thinking pauses is never cut off mid-sentence. A MediaRecorder runs
+  // alongside, gated to the same window, so each answer can be scored for fluency.
   const toggleCapture = useCallback(() => {
     if (isCapturingRef.current) {
       isCapturingRef.current = false;
       setIsCapturing(false);
       speakingRef.current = false;
-      if (Date.now() - captureStartRef.current >= MIN_CAPTURE_MS) {
+      const longEnough = Date.now() - captureStartRef.current >= MIN_CAPTURE_MS;
+      stopTurnRecorder(longEnough); // only upload a real answer's audio
+      if (longEnough) {
         peerRef.current?.commitCapture();
         requestCoachResponse(); // ask the interviewer to reply to the committed answer
       } else {
@@ -594,8 +695,10 @@ export function useMockPanel() {
     setIsCapturing(true);
     speakingRef.current = true; // keep the TTL watchdog from re-minting mid-answer
     captureStartRef.current = Date.now();
+    currentClientTurnIdRef.current = crypto.randomUUID();
     peerRef.current?.beginCapture();
-  }, [requestCoachResponse]);
+    startTurnRecorder();
+  }, [requestCoachResponse, startTurnRecorder, stopTurnRecorder]);
 
   const endAndScore = useCallback(() => dispatch({ type: "END_REQUESTED" }), []);
   const retryConnect = useCallback(() => {

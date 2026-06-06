@@ -43,6 +43,10 @@ export interface RealtimePeer {
   discardCapture: () => void;
   /** 0..1 gain on the remote (coach) audio — used for the handoff dim cue. */
   setOutputGain: (gain: number) => void;
+  /** Resolve once the interviewer's audio has finished playing out (the remote
+   * stream has gone quiet for a beat), or after timeoutMs as a hard backstop, so
+   * a handoff teardown never clips the interviewer mid-sentence. */
+  awaitPlayoutEnd: (timeoutMs?: number) => Promise<void>;
   /** Tear down: pause+detach remote audio, close dc+pc. Leaves micStream alive. */
   close: () => void;
 }
@@ -74,6 +78,11 @@ export async function connectRealtime(params: {
   // Remote (coach) audio sink. Detached on close; the element is owned here.
   const remoteAudio = new Audio();
   remoteAudio.autoplay = true;
+  // Energy meter on the remote stream — analysis only (never connected to the
+  // destination, so it can't affect the <audio> element's playback). Powers
+  // awaitPlayoutEnd so a handoff waits for the interviewer to finish speaking.
+  let remoteAudioCtx: AudioContext | null = null;
+  let remoteAnalyser: AnalyserNode | null = null;
   // Autoplay can be blocked (Safari/iOS, gesture-less handoff/re-mint). On
   // rejection, retry play() on the next user gesture rather than going silently
   // mute while transcripts keep streaming.
@@ -96,8 +105,21 @@ export async function connectRealtime(params: {
       });
   };
   pc.ontrack = (e) => {
-    remoteAudio.srcObject = e.streams[0] ?? new MediaStream([e.track]);
+    const stream = e.streams[0] ?? new MediaStream([e.track]);
+    remoteAudio.srcObject = stream;
     playRemote();
+    try {
+      remoteAudioCtx = new AudioContext();
+      // May start suspended under autoplay policy; a suspended ctx reads silence,
+      // which would make awaitPlayoutEnd resolve early and re-clip the handoff.
+      void remoteAudioCtx.resume().catch(() => {});
+      const src = remoteAudioCtx.createMediaStreamSource(stream);
+      remoteAnalyser = remoteAudioCtx.createAnalyser();
+      remoteAnalyser.fftSize = 512;
+      src.connect(remoteAnalyser);
+    } catch {
+      remoteAnalyser = null;
+    }
   };
 
   pc.oniceconnectionstatechange = () => {
@@ -229,6 +251,46 @@ export async function connectRealtime(params: {
     setOutputGain: (gain) => {
       remoteAudio.volume = Math.min(1, Math.max(0, gain));
     },
+    awaitPlayoutEnd: (timeoutMs = 9000) =>
+      new Promise<void>((resolve) => {
+        const analyser = remoteAnalyser;
+        let raf = 0;
+        let done = false;
+        // setTimeout (not rAF) is the hard backstop: rAF pauses in a backgrounded
+        // tab, so it alone could hang the handoff indefinitely.
+        const finish = () => {
+          if (done) return;
+          done = true;
+          cancelAnimationFrame(raf);
+          clearTimeout(hard);
+          resolve();
+        };
+        const hard = setTimeout(finish, analyser ? timeoutMs : 1200);
+        if (!analyser) return; // no meter — the fixed tail above resolves it
+        const data = new Uint8Array(analyser.frequencyBinCount);
+        const QUIET_RMS = 0.015;
+        const QUIET_MS = 400;
+        let quietSince = 0;
+        const tick = () => {
+          if (done) return;
+          analyser.getByteTimeDomainData(data);
+          let sum = 0;
+          for (let i = 0; i < data.length; i++) {
+            const v = (data[i]! - 128) / 128;
+            sum += v * v;
+          }
+          const rms = Math.sqrt(sum / data.length);
+          const now = performance.now();
+          if (rms < QUIET_RMS) {
+            if (quietSince === 0) quietSince = now;
+            if (now - quietSince >= QUIET_MS) return finish();
+          } else {
+            quietSince = 0;
+          }
+          raf = requestAnimationFrame(tick);
+        };
+        tick();
+      }),
     close: () => {
       clearAudioGesture();
       try {
@@ -237,6 +299,9 @@ export async function connectRealtime(params: {
       } catch {
         /* ignore */
       }
+      remoteAnalyser = null;
+      void remoteAudioCtx?.close().catch(() => {});
+      remoteAudioCtx = null;
       try {
         dc.close();
       } catch {

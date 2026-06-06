@@ -133,6 +133,7 @@ export interface TurnPostBody {
   transcript?: string;
   words?: WordTimestamp[];
   events?: TurnEvents;
+  clientTurnId?: string;
 }
 export type TurnResult =
   | { kind: "ok"; data: TurnResponse }
@@ -152,6 +153,34 @@ export async function postTurn(id: string, body: TurnPostBody): Promise<TurnResu
     return data.error === "SEQ_CONFLICT" ? { kind: "seq-conflict" } : { kind: "not-live" };
   }
   return { kind: "error", status: res.status, message: errMsg(data, "Turn post failed") };
+}
+
+// ── POST /sessions/:id/turns/audio (best-effort fluency analysis) ────────────
+// Uploads ONE push-to-talk answer's audio for Whisper word-timing analysis. Fire-
+// and-forget from the hook; never blocks the interview. 202 means the matching
+// text turn row isn't written yet (the upload raced ahead) — retry a few times.
+export async function uploadTurnAudio(
+  id: string,
+  clientTurnId: string,
+  blob: Blob
+): Promise<void> {
+  const form = new FormData();
+  form.append("clientTurnId", clientTurnId);
+  const ext = blob.type.includes("mp4") ? "mp4" : blob.type.includes("ogg") ? "ogg" : "webm";
+  form.append("audio", blob, `answer.${ext}`);
+  for (let attempt = 0; attempt < 4; attempt++) {
+    let res: Response;
+    try {
+      res = await fetch(`/api/mock/sessions/${id}/turns/audio`, {
+        method: "POST",
+        body: form,
+      });
+    } catch {
+      return; // network error — best-effort, drop this answer's fluency
+    }
+    if (res.status !== 202) return; // 200 ok or a 4xx/5xx we won't retry past
+    await new Promise((r) => setTimeout(r, 1500)); // text turn not written yet
+  }
 }
 
 // ── POST /sessions/:id/complete ──────────────────────────────────────────────

@@ -16,7 +16,7 @@ import { RecoveryBanner } from "../components/recovery-banner";
 import { ReportBody, Deliberating, FailedScreen } from "./mock-report-view";
 import { seatLevel, splitPersona, SIGNAL_CSS_VAR } from "../lib/seat-theme";
 
-const SCENARIO_ID = "amzn-bar-raiser-p0";
+const SCENARIO_ID = "react-js-panel-p0";
 
 const LIVE_SHELL_PHASES = new Set([
   "acquiring-mic",
@@ -72,7 +72,7 @@ export function MockPanelView({ scenarioId = SCENARIO_ID }: { scenarioId?: strin
 
   return (
     <div className="panel-stage flex min-h-0 flex-1 flex-col bg-background text-foreground">
-      <PageHeader title="Bar-Raiser Panel" rightAction={rightAction} />
+      <PageHeader title="React & JavaScript Panel" rightAction={rightAction} />
       <div className="min-h-0 flex-1 overflow-y-auto">
         <motion.div
           variants={pageTransition}
@@ -83,6 +83,42 @@ export function MockPanelView({ scenarioId = SCENARIO_ID }: { scenarioId?: strin
           {body}
         </motion.div>
       </div>
+      {/* Push-to-talk pinned to the bottom of the room, OUTSIDE the scroll area —
+          always thumb-reachable no matter how long the transcript grows (the
+          2026-06-02 live test flagged the in-flow button as buried). */}
+      {p.phase === "live" && (
+        <div className="shrink-0 border-t border-border/60 bg-background/85 px-6 py-4 backdrop-blur">
+          <div className="mx-auto w-full max-w-3xl">
+            <PttControl p={p} />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** The push-to-talk control. The candidate owns end-of-turn; disabled while the
+ * interviewer is speaking — you answer after they finish, as in a real interview. */
+function PttControl({ p }: { p: ReturnType<typeof useMockPanel> }) {
+  return (
+    <div className="flex flex-col items-center gap-2">
+      <Button
+        type="button"
+        size="lg"
+        onClick={p.toggleCapture}
+        disabled={p.coachResponseInFlight}
+        variant={p.isCapturing ? "default" : "outline"}
+        className="rounded-full px-10"
+      >
+        {p.isCapturing ? "Done — send to the panel" : "Start answering"}
+      </Button>
+      <p className="text-xs text-muted-foreground">
+        {p.isCapturing
+          ? "Take your time — pauses are fine. Tap Done when you've finished."
+          : p.coachResponseInFlight
+            ? "Listen to the interviewer…"
+            : "Tap to answer — you control when your turn ends."}
+      </p>
     </div>
   );
 }
@@ -125,7 +161,7 @@ export function Intro({ onStart }: { onStart: () => void }) {
 
       <motion.div variants={staggerItem} className="space-y-5 text-center">
         <p className="text-xs font-medium uppercase tracking-[0.22em] text-[var(--clay-strong)]">
-          Amazon Loop · Bar-Raiser Panel
+          React / JavaScript · Technical Panel
         </p>
         <h1 className="mx-auto max-w-2xl font-display text-4xl font-semibold leading-[1.05] tracking-[-0.02em] sm:text-5xl">
           Step into the room.
@@ -133,9 +169,9 @@ export function Intro({ onStart }: { onStart: () => void }) {
           Hear where you really stand.
         </h1>
         <p className="mx-auto max-w-prose text-base leading-relaxed text-muted-foreground">
-          Three interviewers, each owning different Leadership Principles, plus a Bar Raiser
-          who drills your strongest story. Behavioral questions with real follow-ups — then a
-          committee verdict, not a number.
+          Three interviewers — JavaScript fundamentals, React internals, and rendering
+          performance — plus a Bar Raiser who drills your strongest area. Conceptual questions
+          with real follow-ups, then a committee verdict, not a number.
         </p>
       </motion.div>
 
@@ -155,11 +191,11 @@ export function Intro({ onStart }: { onStart: () => void }) {
 
       <motion.div variants={staggerItem} className="flex flex-col items-center gap-3 text-center">
         <Button size="lg" onClick={onStart}>
-          Start Bar-Raiser panel
+          Start the panel
         </Button>
         <p className="max-w-xs text-sm leading-relaxed text-muted-foreground">
-          We&apos;ll ask for your microphone first. Your voice goes straight to the panel —
-          never to our servers.
+          We&apos;ll ask for your microphone first. A recording of each answer is sent to our
+          servers to score your delivery, then discarded.
         </p>
       </motion.div>
     </motion.div>
@@ -234,30 +270,6 @@ function LiveShell({ p }: { p: ReturnType<typeof useMockPanel> }) {
           dim={dim}
         />
       </motion.div>
-
-      {p.phase === "live" && (
-        <motion.div variants={staggerItem} className="flex flex-col items-center gap-2">
-          {/* Push-to-talk: the candidate owns end-of-turn. Disabled while the
-              interviewer is speaking — you answer after they finish, as in a real interview. */}
-          <Button
-            type="button"
-            size="lg"
-            onClick={p.toggleCapture}
-            disabled={p.coachResponseInFlight}
-            variant={p.isCapturing ? "default" : "outline"}
-            className="rounded-full px-10"
-          >
-            {p.isCapturing ? "Done — send to the panel" : "Start answering"}
-          </Button>
-          <p className="text-xs text-muted-foreground">
-            {p.isCapturing
-              ? "Take your time — pauses are fine. Tap Done when you've finished."
-              : p.coachResponseInFlight
-                ? "Listen to the interviewer…"
-                : "Tap to answer — you control when your turn ends."}
-          </p>
-        </motion.div>
-      )}
 
       <motion.div variants={staggerItem} className="space-y-4">
         <div className="flex items-center gap-3">

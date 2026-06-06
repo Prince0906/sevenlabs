@@ -275,6 +275,10 @@ model MockTurn {
   seatId               String?
   role                 PracticeTurnRole
   seq                  Int
+  // Client-generated id stable BEFORE seq is assigned at dequeue; the parallel
+  // best-effort fluency audio upload joins on it to attach delivery metrics to
+  // the right USER turn (the realtime transcript path has no word timings).
+  clientTurnId         String?
   transcript           String?          @db.Text
   metricsJson          Json?
   events               Json?
@@ -285,6 +289,7 @@ model MockTurn {
 
   @@unique([sessionId, seq])
   @@index([sessionId, seq])
+  @@index([sessionId, clientTurnId])
 }
 
 model DimensionScore {

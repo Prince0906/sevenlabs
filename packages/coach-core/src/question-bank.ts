@@ -128,8 +128,98 @@ const AMAZON_QUESTIONS: DrillQuestion[] = [
   },
 ];
 
+// React/JavaScript drill questions. `lp` MUST exactly match a REACT_JS_COMPETENCIES
+// name (rubric-definitions.ts) so the report can target the candidate's weakest area.
+const REACT_QUESTIONS: DrillQuestion[] = [
+  {
+    id: "react-closures-1",
+    text: "Explain what a closure captures and walk me through a stale-closure bug you've hit with a React hook or an event handler.",
+    lp: "Closures & Scope",
+    estMinutes: 4,
+  },
+  {
+    id: "react-event-loop-1",
+    text: "Order the output of a snippet mixing setTimeout(0), a Promise.then, and synchronous logs — and explain why, in terms of the call stack and the microtask vs macrotask queue.",
+    lp: "Asynchronous JS & the Event Loop",
+    estMinutes: 5,
+  },
+  {
+    id: "react-prototypes-1",
+    text: "Walk me through property lookup on the prototype chain and what `new` actually wires up. When would you reach for prototype delegation over class syntax?",
+    lp: "Prototypes & Inheritance",
+    estMinutes: 4,
+  },
+  {
+    id: "react-this-1",
+    text: "How do you determine what `this` is at a call site? Show me how you'd fix a method that loses its `this` when passed as a callback.",
+    lp: "`this` & Execution Context",
+    estMinutes: 4,
+  },
+  {
+    id: "react-equality-1",
+    text: "Explain reference vs value equality in JS and how it bites you in React — for example with a useEffect dependency or a memo comparison.",
+    lp: "Types, Coercion & Equality",
+    estMinutes: 4,
+  },
+  {
+    id: "react-hooks-rules-1",
+    text: "Why must hooks be called unconditionally and in the same order every render? Explain the model that makes a conditional hook break.",
+    lp: "Hooks & the Rules of Hooks",
+    estMinutes: 4,
+  },
+  {
+    id: "react-state-model-1",
+    text: "Walk me through why reading state right after calling setState gives the old value. Explain state-as-a-snapshot and when you'd use a functional update.",
+    lp: "State & the Re-render Model",
+    estMinutes: 5,
+  },
+  {
+    id: "react-effects-1",
+    text: "Frame useEffect as synchronization rather than a lifecycle hook. Pick a fetch-on-mount example and walk me through the dependencies and the cleanup that avoids a race.",
+    lp: "Effects & Synchronization",
+    estMinutes: 5,
+  },
+  {
+    id: "react-reconciliation-1",
+    text: "Explain how React decides whether to reuse or remount a component, and show me a concrete bug caused by using an array index as a key.",
+    lp: "Reconciliation & Keys",
+    estMinutes: 5,
+  },
+  {
+    id: "react-context-1",
+    text: "When does Context cause unnecessary re-renders, and how do you bound that? Compare context vs composition vs a state library for a shared piece of state.",
+    lp: "Context & Composition",
+    estMinutes: 5,
+  },
+  {
+    id: "react-memoization-1",
+    text: "Explain exactly what useMemo, useCallback, and React.memo prevent, the referential-equality contract they rely on, and a case where adding them made things worse.",
+    lp: "Render Performance & Memoization",
+    estMinutes: 5,
+  },
+  {
+    id: "react-rerenders-1",
+    text: "A component is re-rendering too often. Walk me through how you'd find the trigger and decide between lifting state, splitting the component, or memoizing.",
+    lp: "Avoiding Unnecessary Re-renders",
+    estMinutes: 5,
+  },
+  {
+    id: "react-profiling-1",
+    text: "Walk me through how you'd profile a slow React screen — what tool, what you look at in render vs commit, and how you confirm the fix actually helped.",
+    lp: "Profiling & Measurement",
+    estMinutes: 5,
+  },
+  {
+    id: "react-loading-1",
+    text: "How would you cut the initial load time of a large React app? Talk through code-splitting, lazy loading, and the tradeoffs with hydration and prefetching.",
+    lp: "Loading & Bundle Performance",
+    estMinutes: 5,
+  },
+];
+
 const COMPANY_QUESTIONS: Record<string, DrillQuestion[]> = {
   amazon: AMAZON_QUESTIONS,
+  react: REACT_QUESTIONS,
 };
 
 export function getDrillQuestion(

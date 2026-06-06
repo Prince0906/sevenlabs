@@ -19,6 +19,8 @@ export interface FinalizedTurn {
   seatId: string | null;
   words: WordTimestamp[];
   events?: TurnEvents;
+  /** USER turns only: the join key the fluency-audio upload uses to attach metrics. */
+  clientTurnId?: string;
 }
 
 export interface TurnQueueOptions {
@@ -81,6 +83,7 @@ export function createTurnQueue(opts: TurnQueueOptions): TurnQueue {
           transcript: item.transcript,
           words: item.words,
           events: item.events,
+          clientTurnId: item.clientTurnId,
         };
 
         let result: TurnResult;

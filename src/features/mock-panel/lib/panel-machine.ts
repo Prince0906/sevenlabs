@@ -96,9 +96,11 @@ export const HANDOFF_SENTINEL = "handing you to my colleague";
  * decides depth and emits the sentinel when its thread is done; this only
  * force-hands-off a runaway seat. Kept generous so an interviewer can actually
  * explore a topic instead of racing a small counter (the "forced to finish fast"
- * feel) — the natural handoff is the sentinel, not this. */
+ * feel from the 2026-06-02 live test) — the natural handoff is the sentinel, and
+ * the spend ceiling caps total length regardless, so this only catches a persona
+ * that never emits its closing line. */
 export function seatBudget(isLast: boolean): number {
-  return isLast ? 6 : 5;
+  return isLast ? 10 : 8;
 }
 
 export function detectsSentinel(transcript: string): boolean {

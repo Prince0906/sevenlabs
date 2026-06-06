@@ -18,6 +18,8 @@ const bodySchema = z.object({
   transcript: z.string().optional(),
   words: z.array(wordTimestampSchema).optional(),
   events: turnEventsSchema.optional(),
+  // Stable join key for the parallel fluency-audio upload (USER turns).
+  clientTurnId: z.string().optional(),
 });
 
 /** Idempotent turn checkpoint. Server recomputes USER metrics from the word-span
@@ -88,6 +90,7 @@ export async function POST(
         seq: b.seq,
         role: b.role,
         seatId: b.seatId ?? null,
+        clientTurnId: b.clientTurnId ?? null,
         transcript: b.transcript ?? null,
         metricsJson: metrics ?? undefined,
         events: b.events ?? undefined,

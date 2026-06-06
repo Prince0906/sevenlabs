@@ -17,7 +17,7 @@ type Cta = "retry" | "end" | "over";
 const CONFIG: Record<RecoveryKind, { title: string; body: string; tone: "warn" | "error"; cta: Cta }> = {
   "mic-denied": {
     title: "Microphone needed",
-    body: "Allow mic access to begin — your audio goes straight to the interviewer, never to our servers.",
+    body: "Allow mic access to begin — your voice powers the live interview, and a recording of each answer is sent to score your delivery, then discarded.",
     tone: "warn",
     cta: "retry",
   },

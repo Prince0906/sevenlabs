@@ -81,10 +81,55 @@ export function ReportBody({ report }: { report: MockReport }) {
         </div>
         {!hasConfidence && (
           <p className="text-[11px] text-muted-foreground/70">
-            Not enough delivery signal in this session to score composure (live mode has no word-level timing).
+            Not enough delivery signal in this session to score composure.
           </p>
         )}
       </motion.section>
+
+      {report.fluency && report.fluency.answersScored > 0 && (
+        <motion.section variants={staggerItem} className="space-y-4">
+          <h2 className="font-display text-xl font-semibold tracking-tight">Fluency &amp; delivery</h2>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <FluencyStat
+              label="Fillers / 100 words"
+              value={report.fluency.fillerPer100.toFixed(1)}
+              sub={`${report.fluency.fillerCount} total (at least)`}
+            />
+            <FluencyStat label="Pace" value={String(report.fluency.meanWpm)} sub="words / min" />
+            <FluencyStat
+              label="Longest pause"
+              value={`${(report.fluency.longestPauseMs / 1000).toFixed(1)}s`}
+              sub={`${report.fluency.pauseCount} pause${report.fluency.pauseCount === 1 ? "" : "s"}`}
+            />
+          </div>
+          <p className="text-[11px] text-muted-foreground/70">
+            Measured from {report.fluency.answersScored} answer
+            {report.fluency.answersScored === 1 ? "" : "s"}. Filler counts are a floor — quiet
+            hesitations often register only as a pause.
+          </p>
+          {report.fluency.perAnswer.length > 1 && (
+            <details className="group">
+              <summary className="cursor-pointer text-[13px] font-medium text-[var(--clay-strong)]">
+                Per-answer breakdown
+              </summary>
+              <div className="mt-3 space-y-2">
+                {report.fluency.perAnswer.map((a, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center justify-between gap-3 rounded-md border bg-card px-3 py-2 text-[13px]"
+                  >
+                    <span className="text-muted-foreground">Answer {i + 1}</span>
+                    <span className="tabular-nums text-foreground/85">
+                      {a.wpm} wpm · {a.fillerCount} filler{a.fillerCount === 1 ? "" : "s"} ·{" "}
+                      {(a.longestPauseMs / 1000).toFixed(1)}s pause
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </details>
+          )}
+        </motion.section>
+      )}
 
       {(verdict.topStrengths.length > 0 || verdict.topRisks.length > 0) && (
         <motion.section variants={staggerItem} className="grid gap-6 sm:grid-cols-2">
@@ -108,6 +153,16 @@ export function ReportBody({ report }: { report: MockReport }) {
         </motion.section>
       )}
     </motion.div>
+  );
+}
+
+function FluencyStat({ label, value, sub }: { label: string; value: string; sub: string }) {
+  return (
+    <div className="rounded-lg border bg-card px-4 py-3.5">
+      <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">{label}</p>
+      <p className="mt-1 font-display text-3xl font-semibold tabular-nums">{value}</p>
+      <p className="mt-0.5 text-[12px] text-muted-foreground">{sub}</p>
+    </div>
   );
 }
 
