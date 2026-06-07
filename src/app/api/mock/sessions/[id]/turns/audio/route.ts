@@ -10,7 +10,7 @@ import { transcribeAudio, ProviderError } from "@/lib/coach/openai";
 const MAX_AUDIO_BYTES = 25 * 1024 * 1024;
 
 /** Map a MediaRecorder mime to the extension Whisper infers the codec from. */
-function audioExt(mime: string): string {
+export function audioExt(mime: string): string {
   if (mime.includes("webm")) return "webm";
   if (mime.includes("ogg")) return "ogg";
   if (mime.includes("wav")) return "wav";
