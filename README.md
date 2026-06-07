@@ -6,7 +6,7 @@ Two surfaces:
 - **Speaking Coach** — turn-based: record an answer → transcript → delivery + rubric feedback (spoken back).
 - **Bar-Raiser Panel** — real-time: three AI interviewers in a live voice loop, then a committee verdict.
 
-The full architecture / product / vision knowledge base lives in [`docs/`](docs/Home.md) (an Obsidian vault — start at **Home**). Working notes are in [`CLAUDE.md`](CLAUDE.md); the engineering spec is [`SYSTEM_DESIGN.md`](SYSTEM_DESIGN.md).
+Plan and status live in [`ROADMAP.md`](ROADMAP.md) (the single source of truth); the deep-dive references are [`DEFENSIBILITY_PLAN.md`](DEFENSIBILITY_PLAN.md), [`CONFIDENCE_DETECTION_PLAN.md`](CONFIDENCE_DETECTION_PLAN.md), and [`CONFIDENCE_ENGINE_PLAN.md`](CONFIDENCE_ENGINE_PLAN.md). Working notes are in [`CLAUDE.md`](CLAUDE.md).
 
 ## Prerequisites
 
@@ -82,7 +82,6 @@ src/                   Next.js app (App Router), API routes, features, lib
 packages/coach-core    pure analysis/prompt logic (no I/O, unit-tested)
 packages/shared-types  Zod schemas shared by the API layer
 prisma/                schema + seed
-docs/                  Obsidian knowledge vault (start at Home)
 terraform/             single-EC2 deploy infrastructure
 ```
 

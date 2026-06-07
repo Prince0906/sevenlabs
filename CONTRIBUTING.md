@@ -31,8 +31,8 @@ Run a single test file with `npx vitest run path/to/file.test.ts`, or by name wi
 - **No speculative abstractions.** No config knobs, no error handling for impossible cases, no generalizing single-use code.
 - **Workspace split.** Pure, testable logic (speech analysis, prompts, rubric shapes) goes in `packages/coach-core` (**no I/O**) and gets unit tests; I/O-bound pipelines (Prisma / S3 / OpenAI) stay in `src/lib/`. Shared Zod schemas live in `packages/shared-types`.
 - **Prisma.** Import the client from `@/generated/prisma` (or `src/lib/db.ts`), **never** `@prisma/client`. Every query that touches user data is **userId-scoped**. Schema changes are additive; review migrations as CREATE-only.
-- **Security.** Never commit `.env*` or `.claude/`. Provider secrets are use-once/ephemeral — only `mintRealtimeEphemeral` ever sees an `sk-` key, and **all logging goes through `redact()` via `src/lib/log.ts`** (`console.*` is blocked by ESLint). Spend is metered on the server clock, never client-reported time. See [docs/Security.md](docs/Security.md).
-- **Design system.** Use semantic Tailwind tokens (`bg-card`, `text-foreground`, `border`, …) so the forced-dark theme adapts automatically. Saturated color is reserved for the **Signal** levels (amber/blue/emerald = New Grad/SDE II/Senior) — color always means *level*, never decoration. See [docs/Design System.md](docs/Design%20System.md).
+- **Security.** Never commit `.env*` or `.claude/`. Provider secrets are use-once/ephemeral — only `mintRealtimeEphemeral` ever sees an `sk-` key, and **all logging goes through `redact()` via `src/lib/log.ts`** (`console.*` is blocked by ESLint). Spend is metered on the server clock, never client-reported time.
+- **Design system.** Use semantic Tailwind tokens (`bg-card`, `text-foreground`, `border`, …) so the forced-dark theme adapts automatically. Saturated color is reserved for the **Signal** levels (amber/blue/emerald = New Grad/SDE II/Senior) — color always means *level*, never decoration.
 - **React 19 / React Compiler.** Don't read or write refs during render.
 
 ## Tests
@@ -41,14 +41,7 @@ Vitest. Tests live next to the logic they cover (`packages/coach-core/src/__test
 
 ## Docs
 
-If you change architecture or product behavior, update the [`docs/`](docs/Home.md) vault (and `CLAUDE.md` if it's a working instruction). Keep `[[wikilinks]]` resolving — a quick check:
-
-```bash
-cd docs && comm -23 \
-  <(grep -rhoE '\[\[[^]]+\]\]' *.md | sed -E 's/\[\[//;s/\]\]//;s/\|.*//' | sort -u) \
-  <(ls *.md | sed 's/\.md$//' | sort)
-# prints nothing when every link resolves
-```
+If you change what we're building or the order, update [`ROADMAP.md`](ROADMAP.md) (the single source of truth). Update `CLAUDE.md` if it's a working instruction for future contributors. The deep-dive references ([`DEFENSIBILITY_PLAN.md`](DEFENSIBILITY_PLAN.md), [`CONFIDENCE_DETECTION_PLAN.md`](CONFIDENCE_DETECTION_PLAN.md), [`CONFIDENCE_ENGINE_PLAN.md`](CONFIDENCE_ENGINE_PLAN.md)) are point-in-time records — leave them as-is.
 
 ## Reporting issues & security
 

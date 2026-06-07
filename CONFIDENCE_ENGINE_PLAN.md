@@ -1,4 +1,4 @@
-> Produced by a multi-agent design workflow on 2026-05-29 (6 parallel design lenses → 3 adversarial critics: feasibility / security / product → synthesis). Every critical/high critic finding is reconciled with an explicit decision in §8. Supersedes [REALTIME_INTERVIEW_PLAN.md](REALTIME_INTERVIEW_PLAN.md) where they conflict; companion to [PRODUCT_STRATEGY.md](PRODUCT_STRATEGY.md) and [DESIGN_PLAN.md](DESIGN_PLAN.md).
+> Produced by a multi-agent design workflow on 2026-05-29 (6 parallel design lenses → 3 adversarial critics: feasibility / security / product → synthesis). Every critical/high critic finding is reconciled with an explicit decision in §8.
 
 # Aloud — Confidence Interview Engine (BYOK, Real-Time)
 
