@@ -294,6 +294,9 @@ model MockTurn {
   clientTurnId         String?
   transcript           String?          @db.Text
   metricsJson          Json?
+  // Verbatim disfluency report (fillers/repeats/false-starts/pauses) from the
+  // Deepgram path; null when only the cleaning Whisper fallback ran. ROADMAP A1.
+  disfluencyJson       Json?
   events               Json?
   transcriptionMissing Boolean          @default(false)
   audioStartMs         Int?

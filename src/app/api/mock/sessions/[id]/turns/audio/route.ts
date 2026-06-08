@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
+import type { Prisma } from "@/generated/prisma/client";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { log } from "@/lib/log";
-import { analyzeSpeech } from "@sevenlabs/coach-core";
+import { analyzeSpeech, analyzeDisfluency } from "@sevenlabs/coach-core";
 import { transcribeAudio, ProviderError } from "@/lib/coach/openai";
+import { isDeepgramConfigured, transcribeVerbatim } from "@/lib/coach/deepgram";
 
 // Whisper's hard upload ceiling. A push-to-talk answer is opus/webm at a few
 // hundred KB/min, so this is only a guard against a pathological upload.
@@ -69,20 +71,42 @@ export async function POST(
     const mimeType = file.type || "audio/webm";
     const buffer = Buffer.from(await file.arrayBuffer());
 
-    let words: Awaited<ReturnType<typeof transcribeAudio>>["words"] = [];
+    // Prefer Deepgram (VERBATIM) so disfluency is measurable — Whisper cleans
+    // speech (drops ~87% of fillers, de-dupes repeats), so it can only ever read
+    // as fluent. Whisper stays as the fallback when Deepgram isn't configured or
+    // errors; in that case disfluency is null (pause math still works).
+    let words: { word: string; start: number; end: number }[] = [];
     let durationSec = 0;
-    try {
-      const r = await transcribeAudio(buffer, mimeType, `answer.${audioExt(mimeType)}`);
-      words = r.words;
-      durationSec = r.durationSec;
-    } catch (e) {
-      // Best-effort: a Whisper failure must not break the interview. Drop this
-      // answer's fluency rather than surfacing an error to the live client.
-      log.warn("turn audio transcription failed", {
-        sessionId: id,
-        status: e instanceof ProviderError ? e.status : 0,
-      });
-      return NextResponse.json({ ok: false, reason: "transcription_failed" });
+    let disfluency: ReturnType<typeof analyzeDisfluency> | null = null;
+
+    if (isDeepgramConfigured()) {
+      try {
+        const r = await transcribeVerbatim(buffer, mimeType);
+        disfluency = analyzeDisfluency(r.words);
+        durationSec = r.durationSec;
+        words = r.words.map((d) => ({ word: d.text, start: d.start, end: d.end }));
+      } catch (e) {
+        log.warn("verbatim transcription failed; falling back to whisper", {
+          sessionId: id,
+          status: e instanceof ProviderError ? e.status : 0,
+        });
+      }
+    }
+
+    if (words.length === 0) {
+      try {
+        const r = await transcribeAudio(buffer, mimeType, `answer.${audioExt(mimeType)}`);
+        words = r.words;
+        durationSec = r.durationSec;
+      } catch (e) {
+        // Best-effort: a transcription failure must not break the interview. Drop
+        // this answer's fluency rather than surfacing an error to the live client.
+        log.warn("turn audio transcription failed", {
+          sessionId: id,
+          status: e instanceof ProviderError ? e.status : 0,
+        });
+        return NextResponse.json({ ok: false, reason: "transcription_failed" });
+      }
     }
 
     const metrics = analyzeSpeech({ words, turnDurationSec: durationSec });
@@ -92,7 +116,13 @@ export async function POST(
     // been written yet; tell the client to retry.
     const res = await prisma.mockTurn.updateMany({
       where: { sessionId: id, clientTurnId, role: "USER" },
-      data: { metricsJson: metrics, transcriptionMissing: words.length < 2 },
+      data: {
+        metricsJson: metrics,
+        disfluencyJson: disfluency
+          ? (disfluency as unknown as Prisma.InputJsonValue)
+          : undefined,
+        transcriptionMissing: words.length < 2,
+      },
     });
     if (res.count === 0) {
       return NextResponse.json({ pending: true }, { status: 202 });

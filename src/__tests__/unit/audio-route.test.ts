@@ -15,12 +15,19 @@ const mockOpenai = vi.hoisted(() => ({
   },
 }));
 
+const mockDeepgram = vi.hoisted(() => ({
+  isDeepgramConfigured: vi.fn(() => false),
+  transcribeVerbatim: vi.fn(),
+}));
+
 vi.mock("@/lib/db", () => ({ prisma: mockPrisma }));
 vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
 vi.mock("@/lib/log", () => ({ log: { error: vi.fn(), warn: vi.fn(), info: vi.fn() } }));
 vi.mock("@/lib/coach/openai", () => mockOpenai);
+vi.mock("@/lib/coach/deepgram", () => mockDeepgram);
 vi.mock("@sevenlabs/coach-core", () => ({
   analyzeSpeech: vi.fn().mockReturnValue({ wpm: 120, fillerCount: 1 }),
+  analyzeDisfluency: vi.fn().mockReturnValue({ fillers: { total: 2 }, repetitions: { total: 1 } }),
 }));
 
 import { auth } from "@/lib/auth";
@@ -59,6 +66,7 @@ describe("audioExt (mime → codec extension)", () => {
 describe("POST /api/mock/sessions/:id/turns/audio", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockDeepgram.isDeepgramConfigured.mockReturnValue(false); // default: Whisper path
     vi.mocked(auth).mockResolvedValue({ user: { id: "u1" } } as never);
     mockPrisma.mockSession.findFirst.mockResolvedValue({ status: "LIVE" });
     mockOpenai.transcribeAudio.mockResolvedValue({
@@ -123,5 +131,35 @@ describe("POST /api/mock/sessions/:id/turns/audio", () => {
         where: { sessionId: "s1", clientTurnId: "c1", role: "USER" },
       })
     );
+  });
+
+  it("uses Deepgram verbatim and stores disfluency when configured", async () => {
+    mockDeepgram.isDeepgramConfigured.mockReturnValue(true);
+    mockDeepgram.transcribeVerbatim.mockResolvedValueOnce({
+      transcript: "um I I think",
+      words: [
+        { text: "um", start: 0, end: 0.3, isFiller: true },
+        { text: "I", start: 0.5, end: 0.7 },
+        { text: "I", start: 0.8, end: 1.0 },
+        { text: "think", start: 1.1, end: 1.5 },
+      ],
+      durationSec: 6.2,
+    });
+    const res = await POST(audioReq({ clientTurnId: "c1", audio: wav() }), params("s1"));
+    expect(res.status).toBe(200);
+    expect(mockDeepgram.transcribeVerbatim).toHaveBeenCalled();
+    expect(mockOpenai.transcribeAudio).not.toHaveBeenCalled(); // no Whisper fallback
+    const arg = mockPrisma.mockTurn.updateMany.mock.calls[0]![0];
+    expect(arg.data.disfluencyJson).toBeTruthy();
+  });
+
+  it("falls back to Whisper (no disfluency) when Deepgram errors", async () => {
+    mockDeepgram.isDeepgramConfigured.mockReturnValue(true);
+    mockDeepgram.transcribeVerbatim.mockRejectedValueOnce(new Error("deepgram down"));
+    const res = await POST(audioReq({ clientTurnId: "c1", audio: wav() }), params("s1"));
+    expect(res.status).toBe(200);
+    expect(mockOpenai.transcribeAudio).toHaveBeenCalled(); // fell back
+    const arg = mockPrisma.mockTurn.updateMany.mock.calls[0]![0];
+    expect(arg.data.disfluencyJson).toBeUndefined();
   });
 });

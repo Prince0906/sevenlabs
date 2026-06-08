@@ -17,6 +17,12 @@ export const env = createEnv({
     // OpenAI (Speaking Coach — Whisper, GPT, TTS)
     OPENAI_API_KEY: z.string().min(1),
 
+    // Disfluency measurement (verbatim ASR). Optional: when set, per-answer
+    // audio is transcribed VERBATIM by Deepgram (filler_words:true) so fillers/
+    // repeats/false-starts are measurable; when unset, the pipeline falls back to
+    // Whisper (which cleans speech, so disfluency reads artificially low).
+    DEEPGRAM_API_KEY: z.string().optional(),
+
     // Confidence engine — real-time voice. Config-driven (see SYSTEM_DESIGN.md):
     // realtime model/endpoints can change; judgment model stays pinned in code.
     // Defaults keep the env valid before these are set in prod.
