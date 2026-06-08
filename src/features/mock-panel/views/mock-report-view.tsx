@@ -86,28 +86,79 @@ export function ReportBody({ report }: { report: MockReport }) {
         )}
       </motion.section>
 
-      {report.fluency && report.fluency.answersScored > 0 && (
-        <motion.section variants={staggerItem} className="space-y-4">
-          <h2 className="font-display text-xl font-semibold tracking-tight">Fluency &amp; delivery</h2>
-          <div className="grid gap-3 sm:grid-cols-3">
-            <FluencyStat
-              label="Fillers / 100 words"
-              value={report.fluency.fillerPer100.toFixed(1)}
-              sub={`${report.fluency.fillerCount} total (at least)`}
-            />
-            <FluencyStat label="Pace" value={String(report.fluency.meanWpm)} sub="words / min" />
-            <FluencyStat
-              label="Longest pause"
-              value={`${(report.fluency.longestPauseMs / 1000).toFixed(1)}s`}
-              sub={`${report.fluency.pauseCount} pause${report.fluency.pauseCount === 1 ? "" : "s"}`}
-            />
-          </div>
-          <p className="text-[11px] text-muted-foreground/70">
-            Measured from {report.fluency.answersScored} answer
-            {report.fluency.answersScored === 1 ? "" : "s"}. Filler counts are a floor — quiet
-            hesitations often register only as a pause.
-          </p>
-          {report.fluency.perAnswer.length > 1 && (
+      {(report.disfluency || (report.fluency && report.fluency.answersScored > 0)) && (
+        <motion.section variants={staggerItem} className="space-y-5">
+          <h2 className="font-display text-xl font-semibold tracking-tight">How you came across</h2>
+
+          {report.disfluency ? (
+            <>
+              {/* 2-up on phones, 4-up on desktop — never the cramped 3-col on 390px */}
+              <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+                <StatTile
+                  label="Filler words"
+                  value={String(report.disfluency.fillerTotal)}
+                  sub={`${report.disfluency.fillerPer100.toFixed(1)} / 100 words`}
+                />
+                <StatTile
+                  label="Repeated points"
+                  value={String(report.disfluency.repetitionTotal)}
+                  sub={report.disfluency.repetitionTotal === 1 ? "time" : "times"}
+                />
+                <StatTile
+                  label="Longest freeze"
+                  value={`${report.disfluency.longestPauseSec.toFixed(1)}s`}
+                  sub={`${report.disfluency.notablePauseCount} notable pause${report.disfluency.notablePauseCount === 1 ? "" : "s"}`}
+                  accent
+                />
+                {report.fluency && (
+                  <StatTile label="Pace" value={String(report.fluency.meanWpm)} sub="words / min" />
+                )}
+              </div>
+
+              {/* The signature read: the candidate's own hesitation habits, echoed back. */}
+              {report.disfluency.topFillers.length > 0 && (
+                <div className="space-y-2.5">
+                  <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+                    What you reached for
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {report.disfluency.topFillers.map((f) => (
+                      <FillerChip key={f.token} token={f.token} count={f.count} />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <p className="text-[11px] leading-relaxed text-muted-foreground/70">
+                Across {report.disfluency.answersScored} answer
+                {report.disfluency.answersScored === 1 ? "" : "s"} — counted from the words you
+                actually said, fillers and repeats included, so you hear your real habits, not a
+                cleaned-up version.
+              </p>
+            </>
+          ) : report.fluency ? (
+            <>
+              <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+                <StatTile
+                  label="Fillers / 100 words"
+                  value={report.fluency.fillerPer100.toFixed(1)}
+                  sub={`${report.fluency.fillerCount}+ total`}
+                />
+                <StatTile label="Pace" value={String(report.fluency.meanWpm)} sub="words / min" />
+                <StatTile
+                  label="Longest pause"
+                  value={`${(report.fluency.longestPauseMs / 1000).toFixed(1)}s`}
+                  sub={`${report.fluency.pauseCount} pause${report.fluency.pauseCount === 1 ? "" : "s"}`}
+                  accent
+                />
+              </div>
+              <p className="text-[11px] leading-relaxed text-muted-foreground/70">
+                Filler counts here are a floor — quiet hesitations often register only as a pause.
+              </p>
+            </>
+          ) : null}
+
+          {report.fluency && report.fluency.perAnswer.length > 1 && (
             <details className="group">
               <summary className="cursor-pointer text-[13px] font-medium text-[var(--clay-strong)]">
                 Per-answer breakdown
@@ -116,7 +167,7 @@ export function ReportBody({ report }: { report: MockReport }) {
                 {report.fluency.perAnswer.map((a, i) => (
                   <div
                     key={i}
-                    className="flex items-center justify-between gap-3 rounded-md border bg-card px-3 py-2 text-[13px]"
+                    className="flex items-center justify-between gap-3 rounded-lg border border-border/70 bg-card px-3.5 py-2.5 text-[13px]"
                   >
                     <span className="text-muted-foreground">Answer {i + 1}</span>
                     <span className="tabular-nums text-foreground/85">
@@ -156,13 +207,59 @@ export function ReportBody({ report }: { report: MockReport }) {
   );
 }
 
-function FluencyStat({ label, value, sub }: { label: string; value: string; sub: string }) {
+function StatTile({
+  label,
+  value,
+  sub,
+  accent,
+}: {
+  label: string;
+  value: string;
+  sub: string;
+  accent?: boolean;
+}) {
   return (
-    <div className="rounded-lg border bg-card px-4 py-3.5">
-      <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">{label}</p>
-      <p className="mt-1 font-display text-3xl font-semibold tabular-nums">{value}</p>
-      <p className="mt-0.5 text-[12px] text-muted-foreground">{sub}</p>
+    <div
+      className="rounded-xl border border-border/70 bg-card px-3.5 py-3 sm:px-4 sm:py-3.5"
+      style={
+        accent
+          ? { boxShadow: "inset 0 1px 0 color-mix(in oklch, var(--clay) 22%, transparent)" }
+          : undefined
+      }
+    >
+      <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground sm:text-[11px]">
+        {label}
+      </p>
+      <p
+        className={cn(
+          "mt-1 font-display text-[1.7rem] font-semibold leading-none tabular-nums sm:text-4xl",
+          accent && "text-[var(--clay-strong)]"
+        )}
+      >
+        {value}
+      </p>
+      <p className="mt-1 text-[11px] leading-tight text-muted-foreground sm:text-[12px]">{sub}</p>
     </div>
+  );
+}
+
+/** The candidate's own hesitation words, echoed back as warm tally chips — the
+ * memorable, screenshot-able read of "how you actually sounded". */
+function FillerChip({ token, count }: { token: string; count: number }) {
+  return (
+    <span
+      className="inline-flex items-baseline gap-1.5 rounded-full border px-3 py-1.5"
+      style={{
+        borderColor: "color-mix(in oklch, var(--clay) 45%, transparent)",
+        backgroundColor: "color-mix(in oklch, var(--clay) 8%, var(--card))",
+        boxShadow: "0 0 18px color-mix(in oklch, var(--clay) 14%, transparent)",
+      }}
+    >
+      <span className="font-display text-[15px] font-medium text-foreground">{`“${token}”`}</span>
+      <span className="text-[12px] font-semibold tabular-nums text-[var(--clay-strong)]">
+        &times;{count}
+      </span>
+    </span>
   );
 }
 

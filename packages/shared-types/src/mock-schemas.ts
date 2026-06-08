@@ -184,6 +184,44 @@ export const fluencySchema = z.object({
   ),
 });
 
+// Shape of a per-turn disfluency report (MockTurn.disfluencyJson) — used by the
+// orchestrator to safeParse stored reports before aggregating. Instance arrays
+// are kept loose (z.any) since the session rollup only needs the counts.
+export const disfluencyReportSchema = z.object({
+  wordCount: z.number(),
+  durationSec: z.number(),
+  fillers: z.object({
+    total: z.number(),
+    per100Words: z.number(),
+    byType: z.record(z.string(), z.number()),
+  }),
+  repetitions: z.object({ total: z.number(), instances: z.array(z.any()) }),
+  falseStarts: z.object({ total: z.number(), instances: z.array(z.any()) }),
+  pauses: z.object({
+    count: z.number(),
+    longestSec: z.number(),
+    totalSilentSec: z.number(),
+    silentRatio: z.number(),
+    instances: z.array(z.any()),
+  }),
+});
+
+// Session-level disfluency rollup surfaced in the end report (verbatim path only).
+export const disfluencySchema = z.object({
+  answersScored: z.number().int().nonnegative(),
+  totalWords: z.number().int().nonnegative(),
+  fillerTotal: z.number().int().nonnegative(),
+  fillerPer100: z.number().nonnegative(),
+  topFillers: z.array(
+    z.object({ token: z.string(), count: z.number().int().nonnegative() })
+  ),
+  repetitionTotal: z.number().int().nonnegative(),
+  falseStartTotal: z.number().int().nonnegative(),
+  notablePauseCount: z.number().int().nonnegative(),
+  longestPauseSec: z.number().nonnegative(),
+  totalSilentSec: z.number().nonnegative(),
+});
+
 export const mockReportSchema = z.object({
   verdict: panelVerdictSchema,
   confidence: z.number().int().min(0).max(100),
@@ -197,6 +235,7 @@ export const mockReportSchema = z.object({
     })
     .nullable(),
   fluency: fluencySchema.nullish(),
+  disfluency: disfluencySchema.nullish(),
 });
 
 // A1 — real-interview outcome capture (ROADMAP Inc 1). The one label a model
@@ -234,6 +273,8 @@ export type TurnResponse = z.infer<typeof turnResponseSchema>;
 export type MockReport = z.infer<typeof mockReportSchema>;
 export type MockReportDimension = z.infer<typeof mockReportDimensionSchema>;
 export type MockFluency = z.infer<typeof fluencySchema>;
+export type MockDisfluency = z.infer<typeof disfluencySchema>;
+export type DisfluencyReportData = z.infer<typeof disfluencyReportSchema>;
 export type InterviewOutcomeT = z.infer<typeof interviewOutcomeSchema>;
 export type OutcomeRequest = z.infer<typeof outcomeRequestSchema>;
 export type OutcomeResponse = z.infer<typeof outcomeResponseSchema>;

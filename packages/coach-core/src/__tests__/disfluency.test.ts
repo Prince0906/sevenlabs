@@ -5,6 +5,7 @@ import {
   detectFalseStarts,
   measurePauses,
   analyzeDisfluency,
+  aggregateDisfluency,
   fromWordTimestamps,
   type DisfluencyWord,
 } from "../disfluency";
@@ -130,6 +131,29 @@ describe("analyzeDisfluency (integration)", () => {
     expect(r.wordCount).toBe(0);
     expect(r.fillers.total).toBe(0);
     expect(r.pauses.count).toBe(0);
+  });
+});
+
+describe("aggregateDisfluency", () => {
+  const answer1 = analyzeDisfluency([
+    w("um", 0, 0.3), w("I", 0.5, 0.7), w("I", 0.8, 1), w("think", 1.1, 1.5),
+    w("uh", 2.5, 2.8), w("yes", 4.5, 5),
+  ]);
+  const answer2 = analyzeDisfluency([
+    w("um", 0, 0.3), w("the", 0.5, 0.7), w("the", 0.8, 1), w("answer", 1.1, 1.6),
+  ]);
+
+  it("merges fillers, repeats, and pauses across answers and ranks top fillers", () => {
+    const agg = aggregateDisfluency([answer1, answer2])!;
+    expect(agg.answersScored).toBe(2);
+    expect(agg.fillerTotal).toBe(3); // um, uh, um
+    expect(agg.topFillers[0]).toEqual({ token: "um", count: 2 }); // most frequent first
+    expect(agg.repetitionTotal).toBe(2); // "I I" + "the the"
+    expect(agg.longestPauseSec).toBeGreaterThanOrEqual(1.5);
+  });
+
+  it("returns null when no answer has words", () => {
+    expect(aggregateDisfluency([])).toBeNull();
   });
 });
 

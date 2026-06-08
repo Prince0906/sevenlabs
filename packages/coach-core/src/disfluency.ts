@@ -250,6 +250,56 @@ export function analyzeDisfluency(
   };
 }
 
+export interface DisfluencyAggregate {
+  answersScored: number;
+  totalWords: number;
+  fillerTotal: number;
+  fillerPer100: number;
+  /** The tokens the speaker reached for most, e.g. [{token:"um",count:9}], top 4. */
+  topFillers: { token: string; count: number }[];
+  repetitionTotal: number;
+  falseStartTotal: number;
+  notablePauseCount: number;
+  longestPauseSec: number;
+  totalSilentSec: number;
+}
+
+/** Roll up the per-answer disfluency reports into one session summary for the
+ * end report. Returns null when no answer had a usable verbatim transcript. */
+export function aggregateDisfluency(
+  reports: DisfluencyReport[]
+): DisfluencyAggregate | null {
+  const rs = reports.filter((r) => r.wordCount > 0);
+  if (rs.length === 0) return null;
+
+  const byType: Record<string, number> = {};
+  for (const r of rs) {
+    for (const [token, n] of Object.entries(r.fillers.byType)) {
+      byType[token] = (byType[token] ?? 0) + n;
+    }
+  }
+  const topFillers = Object.entries(byType)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 4)
+    .map(([token, count]) => ({ token, count }));
+
+  const totalWords = rs.reduce((s, r) => s + r.wordCount, 0);
+  const fillerTotal = rs.reduce((s, r) => s + r.fillers.total, 0);
+
+  return {
+    answersScored: rs.length,
+    totalWords,
+    fillerTotal,
+    fillerPer100: totalWords > 0 ? round1((fillerTotal / totalWords) * 100) : 0,
+    topFillers,
+    repetitionTotal: rs.reduce((s, r) => s + r.repetitions.total, 0),
+    falseStartTotal: rs.reduce((s, r) => s + r.falseStarts.total, 0),
+    notablePauseCount: rs.reduce((s, r) => s + r.pauses.count, 0),
+    longestPauseSec: round1(Math.max(...rs.map((r) => r.pauses.longestSec))),
+    totalSilentSec: round1(rs.reduce((s, r) => s + r.pauses.totalSilentSec, 0)),
+  };
+}
+
 /** Adapter helper: lift the existing Whisper `WordTimestamp[]` into the engine's
  * input type. NOTE — Whisper output is NOT verbatim, so fillers/repeats will read
  * low; this exists for the pause path and for tests, not as the real source. */

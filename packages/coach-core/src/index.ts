@@ -1,6 +1,7 @@
 export { analyzeSpeech, type AnalyzeSpeechInput } from "./speech-analysis";
 export {
   analyzeDisfluency,
+  aggregateDisfluency,
   countFillers,
   detectRepetitions,
   detectFalseStarts,
@@ -8,6 +9,7 @@ export {
   fromWordTimestamps,
   type DisfluencyWord,
   type DisfluencyReport,
+  type DisfluencyAggregate,
   type FillerStats,
   type RepetitionInstance,
   type FalseStartInstance,

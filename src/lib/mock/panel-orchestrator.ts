@@ -1,8 +1,10 @@
 import { prisma } from "@/lib/db";
+import type { Prisma } from "@/generated/prisma/client";
 import {
   rubricScoresSchema,
   panelVerdictSchema,
   speechMetricsSchema,
+  disfluencyReportSchema,
   type SpeechMetrics,
   type SignalLevel,
   type PanelVerdictData,
@@ -16,6 +18,7 @@ import {
   finalizeVerdict,
   computeComposure,
   aggregateFluency,
+  aggregateDisfluency,
   selectOneRep,
   buildCommitteeMessage,
   COMMITTEE_DEBRIEF_PROMPT,
@@ -23,6 +26,7 @@ import {
   type SeatRubricOutput,
   type TurnLite,
   type CommitteeSeatInput,
+  type DisfluencyReport,
 } from "@sevenlabs/coach-core";
 import { scoreAgainstRubric, judgeCommittee } from "@/lib/coach/openai";
 import { settleReservation } from "@/lib/mock/spend";
@@ -103,9 +107,12 @@ export async function runJudgment(sessionId: string): Promise<void> {
     .join("\n");
 
   const userTurnMetrics: SpeechMetrics[] = [];
+  const disfluencyReports: DisfluencyReport[] = [];
   for (const t of userTurns) {
     const parsed = speechMetricsSchema.safeParse(t.metricsJson);
     if (parsed.success) userTurnMetrics.push(parsed.data);
+    const dis = disfluencyReportSchema.safeParse(t.disfluencyJson);
+    if (dis.success) disfluencyReports.push(dis.data as DisfluencyReport);
   }
 
   // Independent per-seat scoring (timeout + retry).
@@ -221,6 +228,7 @@ export async function runJudgment(sessionId: string): Promise<void> {
         }
       : null,
     fluency,
+    disfluency: aggregateDisfluency(disfluencyReports),
   };
 
   await prisma.$transaction([
@@ -255,7 +263,7 @@ export async function runJudgment(sessionId: string): Promise<void> {
         overallSignal: verdict.overallSignal,
         confidence: composure.score,
         passed,
-        reportJson,
+        reportJson: reportJson as unknown as Prisma.InputJsonValue,
       },
     }),
     ...(oneRep && oneRepGap
