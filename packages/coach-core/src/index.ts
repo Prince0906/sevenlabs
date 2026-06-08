@@ -1,5 +1,20 @@
 export { analyzeSpeech, type AnalyzeSpeechInput } from "./speech-analysis";
 export {
+  analyzeDisfluency,
+  countFillers,
+  detectRepetitions,
+  detectFalseStarts,
+  measurePauses,
+  fromWordTimestamps,
+  type DisfluencyWord,
+  type DisfluencyReport,
+  type FillerStats,
+  type RepetitionInstance,
+  type FalseStartInstance,
+  type PauseInstance,
+  type AnalyzeDisfluencyOptions,
+} from "./disfluency";
+export {
   COACH_SYSTEM_PROMPT,
   OPENING_COACH_TEXT,
   buildCoachUserMessage,
