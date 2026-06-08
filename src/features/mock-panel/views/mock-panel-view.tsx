@@ -163,9 +163,9 @@ export function Intro({ onStart }: { onStart: () => void }) {
         <p className="text-xs font-medium uppercase tracking-[0.22em] text-[var(--clay-strong)]">
           React / JavaScript · Technical Panel
         </p>
-        <h1 className="mx-auto max-w-2xl font-display text-4xl font-semibold leading-[1.05] tracking-[-0.02em] sm:text-5xl">
-          Step into the room.
-          <br />
+        <h1 className="mx-auto max-w-2xl font-display text-[1.7rem] font-semibold leading-[1.12] tracking-[-0.02em] sm:text-4xl sm:leading-[1.05] lg:text-5xl">
+          Step into the room.{" "}
+          <br className="hidden sm:block" />
           Hear where you really stand.
         </h1>
         <p className="mx-auto max-w-prose text-base leading-relaxed text-muted-foreground">
