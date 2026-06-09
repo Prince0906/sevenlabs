@@ -73,6 +73,23 @@ export function MockPanelView({ scenarioId = SCENARIO_ID }: { scenarioId?: strin
   return (
     <div className="panel-stage flex min-h-0 flex-1 flex-col bg-background text-foreground">
       <PageHeader title="React & JavaScript Panel" rightAction={rightAction} />
+      {/* The three interviewers pinned at the TOP, OUTSIDE the scroll area, so
+          they stay in view as the transcript grows (mirrors the PTT bar below —
+          the live test flagged that the presences scrolled away mid-interview). */}
+      {LIVE_SHELL_PHASES.has(p.phase) && p.seats.length > 0 && (
+        <div className="shrink-0 border-b border-border/60 bg-background/85 px-6 py-3 backdrop-blur">
+          <div className="mx-auto w-full max-w-3xl">
+            <PanelPresences
+              seats={p.seats}
+              activeSeatIndex={p.activeSeatIndex}
+              activeSpeaker={
+                p.coachResponseInFlight ? "COACH" : p.phase === "live" ? "USER" : null
+              }
+              completedSeatIndexes={p.completedSeatIndexes}
+            />
+          </div>
+        </div>
+      )}
       <div className="min-h-0 flex-1 overflow-y-auto">
         <motion.div
           variants={pageTransition}
@@ -250,15 +267,6 @@ function LiveShell({ p }: { p: ReturnType<typeof useMockPanel> }) {
 
   return (
     <motion.div variants={staggerContainer} initial="initial" animate="animate" className="space-y-10">
-      <motion.div variants={staggerItem}>
-        <PanelPresences
-          seats={p.seats}
-          activeSeatIndex={p.activeSeatIndex}
-          activeSpeaker={activeSpeaker}
-          completedSeatIndexes={p.completedSeatIndexes}
-        />
-      </motion.div>
-
       <motion.div variants={staggerItem}>
         <PanelOrb
           levelRef={p.micLevelRef}
