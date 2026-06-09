@@ -131,7 +131,13 @@ export async function scoreAgainstRubric(
   if (!content) {
     throw new Error("OpenAI returned empty rubric scoring response");
   }
-  return JSON.parse(content);
+  try {
+    return JSON.parse(content);
+  } catch {
+    // A truncated/malformed model response would otherwise throw a native
+    // SyntaxError that reads as a mystery FAILED in the queue logs.
+    throw new ProviderError("invalid_json_from_model", 500);
+  }
 }
 
 export async function synthesizeCoachSpeech(text: string): Promise<Buffer> {
@@ -273,5 +279,12 @@ export async function judgeCommittee(
   const data = (await res.json()) as {
     choices?: Array<{ message?: { content?: string } }>;
   };
-  return JSON.parse((data.choices?.[0]?.message?.content ?? "").trim());
+  const raw = (data.choices?.[0]?.message?.content ?? "").trim();
+  try {
+    return JSON.parse(raw);
+  } catch {
+    // Unguarded, a malformed committee verdict throws SyntaxError → the queue
+    // retries 3x → session FAILED with no readable cause. Name it instead.
+    throw new ProviderError("invalid_json_from_model", 500);
+  }
 }

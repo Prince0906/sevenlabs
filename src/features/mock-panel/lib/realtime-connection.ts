@@ -265,7 +265,10 @@ export async function connectRealtime(params: {
           clearTimeout(hard);
           resolve();
         };
-        const hard = setTimeout(finish, analyser ? timeoutMs : 1200);
+        // No analyser (Safari/iOS autoplay-suspend) → fixed tail. 1200ms clipped
+        // the interviewer's 2-3s closing line on a big share of mobile; 3000ms
+        // leaves margin. The handoff "conferring" beat hides this delay.
+        const hard = setTimeout(finish, analyser ? timeoutMs : 3000);
         if (!analyser) return; // no meter — the fixed tail above resolves it
         const data = new Uint8Array(analyser.frequencyBinCount);
         const QUIET_RMS = 0.015;
