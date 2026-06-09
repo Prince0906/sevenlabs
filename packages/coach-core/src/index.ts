@@ -41,6 +41,13 @@ export {
 } from "./question-bank";
 export { redact, redactUnknown } from "./redaction";
 export {
+  INTERVIEWER_FRAME_CONTRACT,
+  CONTINUATION_NUDGE,
+  buildInterviewerInstructions,
+  interviewerAskedQuestion,
+  interviewerTurnNeedsContinuation,
+} from "./interviewer-guardrails";
+export {
   buildSeatRubric,
   seatScoresToDimensionRows,
   barRaiserDrillDepth,

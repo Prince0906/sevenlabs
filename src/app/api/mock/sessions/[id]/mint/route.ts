@@ -6,6 +6,7 @@ import { prisma } from "@/lib/db";
 import { env } from "@/lib/env";
 import { log } from "@/lib/log";
 import { mintRealtimeEphemeral, ProviderError } from "@/lib/coach/openai";
+import { buildInterviewerInstructions } from "@sevenlabs/coach-core";
 import { spendCentsForElapsed, isOverCeiling } from "@/lib/mock/spend";
 
 const bodySchema = z.object({
@@ -94,10 +95,14 @@ export async function POST(
     if (!seat) {
       return NextResponse.json({ error: "Scenario unavailable" }, { status: 404 });
     }
-    const instructions =
+    // The persona (a thin, leakable voice prompt) wrapped with the fixed
+    // interviewer frame contract in the SYSTEM instructions — the primary
+    // adversarial defense (held against role-flip / "tell me the answer" / etc.).
+    const persona =
       reason === "resume_interrupted"
         ? `${seat.systemPrompt}\n\nThe session was briefly interrupted and is resuming. Pick up naturally from where the conversation left off.`
         : seat.systemPrompt;
+    const instructions = buildInterviewerInstructions(persona);
 
     try {
       const ephemeral = await mintRealtimeEphemeral({

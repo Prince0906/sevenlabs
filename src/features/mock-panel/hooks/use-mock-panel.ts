@@ -5,11 +5,16 @@ import type { RealtimeEphemeral, PanelSeatPublic, TurnEvents } from "@sevenlabs/
 import {
   panelReducer,
   initialPanelState,
+  detectsSentinel,
   type PanelState,
   type RecoveryKind,
 } from "../lib/panel-machine";
 import { createTurnQueue, type TurnQueue } from "../lib/turn-queue";
 import { connectRealtime, type RealtimePeer } from "../lib/realtime-connection";
+import {
+  interviewerTurnNeedsContinuation,
+  CONTINUATION_NUDGE,
+} from "@sevenlabs/coach-core";
 import * as api from "../lib/mock-api";
 
 const TTL_GUARD_MS = 20_000; // re-mint this long before the ephemeral expires
@@ -80,6 +85,8 @@ export function useMockPanel() {
   // turn landed mid-response and is owed a reply once the current one finishes.
   const responseInFlightRef = useRef<boolean>(false);
   const pendingResponseRef = useRef<boolean>(false);
+  // Output-side stall backstop: fire at most one re-prompt per candidate answer.
+  const repromptedRef = useRef<boolean>(false);
   const isCapturingRef = useRef<boolean>(false);
   const captureStartRef = useRef<number>(0);
   // Fluency capture: a per-answer MediaRecorder taps the mic during the PTT
@@ -181,6 +188,7 @@ export function useMockPanel() {
     });
     turnsLogRef.current.push({ role: "user", text: transcript });
     setLiveTranscript((prev) => [...prev, { role: "USER", seatId, text: transcript }]);
+    repromptedRef.current = false; // a new answer re-arms the stall backstop
     dispatch({ type: "USER_TURN" });
   }, [activeSeatId]);
 
@@ -196,7 +204,35 @@ export function useMockPanel() {
     turnsLogRef.current.push({ role: "assistant", text });
     setLiveTranscript((prev) => [...prev, { role: "COACH", seatId, text }]);
     dispatch({ type: "COACH_DONE", transcript: text });
-  }, [activeSeatId]);
+
+    // Output-side turn-control backstop (research: system-prompt hardening is
+    // best-effort; pair it with an output check). If the interviewer stalled —
+    // asked NO question — and isn't handing off, re-prompt it so the interview
+    // can't dead-end (mistake 2 / the "taught then stopped" frame-break). Fires
+    // at most once per candidate answer; a SYSTEM nudge keeps the persona intact
+    // (per-response instructions would replace it). ⚠️ realtime mechanic —
+    // confirm role:"system" item + re-prompt in a live walkthrough.
+    if (
+      !detectsSentinel(text) &&
+      interviewerTurnNeedsContinuation(text) &&
+      !repromptedRef.current
+    ) {
+      repromptedRef.current = true;
+      window.setTimeout(() => {
+        const peer = peerRef.current;
+        if (!peer || responseInFlightRef.current) return;
+        peer.send({
+          type: "conversation.item.create",
+          item: {
+            type: "message",
+            role: "system",
+            content: [{ type: "input_text", text: CONTINUATION_NUDGE }],
+          },
+        });
+        requestCoachResponse();
+      }, 80);
+    }
+  }, [activeSeatId, requestCoachResponse]);
 
   const doConnect = useCallback(async (opts?: { greet?: boolean }) => {
     // Fresh seat connects (create / handoff) → the interviewer speaks first.
