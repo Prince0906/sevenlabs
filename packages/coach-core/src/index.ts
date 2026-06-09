@@ -48,6 +48,11 @@ export {
   interviewerTurnNeedsContinuation,
 } from "./interviewer-guardrails";
 export {
+  pickSeatOpener,
+  openerInstruction,
+  type SeatOpener,
+} from "./seat-openers";
+export {
   buildSeatRubric,
   seatScoresToDimensionRows,
   barRaiserDrillDepth,

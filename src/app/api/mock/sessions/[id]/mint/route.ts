@@ -6,7 +6,11 @@ import { prisma } from "@/lib/db";
 import { env } from "@/lib/env";
 import { log } from "@/lib/log";
 import { mintRealtimeEphemeral, ProviderError } from "@/lib/coach/openai";
-import { buildInterviewerInstructions } from "@sevenlabs/coach-core";
+import {
+  buildInterviewerInstructions,
+  pickSeatOpener,
+  openerInstruction,
+} from "@sevenlabs/coach-core";
 import { spendCentsForElapsed, isOverCeiling } from "@/lib/mock/spend";
 
 const bodySchema = z.object({
@@ -59,7 +63,7 @@ export async function POST(
         status: true,
         startedAt: true,
         scenario: {
-          select: { panelSeats: { orderBy: { seatOrder: "asc" } } },
+          select: { company: true, panelSeats: { orderBy: { seatOrder: "asc" } } },
         },
       },
     });
@@ -95,13 +99,19 @@ export async function POST(
     if (!seat) {
       return NextResponse.json({ error: "Scenario unavailable" }, { status: 404 });
     }
+    // Variety: steer this seat to OPEN on a per-session sub-topic so the
+    // interview differs each run (deterministic on (sessionId, seatOrder) → stable
+    // across this seat's re-mints; the Bar Raiser has no opener — it adapts).
+    const opener = pickSeatOpener(mock.scenario.company, seat.seatOrder, id);
+    let persona = opener
+      ? `${seat.systemPrompt}\n\n${openerInstruction(opener)}`
+      : seat.systemPrompt;
+    if (reason === "resume_interrupted") {
+      persona = `${persona}\n\nThe session was briefly interrupted and is resuming. Pick up naturally from where the conversation left off.`;
+    }
     // The persona (a thin, leakable voice prompt) wrapped with the fixed
     // interviewer frame contract in the SYSTEM instructions — the primary
     // adversarial defense (held against role-flip / "tell me the answer" / etc.).
-    const persona =
-      reason === "resume_interrupted"
-        ? `${seat.systemPrompt}\n\nThe session was briefly interrupted and is resuming. Pick up naturally from where the conversation left off.`
-        : seat.systemPrompt;
     const instructions = buildInterviewerInstructions(persona);
 
     try {
