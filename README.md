@@ -6,7 +6,7 @@ Two surfaces:
 - **Speaking Coach** — turn-based: record an answer → transcript → delivery + rubric feedback (spoken back).
 - **Bar-Raiser Panel** — real-time: three AI interviewers in a live voice loop, then a committee verdict.
 
-Plan and status live in [`ROADMAP.md`](ROADMAP.md) (the single source of truth); the deep-dive references are [`DEFENSIBILITY_PLAN.md`](DEFENSIBILITY_PLAN.md), [`CONFIDENCE_DETECTION_PLAN.md`](CONFIDENCE_DETECTION_PLAN.md), and [`CONFIDENCE_ENGINE_PLAN.md`](CONFIDENCE_ENGINE_PLAN.md). Working notes are in [`CLAUDE.md`](CLAUDE.md).
+**Source of truth:** product/feature plan is [`INTERVIEW_ENGINE_PLAN.md`](INTERVIEW_ENGINE_PLAN.md); system design + long-run maintenance is [`ENGINEERING.md`](ENGINEERING.md), with a plain-English companion in [`ENGINEERING_EXPLAINED.md`](ENGINEERING_EXPLAINED.md) and the audit evidence in [`AUDIT_FINDINGS.md`](AUDIT_FINDINGS.md). The active product is the **Bar-Raiser Panel**; the **Speaking Coach** is a parked surface (kept, not currently invested in). Earlier plans — [`ROADMAP.md`](ROADMAP.md), [`DEFENSIBILITY_PLAN.md`](DEFENSIBILITY_PLAN.md), [`CONFIDENCE_DETECTION_PLAN.md`](CONFIDENCE_DETECTION_PLAN.md), [`CONFIDENCE_ENGINE_PLAN.md`](CONFIDENCE_ENGINE_PLAN.md) — are superseded references. Working notes are in [`CLAUDE.md`](CLAUDE.md).
 
 ## Prerequisites
 

@@ -32,7 +32,9 @@ Postinstall runs `prisma generate` and copies Silero VAD assets from `node_modul
 
 ## Architecture
 
-**Monorepo via npm workspaces** (`packages/*`). Next.js app at repo root (`src/`). Single-process: speaking coach and dashboard run inside the web container.
+**Monorepo via npm workspaces** (`packages/*`). Next.js app at repo root (`src/`). Single-process: the speaking coach, the real-time interview panel, and the dashboard all run inside the web container.
+
+> **Two products, separate runtimes.** The **interview panel** (below) is the active product; the **speaking coach** is a parked surface — kept, not currently invested in. They share a pure-logic core and provider clients but **must not be merged** (different transports). System design + the in-flight cleanup live in `ENGINEERING.md` (plain-English: `ENGINEERING_EXPLAINED.md`).
 
 ### Speaking coach
 
@@ -43,6 +45,19 @@ BFF routes under `src/app/api/coach/*` call `src/lib/coach/turn-orchestrator.ts`
 The frontend uses `@ricky0123/vad-web` (Silero VAD) for browser-side voice activity detection — it auto-detects speech start/end and hands a WAV blob to `usePracticeSession`. VAD WASM/ONNX assets must exist in `public/vad/` (copied by postinstall).
 
 Pure analysis/prompt code lives in `packages/coach-core` (`speech-analysis.ts`, `coach-prompt.ts`) — no I/O, easy to test in isolation. The full pipeline (with Prisma/S3/OpenAI deps) stays in `src/lib/coach/`.
+
+### Interview panel (Bar-Raiser, real-time) — the active product
+
+A live 3-interviewer voice session over the **OpenAI Realtime API (WebRTC)**. Unlike the coach, **the server is never in the audio path** — the browser connects directly to OpenAI via a short-TTL ephemeral that the server mints. BFF routes under `src/app/api/mock/sessions/*` (`create` / `[id]/mint` / `[id]/turns` / `[id]/complete` / `[id]/report`); panel choreography + the off-band judge live in `src/lib/mock/`.
+
+- **Client engine** (`src/features/mock-panel/`): a pure reducer FSM (`lib/panel-machine.ts`, no I/O, unit-tested) drives the conversation; `hooks/use-mock-panel.ts` performs side effects (mint/connect/post/timers) on phase transitions; `lib/realtime-connection.ts` is the WebRTC transport. Push-to-talk is half-duplex (`turn_detection: null`).
+- **Turns**: `MockTurn` is single-writer, `seq`-ordered, posted through a queue. The interviewer (`COACH`) turns are the Bar-Raiser scoring input — losing one corrupts the verdict.
+- **Judgment**: a lease-based job (`src/lib/mock/judgment-queue.ts`) scores the transcript after the session into `PanelVerdict` / `DimensionScore` / `ConfidenceMetric`. **The judge always runs on the house key**, never the user's — removing a BYOK key loses live voice, never the report.
+- **BYOK custody**: users may paste their own OpenAI key (`src/lib/byok.ts`, `src/lib/crypto.ts` — AES-256-GCM under `KEY_ENCRYPTION_SECRET`). A USER-keyed session is metered by time only; a house session by the spend ceiling. The key is never echoed back.
+- **Resume grounding**: `ResumeProfile` facts are injected into the interviewer instructions at mint (`src/lib/mock/resume-digest.ts`).
+- **Moat data**: `Outcome` (real hire/no-hire label) is the calibration target for panel verdicts.
+
+Highest-stakes invariants: every mock query is **userId-scoped**; the **judge stays on the house key**; `MockTurn` ordering is single-writer.
 
 ### Workspace packages
 
