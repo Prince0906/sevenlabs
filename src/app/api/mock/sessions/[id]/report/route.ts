@@ -4,7 +4,6 @@ import { prisma } from "@/lib/db";
 import { log } from "@/lib/log";
 
 const JUDGMENT_DEADLINE_SEC = 180;
-const MAX_ATTEMPTS = 3;
 
 /** Poll: 202 while DEBRIEF (within deadline), 200 report when COMPLETED (ETag/304),
  * 200 FAILED past the deadline so the browser stops spinning. SYSTEM_DESIGN §14. */
@@ -26,7 +25,6 @@ export async function GET(
         status: true,
         endedAt: true,
         reportJson: true,
-        job: { select: { status: true, attempts: true } },
       },
     });
     if (!mock) {
@@ -49,12 +47,15 @@ export async function GET(
     }
 
     if (mock.status === "DEBRIEF") {
+      // Hard wall-clock bound on the client's wait. A job that genuinely exhausts
+      // its retries flips the SESSION to FAILED in the queue (caught above), so the
+      // case this catches is a worker that died with the job stuck PENDING — without
+      // it the browser would poll 202 forever. We don't persist FAILED here: a late
+      // judgment can still surface a report on a later visit. (A5)
       const ageSec = mock.endedAt
         ? (Date.now() - mock.endedAt.getTime()) / 1000
         : 0;
-      const exhausted =
-        mock.job?.status === "FAILED" || (mock.job?.attempts ?? 0) >= MAX_ATTEMPTS;
-      if (ageSec > JUDGMENT_DEADLINE_SEC && exhausted) {
+      if (ageSec > JUDGMENT_DEADLINE_SEC) {
         return NextResponse.json({ status: "FAILED", reason: "judgment_timeout" });
       }
       return NextResponse.json(
