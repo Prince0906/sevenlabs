@@ -14,6 +14,8 @@ import { connectRealtime, type RealtimePeer } from "../lib/realtime-connection";
 import {
   interviewerTurnNeedsContinuation,
   CONTINUATION_NUDGE,
+  turnCostUsd,
+  type RealtimeUsage,
 } from "@sevenlabs/coach-core";
 import * as api from "../lib/mock-api";
 
@@ -24,6 +26,10 @@ const SPURIOUS_COACH_MIN_WORDS = 3;
 const ICE_DISCONNECT_GRACE_MS = 4000; // ICE "disconnected" is flappy; let it self-heal
 const MAX_POLL_ERRORS = 5; // bounded report-poll retries before giving up
 const MIN_CAPTURE_MS = 500; // push-to-talk: ignore stray taps shorter than this
+// On a same-seat re-mint/reconnect we replay recent turns to restore context.
+// Bounded so a long interview never re-bills its whole transcript on every
+// re-mint — the active thread lives in the last few turns. (§14.2)
+const MAX_REPLAY_TURNS = 12;
 
 /** Pick a MediaRecorder mime Whisper can transcribe; undefined → browser default. */
 function pickRecorderMime(): string | undefined {
@@ -100,6 +106,19 @@ export function useMockPanel() {
   const speakingRef = useRef<boolean>(false);
   const handledPhaseRef = useRef<string>("");
   const iceDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // BYOK spend HUD (§3.7): accumulate the estimated cost on the user's key from
+  // response.done usage. The cap (set in the green-room) ends the session into the
+  // normal complete→report path when crossed — read via a ref so the live callback
+  // sees the latest value. estimatedSpendUsd is React state so the meter re-renders.
+  const spendUsdRef = useRef<number>(0);
+  const spendCapRef = useRef<number | null>(null);
+  const [estimatedSpendUsd, setEstimatedSpendUsd] = useState(0);
+  const [spendCapUsd, setSpendCapUsdState] = useState<number | null>(null);
+  const setSpendCapUsd = useCallback((v: number | null) => {
+    spendCapRef.current = v;
+    setSpendCapUsdState(v);
+  }, []);
 
   const activeSeatId = useCallback(
     () => seatsRef.current[stateRef.current.activeSeatIndex]?.id ?? null,
@@ -252,7 +271,9 @@ export function useMockPanel() {
           onDataChannelOpen: () => {
             if (replayOnConnectRef.current) {
               replayOnConnectRef.current = false;
-              for (const t of turnsLogRef.current) peerRef.current?.pushHistory(t.role, t.text);
+              for (const t of turnsLogRef.current.slice(-MAX_REPLAY_TURNS)) {
+                peerRef.current?.pushHistory(t.role, t.text);
+              }
             }
           },
           onSessionUpdated: () => {
@@ -318,6 +339,19 @@ export function useMockPanel() {
               peerRef.current?.send({ type: "response.create" });
             }
           },
+          onUsage: (usage) => {
+            const add = turnCostUsd(usage as RealtimeUsage);
+            if (add <= 0) return;
+            spendUsdRef.current += add;
+            setEstimatedSpendUsd(spendUsdRef.current);
+            // Opt-in cap: end the session into the normal complete→report path
+            // (safe — the report is never hostage to the user's key). The
+            // MAX_SESSION_SEC time stop and the provider's own cap still apply.
+            const cap = spendCapRef.current;
+            if (cap != null && spendUsdRef.current >= cap && stateRef.current.phase === "live") {
+              dispatch({ type: "END_REQUESTED" });
+            }
+          },
           onConnectionStateChange: (st) => {
             if (st === "connected" || st === "completed") {
               if (iceDebounceRef.current) {
@@ -380,6 +414,7 @@ export function useMockPanel() {
         dispatch({
           type: "CREATE_OK",
           sessionId: r.data.sessionId,
+          keySource: r.data.keySource,
           seats: r.data.seats,
           maxDurationSec: r.data.spend.maxDurationSec,
           ephemeralExpiresAt: r.data.ephemeral.expiresAt,
@@ -638,6 +673,8 @@ export function useMockPanel() {
       }
       speakingRef.current = false;
       pollErrorsRef.current = 0;
+      spendUsdRef.current = 0; // reset the spend accumulator (NOT the cap — the
+      setEstimatedSpendUsd(0); // user set it in the green-room before this run)
       setLiveTranscript([]);
       setCoachStreaming("");
       setIsCapturing(false);
@@ -757,6 +794,10 @@ export function useMockPanel() {
     maxDurationSec: state.maxDurationSec,
     ephemeralExpiresAt: state.ephemeralExpiresAt,
     hitCeiling: state.hitCeiling,
+    keySource: state.keySource,
+    estimatedSpendUsd,
+    spendCapUsd,
+    setSpendCapUsd,
     report: state.report,
     recovery: state.recovery as RecoveryKind | null,
     errorMessage: state.errorMessage,

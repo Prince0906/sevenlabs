@@ -13,6 +13,8 @@ import { PanelPresences } from "../components/panel-presences";
 import { PanelOrb } from "../components/panel-orb";
 import { ComposureMeter } from "../components/composure-meter";
 import { RecoveryBanner } from "../components/recovery-banner";
+import { ResumeUpload } from "../components/resume-upload";
+import { KeyStatusBadge } from "../components/key-status-badge";
 import { ReportBody, Deliberating, FailedScreen } from "./mock-report-view";
 import { seatLevel, splitPersona, SIGNAL_CSS_VAR } from "../lib/seat-theme";
 
@@ -45,7 +47,13 @@ export function MockPanelView({ scenarioId = SCENARIO_ID }: { scenarioId?: strin
 
   let body: ReactNode = null;
   if (p.phase === "idle") {
-    body = <Intro onStart={() => void p.start(scenarioId)} />;
+    body = (
+      <Intro
+        onStart={() => void p.start(scenarioId)}
+        spendCapUsd={p.spendCapUsd}
+        onSetSpendCap={p.setSpendCapUsd}
+      />
+    );
   } else if (p.phase === "report") {
     // Report can be entered (via adopt / not-renewable-COMPLETED) before the
     // payload is fetched — show the deliberating state, not a blank page.
@@ -161,7 +169,15 @@ const INTRO_STEPS: [string, string, string][] = [
 const TEASER_TINTS = ["var(--signal-newgrad)", "var(--signal-sde2)", "var(--signal-senior)"];
 
 /** The cover — a dim invitation to step into the room. */
-export function Intro({ onStart }: { onStart: () => void }) {
+export function Intro({
+  onStart,
+  spendCapUsd,
+  onSetSpendCap,
+}: {
+  onStart: () => void;
+  spendCapUsd?: number | null;
+  onSetSpendCap?: (v: number | null) => void;
+}) {
   return (
     <motion.div variants={staggerContainer} initial="initial" animate="animate" className="space-y-10">
       <motion.div variants={staggerItem} className="flex items-center justify-center gap-5 py-2" aria-hidden>
@@ -186,9 +202,9 @@ export function Intro({ onStart }: { onStart: () => void }) {
           Hear where you really stand.
         </h1>
         <p className="mx-auto max-w-prose text-base leading-relaxed text-muted-foreground">
-          Three interviewers — JavaScript fundamentals, React internals, and rendering
-          performance — plus a Bar Raiser who drills your strongest area. Conceptual questions
-          with real follow-ups, then a committee verdict, not a number.
+          Three interviewers — JavaScript fundamentals, React &amp; Next.js, and rendering
+          performance — one of them a Bar Raiser who drills your strongest area. Conceptual
+          questions with real follow-ups, then a committee verdict, not a number.
         </p>
       </motion.div>
 
@@ -206,6 +222,10 @@ export function Intro({ onStart }: { onStart: () => void }) {
         ))}
       </motion.ol>
 
+      <motion.div variants={staggerItem} className="mx-auto w-full max-w-prose">
+        <ResumeUpload />
+      </motion.div>
+
       <motion.div variants={staggerItem} className="flex flex-col items-center gap-3 text-center">
         <Button size="lg" onClick={onStart}>
           Start the panel
@@ -214,6 +234,7 @@ export function Intro({ onStart }: { onStart: () => void }) {
           We&apos;ll ask for your microphone first. A recording of each answer is sent to our
           servers to score your delivery, then discarded.
         </p>
+        <KeyStatusBadge spendCapUsd={spendCapUsd} onSetSpendCap={onSetSpendCap} />
       </motion.div>
     </motion.div>
   );
@@ -315,6 +336,23 @@ function LiveShell({ p }: { p: ReturnType<typeof useMockPanel> }) {
           bargeIns={p.bargeIns}
         />
       </motion.div>
+
+      {p.keySource === "USER" && (
+        <motion.div
+          variants={staggerItem}
+          className="flex items-center justify-between border-t border-border pt-3 text-[11px]"
+        >
+          <span className="font-medium uppercase tracking-[0.16em] text-muted-foreground">
+            Estimated spend on your key
+          </span>
+          <span className="font-mono tabular-nums text-muted-foreground">
+            ~${p.estimatedSpendUsd.toFixed(2)}
+            {p.spendCapUsd != null && (
+              <span className="text-muted-foreground/60"> / ${p.spendCapUsd.toFixed(0)} cap</span>
+            )}
+          </span>
+        </motion.div>
+      )}
     </motion.div>
   );
 }

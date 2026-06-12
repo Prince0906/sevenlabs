@@ -278,6 +278,43 @@ export const REACT_JS_COMPETENCIES: LeadershipPrinciple[] = [
     seniorSignal:
       "Weighs context vs composition vs a state library, splits contexts to bound re-renders, and avoids the referential-stability trap on the provider value.",
   },
+  // Seat 2 (cont.) — Next.js (Dev owns React internals AND the Next.js framework layer)
+  {
+    name: "Next.js App Router & Routing",
+    oneLiner:
+      "File-based routing in the App Router: layouts, nested routes, dynamic segments, and route groups.",
+    juniorSignal:
+      "Can add a page and a link but can't explain layouts vs pages, nested routing, or what a dynamic segment maps to.",
+    seniorSignal:
+      "Explains the App Router file conventions (layout/page/loading/error), how nested layouts compose and persist across navigation, dynamic and catch-all segments, and when to reach for route groups or parallel routes.",
+  },
+  {
+    name: "Server vs Client Components",
+    oneLiner:
+      "The React Server Components model: what runs on the server, the `use client` boundary, and serialization rules.",
+    juniorSignal:
+      "Adds `use client` by trial and error to make hooks or handlers work, with no model of what runs where.",
+    seniorSignal:
+      "Explains that Server Components run only on the server and ship no JS, where the `use client` boundary belongs and why, what may cross it (serializable props, not functions), and how to keep client bundles small by pushing state to the leaves.",
+  },
+  {
+    name: "Data Fetching & Caching",
+    oneLiner:
+      "Server-side data fetching, the fetch cache, request memoization, and revalidation (ISR / on-demand).",
+    juniorSignal:
+      "Fetches data in a client-side useEffect and is unaware of server fetching or any caching layer.",
+    seniorSignal:
+      "Fetches on the server, reasons about the fetch cache and request-level memoization, chooses time-based vs on-demand revalidation, and knows how to opt out of caching for genuinely dynamic data.",
+  },
+  {
+    name: "Rendering Strategies (SSR/SSG/ISR/Streaming)",
+    oneLiner:
+      "Static vs dynamic rendering, incremental regeneration, and streaming with Suspense; chosen per route.",
+    juniorSignal:
+      "Knows 'Next.js does SSR' but can't distinguish static from dynamic rendering or say what makes a route one or the other.",
+    seniorSignal:
+      "Distinguishes static and dynamic rendering and what forces each, applies ISR for fast-but-fresh pages, and uses Suspense streaming to send the shell early while slow data loads — reasoning about TTFB vs full-page latency.",
+  },
   // Seat 3 — Rendering & performance (Bar Raiser)
   {
     name: "Render Performance & Memoization",

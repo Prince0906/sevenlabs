@@ -2,9 +2,11 @@ import { describe, it, expect } from "vitest";
 import { rubricScoresSchema } from "@sevenlabs/shared-types";
 import {
   AMAZON_LEADERSHIP_PRINCIPLES,
+  REACT_JS_COMPETENCIES,
   buildRubricUserMessage,
   getRubricForCompany,
 } from "../rubric-definitions";
+import { getDrillQuestionStrict } from "../question-bank";
 
 describe("AMAZON_LEADERSHIP_PRINCIPLES", () => {
   it("contains the 16 current Amazon leadership principles", () => {
@@ -24,6 +26,29 @@ describe("AMAZON_LEADERSHIP_PRINCIPLES", () => {
     for (const lp of AMAZON_LEADERSHIP_PRINCIPLES) {
       expect(lp.juniorSignal.length).toBeGreaterThan(10);
       expect(lp.seniorSignal.length).toBeGreaterThan(10);
+    }
+  });
+});
+
+describe("REACT_JS_COMPETENCIES — Next.js coverage", () => {
+  it("includes the core Next.js competencies", () => {
+    const names = REACT_JS_COMPETENCIES.map((c) => c.name);
+    expect(names).toContain("Next.js App Router & Routing");
+    expect(names).toContain("Server vs Client Components");
+    expect(names).toContain("Data Fetching & Caching");
+    expect(names).toContain("Rendering Strategies (SSR/SSG/ISR/Streaming)");
+  });
+
+  it("the react rubric's system prompt names every competency (so the scorer can match it)", () => {
+    const rubric = getRubricForCompany("react")!;
+    for (const c of REACT_JS_COMPETENCIES) {
+      expect(rubric.systemPrompt).toContain(c.name);
+    }
+  });
+
+  it("every competency is drillable — no gap LP can be flagged with no drill to fix it", () => {
+    for (const c of REACT_JS_COMPETENCIES) {
+      expect(getDrillQuestionStrict("react", c.name), `missing drill for ${c.name}`).not.toBeNull();
     }
   });
 });

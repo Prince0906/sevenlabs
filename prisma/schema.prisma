@@ -37,6 +37,8 @@ model User {
   confidenceMetrics ConfidenceMetric[]
   drillAssignments  DrillAssignment[]
   outcomes          Outcome[]
+  resumeProfile     ResumeProfile?
+  providerKeys      ProviderKey[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -248,6 +250,8 @@ model MockSession {
   scenario        Scenario     @relation(fields: [scenarioId], references: [id])
   clientRequestId String?
   apiKeyId        String?
+  apiKey          ProviderKey? @relation(fields: [apiKeyId], references: [id], onDelete: SetNull)
+  keySource       KeySource    @default(ALOUD)
   provider        LlmProvider  @default(OPENAI)
   modelUsed       String
   judgeModel      String?
@@ -411,6 +415,66 @@ model Outcome {
 
   @@index([userId, capturedAt(sort: Desc)])
   @@index([result])
+}
+
+// BYOK custody (INTERVIEW_ENGINE_PLAN D1/§3.3). Whose long-lived key decrypts
+// into mintRealtimeEphemeral is the ONLY thing BYOK changes — the user's key
+// pays for the commodity realtime minutes; Aloud's pinned key pays for judgment.
+enum KeySource {
+  ALOUD // house key (trial / no key on file)
+  USER  // the user's own ProviderKey
+}
+
+enum KeyStatus {
+  ACTIVE
+  INVALID    // 401 at validate/mint — never auto-retry
+  EXHAUSTED  // 429 insufficient_quota
+  REVOKED
+}
+
+// A user's provider API key, encrypted at rest (AES-256-GCM under the env KEK).
+// The raw key transits the server exactly ONCE (POST /api/keys); thereafter only
+// ciphertext exists and it is decrypted ONLY inside the mint call frame. No
+// read-back endpoint exists; revoke = hard delete. One key per provider.
+model ProviderKey {
+  id              String      @id @default(cuid())
+  userId          String
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider        LlmProvider @default(OPENAI)
+  ciphertextB64   String      // AES-256-GCM ciphertext
+  ivB64           String
+  tagB64          String
+  dekVersion      Int         @default(1) // 1 = env KEK; >=2 = KMS envelope (P2)
+  last4           String      // display ONLY (e.g. "…a1b2")
+  fingerprint     String      // sha256(key) prefix — dedupe/audit, never the key
+  label           String?
+  status          KeyStatus   @default(ACTIVE)
+  capabilities    Json? // mint dry-run probe result { realtime, ttlSec, checkedAt }
+  lastValidatedAt DateTime?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  mockSessions MockSession[]
+
+  @@unique([userId, provider]) // one key per provider; rotation = overwrite
+  @@index([userId])
+}
+
+// The candidate's resume, parsed once before the interview. factsJson is the
+// extraction output AFTER the anti-hallucination filter (each fact's verbatim
+// quote validated as a substring of sourceText) — only validated facts are kept,
+// and only those reach the interviewer instructions. sourceText is retained so
+// the digest can be re-validated/re-extracted on a prompt change. One per user;
+// re-upload overwrites. INTERVIEW_ENGINE_PLAN §14.1.
+model ResumeProfile {
+  id         String   @id @default(cuid())
+  userId     String   @unique
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  factsJson  Json
+  sourceText String   @db.Text
+  rawS3Key   String?
+  extractedAt DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model RateBucket {

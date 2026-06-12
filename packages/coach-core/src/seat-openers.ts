@@ -29,13 +29,16 @@ const REACT_JS_SEAT_OPENERS: (SeatOpener[] | null)[] = [
     { topic: "prototypes", prompt: "When you call a method on an object, how does JavaScript actually find it? What is the lookup doing?" },
     { topic: "types and coercion", prompt: "What's really happening under the hood with `==` versus `===`, and when would the coercion surprise you?" },
   ],
-  // Seat 1 — React internals
+  // Seat 1 — React internals + Next.js (Dev covers both)
   [
     { topic: "the re-render model", prompt: "When state changes, what does React actually do — re-run your component, re-create the DOM, or something else?" },
     { topic: "the rules of hooks", prompt: "Why must hooks be called in the same order every render? What is React tracking that makes that a hard rule?" },
     { topic: "reconciliation and keys", prompt: "What does React do when you insert an item in the middle of a keyed list — and what breaks if the key is the array index?" },
     { topic: "effects as synchronization", prompt: "What is useEffect actually synchronizing, and how do you reason about when it should re-run?" },
     { topic: "state batching", prompt: "If you call setState twice in one event handler, how many re-renders happen — and what changes if those calls are inside a setTimeout?" },
+    { topic: "Server vs Client Components", prompt: "In the Next.js App Router, what actually runs on the server versus the client — and how do you decide where the `use client` boundary goes?" },
+    { topic: "Next.js data fetching and caching", prompt: "When you fetch data on the server in the App Router, what does the fetch cache do for you — and how do you make a page revalidate?" },
+    { topic: "rendering strategies", prompt: "What makes a Next.js route render statically versus dynamically — and when would you reach for ISR or streaming?" },
   ],
   null,
 ];

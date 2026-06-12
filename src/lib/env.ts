@@ -17,6 +17,12 @@ export const env = createEnv({
     // OpenAI (Speaking Coach — Whisper, GPT, TTS)
     OPENAI_API_KEY: z.string().min(1),
 
+    // BYOK key-encryption secret (the env KEK). Optional so the app boots without
+    // it; when unset, BYOK key storage is disabled (the /api/keys route returns
+    // 503) and everything runs on the house key. Must be >= 32 chars of high
+    // entropy. Rotating it invalidates all stored ProviderKeys (users re-paste).
+    KEY_ENCRYPTION_SECRET: z.string().min(32).optional(),
+
     // Disfluency measurement (verbatim ASR). Optional: when set, per-answer
     // audio is transcribed VERBATIM by Deepgram (filler_words:true) so fillers/
     // repeats/false-starts are measurable; when unset, the pipeline falls back to
@@ -39,8 +45,14 @@ export const env = createEnv({
       .url()
       .default("https://api.openai.com/v1/realtime/calls"),
     REALTIME_USD_PER_MIN: z.coerce.number().default(0.3),
+    // SESSION_CEILING_USD is the per-session HOUSE-KEY spend cap and the real
+    // bound on length: at $0.30/min a $4 cap is ~13 min, so house/trial sessions
+    // stay short and cheap. A full ~1-hour interview (~$18 on the house key) is
+    // gated on BYOK (the user's key pays) — or raise this locally for a founder
+    // live-test. MAX_SESSION_SEC is the time backstop, set to a full hour so it's
+    // never the binding constraint once the ceiling is raised. (§14.2)
     SESSION_CEILING_USD: z.coerce.number().default(4),
-    MAX_SESSION_SEC: z.coerce.number().int().default(2700),
+    MAX_SESSION_SEC: z.coerce.number().int().default(3600),
     DAILY_CAP_USD: z.coerce.number().default(50),
 
     // Auth.js (NextAuth v5)

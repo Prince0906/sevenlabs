@@ -35,6 +35,8 @@ export type RecoveryKind =
 export interface PanelState {
   phase: PanelPhase;
   sessionId: string | null;
+  /** ALOUD = house/trial; USER = the candidate's own key (BYOK → spend HUD on). */
+  keySource: "ALOUD" | "USER";
   seats: PanelSeatPublic[];
   activeSeatIndex: number;
   completedSeatIndexes: number[];
@@ -58,7 +60,7 @@ export type PanelAction =
   | { type: "START" }
   | { type: "MIC_GRANTED" }
   | { type: "MIC_DENIED" }
-  | { type: "CREATE_OK"; sessionId: string; seats: PanelSeatPublic[]; maxDurationSec: number; ephemeralExpiresAt: number }
+  | { type: "CREATE_OK"; sessionId: string; keySource: "ALOUD" | "USER"; seats: PanelSeatPublic[]; maxDurationSec: number; ephemeralExpiresAt: number }
   | { type: "CREATE_DUPLICATE"; sessionId: string }
   | { type: "CREATE_ALREADY_LIVE" }
   | { type: "CREATE_CAPACITY" }
@@ -94,13 +96,13 @@ export const HANDOFF_SENTINEL = "handing you to my colleague";
 
 /** Safety cap when the persona's closing sentinel isn't detected. The persona
  * decides depth and emits the sentinel when its thread is done; this only
- * force-hands-off a runaway seat. Kept generous so an interviewer can actually
- * explore a topic instead of racing a small counter (the "forced to finish fast"
- * feel from the 2026-06-02 live test) — the natural handoff is the sentinel, and
- * the spend ceiling caps total length regardless, so this only catches a persona
- * that never emits its closing line. */
+ * force-hands-off a runaway seat. Kept generous so an interviewer can run a full
+ * ~15-minute segment (several topics, deep follow-ups) instead of racing a small
+ * counter (the "forced to finish fast" feel from the 2026-06-02 live test) — the
+ * natural handoff is the sentinel, and the spend ceiling caps total length
+ * regardless, so this only catches a persona that never emits its closing line. */
 export function seatBudget(isLast: boolean): number {
-  return isLast ? 10 : 8;
+  return isLast ? 18 : 14;
 }
 
 export function detectsSentinel(transcript: string): boolean {
@@ -111,6 +113,7 @@ export function initialPanelState(): PanelState {
   return {
     phase: "idle",
     sessionId: null,
+    keySource: "ALOUD",
     seats: [],
     activeSeatIndex: 0,
     completedSeatIndexes: [],
@@ -167,6 +170,7 @@ export function panelReducer(state: PanelState, action: PanelAction): PanelState
       return {
         ...state,
         sessionId: action.sessionId,
+        keySource: action.keySource,
         seats: action.seats,
         maxDurationSec: action.maxDurationSec,
         ephemeralExpiresAt: action.ephemeralExpiresAt,

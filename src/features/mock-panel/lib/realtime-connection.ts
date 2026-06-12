@@ -20,6 +20,8 @@ export interface RealtimeCallbacks {
   onSpeechStopped?: () => void;
   onCoachResponseStart?: () => void;
   onCoachResponseDone?: (cancelled: boolean) => void;
+  /** Token usage on response.done — drives the BYOK spend estimate (§3.7). */
+  onUsage?: (usage: unknown) => void;
   onDataChannelOpen?: () => void;
   onConnectionStateChange?: (state: RTCIceConnectionState) => void;
   onError?: (err: unknown) => void;
@@ -149,7 +151,12 @@ export async function connectRealtime(params: {
   };
 
   dc.onmessage = (e) => {
-    let msg: { type?: string; transcript?: string; delta?: string; response?: { status?: string } };
+    let msg: {
+      type?: string;
+      transcript?: string;
+      delta?: string;
+      response?: { status?: string; usage?: unknown };
+    };
     try {
       msg = JSON.parse(typeof e.data === "string" ? e.data : "");
     } catch {
@@ -179,6 +186,7 @@ export async function connectRealtime(params: {
         break;
       case "response.done":
         callbacks.onCoachResponseDone?.(msg.response?.status === "cancelled");
+        if (msg.response?.usage) callbacks.onUsage?.(msg.response.usage);
         break;
       case "error":
         // A server-side error event (e.g. a rejected conversation.item.create

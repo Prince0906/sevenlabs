@@ -140,6 +140,51 @@ export async function scoreAgainstRubric(
   }
 }
 
+/**
+ * Resume profile extraction — a PINNED `gpt-4o-mini` JSON call (same plane as
+ * judgment: the extracted profile must be consistent across users, never the
+ * user's BYOK model). Returns parsed JSON; the route validates every fact's
+ * quote against the resume text before anything is stored or shown to a seat.
+ */
+export async function extractResumeJson(
+  systemPrompt: string,
+  userMessage: string,
+  signal?: AbortSignal
+): Promise<unknown> {
+  const res = await fetch(`${OPENAI_BASE}/chat/completions`, {
+    method: "POST",
+    signal,
+    headers: {
+      Authorization: `Bearer ${env.OPENAI_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "gpt-4o-mini", // PINNED — never config-driven
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userMessage },
+      ],
+      max_tokens: 900,
+      temperature: 0.2,
+      response_format: { type: "json_object" },
+    }),
+  });
+
+  if (!res.ok) {
+    throw new ProviderError("resume_extraction_failed", res.status);
+  }
+
+  const data = (await res.json()) as {
+    choices?: Array<{ message?: { content?: string } }>;
+  };
+  const raw = (data.choices?.[0]?.message?.content ?? "").trim();
+  try {
+    return JSON.parse(raw);
+  } catch {
+    throw new ProviderError("invalid_json_from_model", 500);
+  }
+}
+
 export async function synthesizeCoachSpeech(text: string): Promise<Buffer> {
   const res = await fetch(`${OPENAI_BASE}/audio/speech`, {
     method: "POST",
@@ -173,6 +218,10 @@ export async function mintRealtimeEphemeral(params: {
   instructions: string;
   voice: string;
   safetyIdentifier: string;
+  // BYOK: the user's decrypted key signs the ephemeral so the realtime minutes
+  // bill to their account. Defaults to the house key (trial / no key on file).
+  // The raw key lives only in this call frame — never logged, never in an Error.
+  apiKey?: string;
 }): Promise<{
   value: string;
   expiresAt: number;
@@ -182,7 +231,7 @@ export async function mintRealtimeEphemeral(params: {
   const res = await fetch(env.OPENAI_REALTIME_MINT_URL, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${env.OPENAI_API_KEY}`,
+      Authorization: `Bearer ${params.apiKey ?? env.OPENAI_API_KEY}`,
       "Content-Type": "application/json",
       // Abuse identifier travels as a HEADER on the GA endpoint — passing it in
       // the body returns 400 "Unknown parameter: 'safety_identifier'".

@@ -122,6 +122,9 @@ export const realtimeEphemeralSchema = z.object({
 /** POST /sessions success body. */
 export const createMockSessionResponseSchema = z.object({
   sessionId: z.string(),
+  // ALOUD = house/trial key; USER = the candidate's own key pays (BYOK), which
+  // turns on the spend HUD and removes the dollar ceiling. (§3.6/§3.7)
+  keySource: z.enum(["ALOUD", "USER"]).default("ALOUD"),
   seats: z.array(panelSeatPublicSchema),
   ephemeral: realtimeEphemeralSchema,
   spend: z.object({

@@ -192,6 +192,30 @@ const REACT_QUESTIONS: DrillQuestion[] = [
     estMinutes: 5,
   },
   {
+    id: "nextjs-routing-1",
+    text: "Walk me through the App Router file conventions — layout, page, loading, error — and how nested layouts compose. When would you reach for a route group or a dynamic segment?",
+    lp: "Next.js App Router & Routing",
+    estMinutes: 5,
+  },
+  {
+    id: "nextjs-server-client-1",
+    text: "Explain what runs on the server vs the client in the RSC model. Where do you put the `use client` boundary, what can cross it, and how does that keep your client bundle small?",
+    lp: "Server vs Client Components",
+    estMinutes: 5,
+  },
+  {
+    id: "nextjs-data-fetching-1",
+    text: "How do you fetch data on the server in the App Router, and what does the fetch cache do? Walk me through choosing time-based vs on-demand revalidation, and opting out for dynamic data.",
+    lp: "Data Fetching & Caching",
+    estMinutes: 5,
+  },
+  {
+    id: "nextjs-rendering-1",
+    text: "Distinguish static from dynamic rendering in Next.js and what forces each. When would you use ISR, and how does Suspense streaming change what the user sees first?",
+    lp: "Rendering Strategies (SSR/SSG/ISR/Streaming)",
+    estMinutes: 5,
+  },
+  {
     id: "react-memoization-1",
     text: "Explain exactly what useMemo, useCallback, and React.memo prevent, the referential-equality contract they rely on, and a case where adding them made things worse.",
     lp: "Render Performance & Memoization",

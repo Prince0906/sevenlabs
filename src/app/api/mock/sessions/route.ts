@@ -13,6 +13,8 @@ import {
   estimateSessionUsd,
   settleReservation,
 } from "@/lib/mock/spend";
+import { getResumeDigest } from "@/lib/mock/resume-digest";
+import { resolveSessionKey } from "@/lib/byok";
 
 const bodySchema = z.object({
   scenarioId: z.string().min(1),
@@ -113,9 +115,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Scenario unavailable" }, { status: 404 });
     }
 
-    // L4 global daily kill-switch (atomic add-if-under-cap soft hold).
+    // BYOK (D1/§3.6): if the user has a key on file, their key pays for the
+    // realtime minutes — so we skip the house reservation + global daily cap
+    // entirely (they're a house-spend protection, irrelevant when Aloud isn't
+    // paying). The single-live cap, rate limits, and MAX_SESSION_SEC hard stop
+    // all still apply. House/trial sessions keep the full kill-switch.
+    const sessionKey = await resolveSessionKey(userId);
+    const isByok = sessionKey.keySource === "USER";
+
+    // L4 global daily kill-switch (atomic add-if-under-cap soft hold) — house only.
     const estimatedUsd = estimateSessionUsd();
-    if (!(await reserveGlobalSpend(estimatedUsd))) {
+    if (!isByok && !(await reserveGlobalSpend(estimatedUsd))) {
       return NextResponse.json(
         { error: "At capacity, try again shortly" },
         { status: 503 }
@@ -132,20 +142,32 @@ export async function POST(request: Request) {
         judgeModel: "gpt-4o-mini",
         targetLevel: scenario.targetLevel,
         status: "PENDING",
+        keySource: sessionKey.keySource,
+        apiKeyId: sessionKey.apiKeyId,
       },
     });
-    await createReservation(created.id, estimatedUsd);
+    if (!isByok) {
+      await createReservation(created.id, estimatedUsd);
+    }
 
     // Mint the config-locked ephemeral (lead seat persona). Audio is browser↔provider.
+    // The lead seat opens with the intro phase (its seed persona) and grounds it
+    // in the candidate's resume — the digest is per-user, so it's injected here
+    // at mint, never in the seed. INTERVIEW_ENGINE_PLAN §14.1.
     const lead = scenario.panelSeats[0]!;
+    const resumeDigest = await getResumeDigest(userId);
     try {
       const ephemeral = await mintRealtimeEphemeral({
-        instructions: lead.systemPrompt,
+        instructions: resumeDigest
+          ? `${lead.systemPrompt}\n\n${resumeDigest}`
+          : lead.systemPrompt,
         voice: lead.voice,
         safetyIdentifier: safetyId(userId),
+        apiKey: sessionKey.apiKey,
       });
       return NextResponse.json({
         sessionId: created.id,
+        keySource: sessionKey.keySource,
         seats: scenario.panelSeats.map((s) => ({
           id: s.id,
           personaName: s.personaName,
