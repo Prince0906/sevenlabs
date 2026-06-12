@@ -6,6 +6,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const mockPrisma = vi.hoisted(() => ({
   globalSpend: { upsert: vi.fn() },
+  rateBucket: { deleteMany: vi.fn() },
   $queryRaw: vi.fn(),
 }));
 const mockLog = vi.hoisted(() => ({ warn: vi.fn(), info: vi.fn(), error: vi.fn() }));
@@ -14,7 +15,7 @@ vi.mock("@/lib/db", () => ({ prisma: mockPrisma }));
 vi.mock("@/lib/log", () => ({ log: mockLog }));
 vi.mock("@/lib/env", () => ({ env: { DAILY_CAP_USD: 50 } }));
 
-import { reserveGlobalSpend } from "@/lib/mock/spend";
+import { reserveGlobalSpend, checkRateLimit, reapRateBuckets } from "@/lib/mock/spend";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -44,5 +45,26 @@ describe("reserveGlobalSpend (daily kill-switch + observability)", () => {
       "daily spend cap reached — admission blocked",
       expect.objectContaining({ holdUsd: 20, capUsd: 50 })
     );
+  });
+});
+
+describe("checkRateLimit (atomic upsert-increment)", () => {
+  it("allows while the window count is at or under the limit", async () => {
+    mockPrisma.$queryRaw.mockResolvedValue([{ count: 5 }]);
+    expect(await checkRateLimit("k", 5, 3600)).toBe(true);
+  });
+
+  it("blocks once the incremented count exceeds the limit", async () => {
+    mockPrisma.$queryRaw.mockResolvedValue([{ count: 6 }]);
+    expect(await checkRateLimit("k", 5, 3600)).toBe(false);
+  });
+});
+
+describe("reapRateBuckets", () => {
+  it("deletes windows older than the cutoff", async () => {
+    mockPrisma.rateBucket.deleteMany.mockResolvedValue({ count: 3 });
+    await reapRateBuckets();
+    const arg = mockPrisma.rateBucket.deleteMany.mock.calls[0]![0];
+    expect(arg.where.windowStart.lt).toBeInstanceOf(Date);
   });
 });

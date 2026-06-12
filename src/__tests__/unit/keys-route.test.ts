@@ -160,6 +160,7 @@ describe("DELETE /api/keys", () => {
     vi.clearAllMocks();
     vi.mocked(auth).mockResolvedValue({ user: { id: "u1" } } as never);
     mockCrypto.isByokConfigured.mockReturnValue(true);
+    mockSpend.checkRateLimit.mockResolvedValue(true);
     mockPrisma.providerKey.deleteMany.mockResolvedValue({ count: 1 });
   });
 
@@ -169,5 +170,12 @@ describe("DELETE /api/keys", () => {
     expect(mockPrisma.providerKey.deleteMany).toHaveBeenCalledWith({
       where: { userId: "u1", provider: "OPENAI" },
     });
+  });
+
+  it("429 when revoke is rate limited (the endpoint is now throttled too)", async () => {
+    mockSpend.checkRateLimit.mockResolvedValue(false);
+    const res = await DELETE(new Request("http://localhost/api/keys", { method: "DELETE" }));
+    expect(res.status).toBe(429);
+    expect(mockPrisma.providerKey.deleteMany).not.toHaveBeenCalled();
   });
 });

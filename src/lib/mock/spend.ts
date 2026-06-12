@@ -126,7 +126,9 @@ export async function settleReservation(
   });
 }
 
-/** Fixed-window rate limit via the durable RateBucket. Returns true if allowed. */
+/** Fixed-window rate limit via the durable RateBucket. Returns true if allowed.
+ *  Atomic INSERT … ON CONFLICT increment — a Prisma upsert races two concurrent
+ *  first-hits on the same bucket into a unique-violation; this can't. (C3) */
 export async function checkRateLimit(
   key: string,
   limit: number,
@@ -134,10 +136,19 @@ export async function checkRateLimit(
 ): Promise<boolean> {
   const windowMs = windowSec * 1000;
   const windowStart = new Date(Math.floor(Date.now() / windowMs) * windowMs);
-  const bucket = await prisma.rateBucket.upsert({
-    where: { key_windowStart: { key, windowStart } },
-    create: { key, windowStart, count: 1 },
-    update: { count: { increment: 1 } },
-  });
-  return bucket.count <= limit;
+  const rows = await prisma.$queryRaw<{ count: number }[]>`
+    INSERT INTO "RateBucket" ("key", "windowStart", "count")
+    VALUES (${key}, ${windowStart}, 1)
+    ON CONFLICT ("key", "windowStart")
+    DO UPDATE SET "count" = "RateBucket"."count" + 1
+    RETURNING "count"`;
+  return (rows[0]?.count ?? 1) <= limit;
+}
+
+/** Reap rate-limit windows older than an hour (well past any active window) so the
+ *  durable RateBucket table can't grow without bound. Called from the background
+ *  sweep. (C3) */
+export async function reapRateBuckets(): Promise<void> {
+  const cutoff = new Date(Date.now() - 60 * 60 * 1000);
+  await prisma.rateBucket.deleteMany({ where: { windowStart: { lt: cutoff } } });
 }

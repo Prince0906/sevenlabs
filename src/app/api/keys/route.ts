@@ -177,6 +177,13 @@ export async function DELETE(request: Request) {
   try {
     const g = await guard(request);
     if (g instanceof NextResponse) return g;
+
+    // Revoke is a mutation on a security-sensitive resource — rate-limit it too,
+    // not just POST (C3).
+    if (!(await checkRateLimit(`keys:delete:${g.userId}`, KEYS_RATE_LIMIT, KEYS_WINDOW_SEC))) {
+      return NextResponse.json({ error: "Rate limited" }, { status: 429 });
+    }
+
     await prisma.providerKey.deleteMany({
       where: { userId: g.userId, provider: "OPENAI" },
     });

@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { redact } from "@sevenlabs/coach-core";
 import { runJudgment } from "./panel-orchestrator";
+import { reapRateBuckets } from "./spend";
 import { log } from "@/lib/log";
 
 /**
@@ -90,5 +91,7 @@ export function startJudgmentSweeper(): void {
     void drainJudgmentQueue().catch((e) =>
       log.error("judgment sweep failed", e)
     );
+    // Piggyback the rate-bucket reap on the same maintenance tick (C3).
+    void reapRateBuckets().catch((e) => log.error("rate-bucket reap failed", e));
   }, SWEEP_INTERVAL_MS);
 }
