@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const mockPrisma = vi.hoisted(() => ({
   mockSession: { findFirst: vi.fn() },
-  mockTurn: { updateMany: vi.fn() },
+  mockTurn: { update: vi.fn() },
 }));
 const mockOpenai = vi.hoisted(() => ({
   transcribeAudio: vi.fn(),
@@ -76,7 +76,7 @@ describe("POST /api/mock/sessions/:id/turns/audio", () => {
       ],
       durationSec: 1,
     });
-    mockPrisma.mockTurn.updateMany.mockResolvedValue({ count: 1 });
+    mockPrisma.mockTurn.update.mockResolvedValue({ id: "t1" });
   });
 
   it("401 when unauthenticated", async () => {
@@ -112,11 +112,13 @@ describe("POST /api/mock/sessions/:id/turns/audio", () => {
     const res = await POST(audioReq({ clientTurnId: "c1", audio: wav() }), params("s1"));
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ ok: false, reason: "transcription_failed" });
-    expect(mockPrisma.mockTurn.updateMany).not.toHaveBeenCalled();
+    expect(mockPrisma.mockTurn.update).not.toHaveBeenCalled();
   });
 
-  it("202 pending when the text turn row isn't written yet (client retries)", async () => {
-    mockPrisma.mockTurn.updateMany.mockResolvedValueOnce({ count: 0 });
+  it("202 pending when the text turn row isn't written yet (P2025 → client retries)", async () => {
+    mockPrisma.mockTurn.update.mockRejectedValueOnce(
+      Object.assign(new Error("not found"), { code: "P2025" })
+    );
     const res = await POST(audioReq({ clientTurnId: "c1", audio: wav() }), params("s1"));
     expect(res.status).toBe(202);
     expect(await res.json()).toEqual({ pending: true });
@@ -126,9 +128,9 @@ describe("POST /api/mock/sessions/:id/turns/audio", () => {
     const res = await POST(audioReq({ clientTurnId: "c1", audio: wav() }), params("s1"));
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ ok: true });
-    expect(mockPrisma.mockTurn.updateMany).toHaveBeenCalledWith(
+    expect(mockPrisma.mockTurn.update).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { sessionId: "s1", clientTurnId: "c1", role: "USER" },
+        where: { sessionId_clientTurnId: { sessionId: "s1", clientTurnId: "c1" } },
       })
     );
   });
@@ -149,7 +151,7 @@ describe("POST /api/mock/sessions/:id/turns/audio", () => {
     expect(res.status).toBe(200);
     expect(mockDeepgram.transcribeVerbatim).toHaveBeenCalled();
     expect(mockOpenai.transcribeAudio).not.toHaveBeenCalled(); // no Whisper fallback
-    const arg = mockPrisma.mockTurn.updateMany.mock.calls[0]![0];
+    const arg = mockPrisma.mockTurn.update.mock.calls[0]![0];
     expect(arg.data.disfluencyJson).toBeTruthy();
   });
 
@@ -159,7 +161,7 @@ describe("POST /api/mock/sessions/:id/turns/audio", () => {
     const res = await POST(audioReq({ clientTurnId: "c1", audio: wav() }), params("s1"));
     expect(res.status).toBe(200);
     expect(mockOpenai.transcribeAudio).toHaveBeenCalled(); // fell back
-    const arg = mockPrisma.mockTurn.updateMany.mock.calls[0]![0];
+    const arg = mockPrisma.mockTurn.update.mock.calls[0]![0];
     expect(arg.data.disfluencyJson).toBeUndefined();
   });
 });

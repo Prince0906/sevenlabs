@@ -111,21 +111,26 @@ export async function POST(
 
     const metrics = analyzeSpeech({ words, turnDurationSec: durationSec });
 
-    // Attach to the matching USER turn. updateMany (not update) because the join
-    // key is clientTurnId, not the unique seq. count 0 → the text turn row hasn't
-    // been written yet; tell the client to retry.
-    const res = await prisma.mockTurn.updateMany({
-      where: { sessionId: id, clientTurnId, role: "USER" },
-      data: {
-        metricsJson: metrics,
-        disfluencyJson: disfluency
-          ? (disfluency as unknown as Prisma.InputJsonValue)
-          : undefined,
-        transcriptionMissing: words.length < 2,
-      },
-    });
-    if (res.count === 0) {
-      return NextResponse.json({ pending: true }, { status: 202 });
+    // Attach to the matching USER turn on the now-UNIQUE (sessionId, clientTurnId)
+    // join key — one row, not a fan-out updateMany. P2025 (no such row) means the
+    // text turn hasn't been written yet (the upload raced ahead); the client
+    // retries on 202. (clientTurnId is only ever set on USER turns.)
+    try {
+      await prisma.mockTurn.update({
+        where: { sessionId_clientTurnId: { sessionId: id, clientTurnId } },
+        data: {
+          metricsJson: metrics,
+          disfluencyJson: disfluency
+            ? (disfluency as unknown as Prisma.InputJsonValue)
+            : undefined,
+          transcriptionMissing: words.length < 2,
+        },
+      });
+    } catch (e) {
+      if (e && typeof e === "object" && (e as { code?: string }).code === "P2025") {
+        return NextResponse.json({ pending: true }, { status: 202 });
+      }
+      throw e;
     }
 
     return NextResponse.json({ ok: true });
