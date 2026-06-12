@@ -410,6 +410,10 @@ export function useMockPanel() {
             return s.kind === "ok" ? s.data.maxSeq : -1;
           },
           onSessionExpired: () => dispatch({ type: "SESSION_EXPIRED" }),
+          // A COACH turn dropped after exhausting retries would otherwise vanish
+          // silently and the judge would score an incomplete transcript. Surface
+          // it so the candidate + report can mark the session partial. (D6)
+          onDeliveryError: () => dispatch({ type: "DELIVERY_DEGRADED" }),
         });
         dispatch({
           type: "CREATE_OK",
@@ -794,6 +798,7 @@ export function useMockPanel() {
     maxDurationSec: state.maxDurationSec,
     ephemeralExpiresAt: state.ephemeralExpiresAt,
     hitCeiling: state.hitCeiling,
+    degradedDelivery: state.degradedDelivery,
     keySource: state.keySource,
     estimatedSpendUsd,
     spendCapUsd,

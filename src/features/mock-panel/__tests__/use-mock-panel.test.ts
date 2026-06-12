@@ -171,3 +171,19 @@ describe("panelReducer — barge-in / disconnect", () => {
     expect(panelReducer(preLive, { type: "DISCONNECTED" }).recovery).toBe("not-startable");
   });
 });
+
+describe("panelReducer — degraded delivery (D6)", () => {
+  it("starts clean and latches true on a dropped turn", () => {
+    let s = driveToLive();
+    expect(s.degradedDelivery).toBe(false);
+    s = panelReducer(s, { type: "DELIVERY_DEGRADED" });
+    expect(s.degradedDelivery).toBe(true);
+  });
+
+  it("the partial-delivery flag survives into wrapping (not reset on end)", () => {
+    let s = panelReducer(driveToLive(), { type: "DELIVERY_DEGRADED" });
+    s = panelReducer(s, { type: "END_REQUESTED" });
+    expect(s.phase).toBe("wrapping");
+    expect(s.degradedDelivery).toBe(true);
+  });
+});

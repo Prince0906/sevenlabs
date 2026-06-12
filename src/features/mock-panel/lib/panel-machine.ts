@@ -49,6 +49,9 @@ export interface PanelState {
   maxDurationSec: number;
   ephemeralExpiresAt: number | null;
   hitCeiling: boolean;
+  /** A turn was dropped after exhausting retries — the report is partial, not
+   * silently corrupt. Latches true; surfaced to the candidate + the report (D6). */
+  degradedDelivery: boolean;
   report: MockReport | null;
   reportEtag: string | null;
   recovery: RecoveryKind | null;
@@ -85,6 +88,7 @@ export type PanelAction =
   | { type: "DISCONNECTED" }
   | { type: "RESUME_FAILED" }
   | { type: "SESSION_EXPIRED" }
+  | { type: "DELIVERY_DEGRADED" }
   | { type: "END_REQUESTED" }
   | { type: "COMPLETE_DEBRIEF" }
   | { type: "COMPLETE_NOT_COMPLETABLE" }
@@ -126,6 +130,7 @@ export function initialPanelState(): PanelState {
     maxDurationSec: 0,
     ephemeralExpiresAt: null,
     hitCeiling: false,
+    degradedDelivery: false,
     report: null,
     reportEtag: null,
     recovery: null,
@@ -266,6 +271,10 @@ export function panelReducer(state: PanelState, action: PanelAction): PanelState
 
     case "SESSION_EXPIRED":
       return { ...state, phase: "wrapping", hitCeiling: true };
+    case "DELIVERY_DEGRADED":
+      // A turn was dropped after exhausting retries; latch it so wrap → report
+      // can mark the transcript partial instead of scoring it as complete.
+      return { ...state, degradedDelivery: true };
     case "END_REQUESTED":
       return { ...state, phase: "wrapping" };
     case "COMPLETE_DEBRIEF":
