@@ -1,4 +1,4 @@
-import type { RealtimeEphemeral } from "@sevenlabs/shared-types";
+import { type RealtimeEphemeral, REALTIME_INPUT_CONFIG } from "@sevenlabs/shared-types";
 import { mapRealtimeEvent } from "./realtime-events";
 
 /**
@@ -54,20 +54,13 @@ export interface RealtimePeer {
   close: () => void;
 }
 
-// MUST stay identical to the mint-time config (src/lib/coach/openai.ts).
-// PUSH-TO-TALK: turn_detection is null — no automatic VAD. The candidate owns
-// end-of-turn; beginCapture/commitCapture below gate the mic and the hook sends
-// response.create on "Done". This is the only design that can't cut a long answer
-// off mid-sentence, and committing only deliberate speech stops the transcription
-// model hallucinating text out of silence. language:"en" stops foreign-script drift.
+// Re-assert the shared input config on data-channel open (belt-and-suspenders
+// over the mint-time config). REALTIME_INPUT_CONFIG is the single source, so the
+// mint body and this patch can no longer silently diverge. Full push-to-talk
+// rationale lives on that const.
 const INPUT_SESSION_PATCH = {
   type: "realtime",
-  audio: {
-    input: {
-      transcription: { model: "gpt-4o-transcribe", language: "en" },
-      turn_detection: null,
-    },
-  },
+  audio: { input: REALTIME_INPUT_CONFIG },
 };
 
 export async function connectRealtime(params: {

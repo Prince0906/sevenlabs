@@ -1,4 +1,4 @@
-import type { WordTimestamp } from "@sevenlabs/shared-types";
+import { type WordTimestamp, REALTIME_INPUT_CONFIG } from "@sevenlabs/shared-types";
 import { env } from "@/lib/env";
 
 const OPENAI_BASE = "https://api.openai.com/v1";
@@ -244,24 +244,12 @@ export async function mintRealtimeEphemeral(params: {
         instructions: params.instructions,
         audio: {
           output: { voice: params.voice },
-          // Enable input transcription + turn detection AT MINT so it can't be
-          // forgotten or raced by the client. Without it OpenAI emits no
-          // input_audio_transcription.completed events and the judge would
-          // score an empty interview. (REALTIME_CLIENT_PLAN.md decision 2.)
-          //
-          // PUSH-TO-TALK: turn_detection is null — NO automatic voice detection at
-          // all. The candidate owns end-of-turn; the client gates the mic track and
-          // sends input_audio_buffer.commit + response.create when they tap "Done".
-          // This is the only design that cannot cut a long, thoughtful answer off
-          // mid-sentence (any automatic endpointer eventually misjudges a thinking
-          // pause as "done"), and because only deliberate speech is ever committed
-          // it stops the transcription model hallucinating text out of silence.
-          // language:"en" removes the auto-language-detect step that produced
-          // foreign-script boilerplate on near-silent audio. (Verified GA contract.)
-          input: {
-            transcription: { model: "gpt-4o-transcribe", language: "en" },
-            turn_detection: null,
-          },
+          // Asserted AT MINT so input transcription + manual turn control can't be
+          // forgotten or raced by the client (without it OpenAI emits no transcript
+          // events and the judge scores an empty interview). The client re-asserts
+          // the same shared config on data-channel open. The full push-to-talk
+          // rationale lives on REALTIME_INPUT_CONFIG.
+          input: REALTIME_INPUT_CONFIG,
         },
       },
     }),
