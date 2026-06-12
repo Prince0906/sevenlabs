@@ -1,3 +1,14 @@
+/**
+ * Version stamp for the rubric CONTENT in this file (principles, signal guides,
+ * competencies). Stamped onto every PanelVerdict and snapshotted into Outcome so
+ * the (prediction → real outcome) calibration pairs can be partitioned by the
+ * exact rubric that produced them. **BUMP THIS on any change to the rubric
+ * content or scoring guidance** — a new version opens a fresh calibration cohort.
+ * Code is the source of truth; the matching DB column default is only a one-time
+ * backfill for rows written before provenance existed.
+ */
+export const RUBRIC_VERSION = "2026.06.0";
+
 export interface LeadershipPrinciple {
   name: string;
   oneLiner: string;

@@ -23,12 +23,13 @@ import {
   buildCommitteeMessage,
   COMMITTEE_DEBRIEF_PROMPT,
   DIFFICULTY_TO_INT,
+  RUBRIC_VERSION,
   type SeatRubricOutput,
   type TurnLite,
   type CommitteeSeatInput,
   type DisfluencyReport,
 } from "@sevenlabs/coach-core";
-import { scoreAgainstRubric, judgeCommittee } from "@/lib/coach/openai";
+import { scoreAgainstRubric, judgeCommittee, JUDGE_MODEL } from "@/lib/coach/openai";
 import { settleReservation } from "@/lib/mock/spend";
 import { log } from "@/lib/log";
 
@@ -246,6 +247,8 @@ export async function runJudgment(sessionId: string): Promise<void> {
         seatRollup: verdict.seatRollup,
         topStrengths: verdict.topStrengths,
         topRisks: verdict.topRisks,
+        rubricVersion: RUBRIC_VERSION,
+        judgeModel: JUDGE_MODEL,
       },
     }),
     prisma.confidenceMetric.create({

@@ -50,7 +50,7 @@ describe("POST /api/mock/sessions/:id/outcome (A1 capture)", () => {
   it("snapshots the prediction (verdict signal + weakest dimension) on CREATE only", async () => {
     mockPrisma.mockSession.findFirst.mockResolvedValueOnce({
       id: "s1",
-      verdict: { overallSignal: "SDE_II" },
+      verdict: { overallSignal: "SDE_II", rubricVersion: "2026.06.0" },
       dimensionScores: [{ key: "useMemo" }], // weakest (lowest score), take:1
     });
     const capturedAt = new Date("2026-06-07T00:00:00.000Z");
@@ -66,14 +66,16 @@ describe("POST /api/mock/sessions/:id/outcome (A1 capture)", () => {
     expect(res.status).toBe(200);
 
     const arg = mockPrisma.outcome.upsert.mock.calls[0][0];
-    // CREATE carries the prediction snapshot...
+    // CREATE carries the prediction snapshot — incl. the rubric that produced it (D4)...
     expect(arg.create.predictedSignal).toBe("SDE_II");
     expect(arg.create.predictedWeakest).toBe("useMemo");
+    expect(arg.create.rubricVersion).toBe("2026.06.0");
     expect(arg.where).toEqual({ sessionId: "s1" });
     // ...but UPDATE must NOT (re-capturing can never re-snapshot the prediction,
     // else every later correction silently corrupts the calibration label).
     expect(arg.update).not.toHaveProperty("predictedSignal");
     expect(arg.update).not.toHaveProperty("predictedWeakest");
+    expect(arg.update).not.toHaveProperty("rubricVersion");
     expect(arg.update.result).toBe("ADVANCED");
 
     const body = await res.json();
@@ -104,6 +106,7 @@ describe("POST /api/mock/sessions/:id/outcome (A1 capture)", () => {
     const arg = mockPrisma.outcome.upsert.mock.calls[0][0];
     expect(arg.create.predictedSignal).toBeNull();
     expect(arg.create.predictedWeakest).toBeNull();
+    expect(arg.create.rubricVersion).toBeNull();
   });
 });
 

@@ -38,7 +38,7 @@ export async function POST(
       where: { id, userId },
       select: {
         id: true,
-        verdict: { select: { overallSignal: true } },
+        verdict: { select: { overallSignal: true, rubricVersion: true } },
         dimensionScores: {
           orderBy: { score: "asc" },
           take: 1,
@@ -52,6 +52,9 @@ export async function POST(
 
     const predictedSignal = mock.verdict?.overallSignal ?? null;
     const predictedWeakest = mock.dimensionScores[0]?.key ?? null;
+    // Pin the prediction to the rubric that produced it, so calibration cohorts
+    // survive a later RUBRIC_VERSION bump (D4). Snapshotted once, at first capture.
+    const rubricVersion = mock.verdict?.rubricVersion ?? null;
 
     const outcome = await prisma.outcome.upsert({
       where: { sessionId: id },
@@ -63,6 +66,7 @@ export async function POST(
         note: b.note ?? null,
         predictedSignal,
         predictedWeakest,
+        rubricVersion,
       },
       // predicted* intentionally omitted — the snapshot is taken once, at first capture.
       update: {

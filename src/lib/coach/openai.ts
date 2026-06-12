@@ -4,6 +4,14 @@ import { env } from "@/lib/env";
 const OPENAI_BASE = "https://api.openai.com/v1";
 
 /**
+ * The PINNED judgment model — used by BOTH per-seat rubric scoring and the
+ * committee. Exported so the verdict records which model produced it (provenance
+ * for calibration). Never config-driven: cross-session comparability depends on
+ * it staying fixed (SYSTEM_DESIGN §8.3).
+ */
+export const JUDGE_MODEL = "gpt-4o-mini";
+
+/**
  * Carries a stable code + HTTP status ONLY — never the provider response body,
  * which can echo the Authorization header / account info. This is the BYOK/realtime
  * safety contract (SYSTEM_DESIGN §16): no `await res.text()` into an Error message.
@@ -109,7 +117,7 @@ export async function scoreAgainstRubric(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "gpt-4o-mini",
+      model: JUDGE_MODEL, // per-seat rubric scoring runs on the pinned judge model
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userMessage },
@@ -298,7 +306,7 @@ export async function judgeCommittee(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "gpt-4o-mini", // PINNED — never config-driven
+      model: JUDGE_MODEL, // PINNED — never config-driven
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userMessage },

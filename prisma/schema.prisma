@@ -254,7 +254,6 @@ model MockSession {
   keySource        KeySource    @default(ALOUD)
   provider         LlmProvider  @default(OPENAI)
   modelUsed        String
-  judgeModel       String?
   status           MockStatus   @default(PENDING)
   targetLevel      SignalLevel
   startedAt        DateTime?
@@ -350,6 +349,12 @@ model PanelVerdict {
   seatRollup    Json
   topStrengths  String[]
   topRisks      String[]
+  // Provenance for calibration (D4). The exact rubric content + judge model that
+  // produced THIS verdict, so (prediction → outcome) pairs partition by what made
+  // them. Stamped explicitly by the orchestrator; the defaults only backfill rows
+  // written before provenance existed (code constants are the source of truth).
+  rubricVersion String      @default("2026.06.0")
+  judgeModel    String      @default("gpt-4o-mini")
   createdAt     DateTime    @default(now())
 }
 

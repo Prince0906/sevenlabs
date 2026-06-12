@@ -26,6 +26,7 @@ export {
   type CoachConfig,
 } from "./coach-prompt";
 export {
+  RUBRIC_VERSION,
   AMAZON_LEADERSHIP_PRINCIPLES,
   REACT_JS_COMPETENCIES,
   buildRubricUserMessage,

@@ -139,7 +139,6 @@ export async function POST(request: Request) {
         clientRequestId,
         provider: "OPENAI",
         modelUsed: env.OPENAI_REALTIME_MODEL,
-        judgeModel: "gpt-4o-mini",
         targetLevel: scenario.targetLevel,
         status: "PENDING",
         keySource: sessionKey.keySource,
