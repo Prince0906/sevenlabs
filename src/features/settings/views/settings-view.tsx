@@ -1,5 +1,6 @@
 import { PageHeader } from "@/components/page-header";
 import { KeyManagement } from "../components/key-management";
+import { DangerZone } from "../components/danger-zone";
 
 export function SettingsView() {
   return (
@@ -15,6 +16,16 @@ export function SettingsView() {
               </p>
             </div>
             <KeyManagement />
+          </section>
+
+          <section className="space-y-4">
+            <div>
+              <h2 className="font-display text-base font-semibold tracking-tight">Your data</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                You can delete your account and all of its data at any time. It takes effect immediately.
+              </p>
+            </div>
+            <DangerZone />
           </section>
         </div>
       </div>
