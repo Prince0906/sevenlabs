@@ -1,4 +1,5 @@
 import type { RealtimeEphemeral } from "@sevenlabs/shared-types";
+import { mapRealtimeEvent } from "./realtime-events";
 
 /**
  * Headless WebRTC transport around ONE ephemeral (one panel seat). No React.
@@ -151,49 +152,38 @@ export async function connectRealtime(params: {
   };
 
   dc.onmessage = (e) => {
-    let msg: {
-      type?: string;
-      transcript?: string;
-      delta?: string;
-      response?: { status?: string; usage?: unknown };
-    };
-    try {
-      msg = JSON.parse(typeof e.data === "string" ? e.data : "");
-    } catch {
-      return;
-    }
-    switch (msg.type) {
-      case "session.updated":
+    // The single untrusted-JSON boundary; mapping is pure + unit-tested in
+    // realtime-events.ts. Unknown/malformed payloads return null (ignored).
+    const ev = mapRealtimeEvent(e.data);
+    if (!ev) return;
+    switch (ev.type) {
+      case "session_updated":
         callbacks.onSessionUpdated?.();
         break;
-      case "conversation.item.input_audio_transcription.completed":
-        callbacks.onUserTranscript?.(msg.transcript ?? "");
+      case "user_transcript":
+        callbacks.onUserTranscript?.(ev.transcript);
         break;
-      case "response.output_audio_transcript.delta":
-        callbacks.onCoachTranscriptDelta?.(msg.delta ?? "");
+      case "coach_transcript_delta":
+        callbacks.onCoachTranscriptDelta?.(ev.delta);
         break;
-      case "response.output_audio_transcript.done":
-        callbacks.onCoachTranscriptDone?.(msg.transcript ?? "");
+      case "coach_transcript_done":
+        callbacks.onCoachTranscriptDone?.(ev.transcript);
         break;
-      case "input_audio_buffer.speech_started":
+      case "speech_started":
         callbacks.onSpeechStarted?.();
         break;
-      case "input_audio_buffer.speech_stopped":
+      case "speech_stopped":
         callbacks.onSpeechStopped?.();
         break;
-      case "response.created":
+      case "coach_response_start":
         callbacks.onCoachResponseStart?.();
         break;
-      case "response.done":
-        callbacks.onCoachResponseDone?.(msg.response?.status === "cancelled");
-        if (msg.response?.usage) callbacks.onUsage?.(msg.response.usage);
+      case "coach_response_done":
+        callbacks.onCoachResponseDone?.(ev.cancelled);
+        if (ev.usage) callbacks.onUsage?.(ev.usage);
         break;
-      case "error":
-        // A server-side error event (e.g. a rejected conversation.item.create
-        // on re-mint replay) — surface it instead of silently degrading.
-        callbacks.onError?.(msg);
-        break;
-      default:
+      case "server_error":
+        callbacks.onError?.(ev.raw);
         break;
     }
   };
