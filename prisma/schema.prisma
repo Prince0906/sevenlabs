@@ -24,7 +24,7 @@ model User {
   image         String?
   passwordHash  String?
 
-  targetCompanies String[] @default(["amazon"])
+  targetCompanies String[]    @default(["amazon"])
   interviewDate   DateTime?
   targetLevel     SignalLevel @default(NEW_GRAD)
 
@@ -202,9 +202,9 @@ enum JobStatus {
 enum InterviewOutcome {
   ADVANCED // moved to the next round
   REJECTED // did not advance
-  GHOSTED  // never heard back
-  OFFER    // received an offer
-  PENDING  // outcome not known yet (default while waiting)
+  GHOSTED // never heard back
+  OFFER // received an offer
+  PENDING // outcome not known yet (default while waiting)
 }
 
 model Scenario {
@@ -221,7 +221,7 @@ model Scenario {
 
   panelSeats   PanelSeat[]
   mockSessions MockSession[]
-  createdAt    DateTime           @default(now())
+  createdAt    DateTime      @default(now())
 
   @@index([company, type, targetLevel, difficulty])
   @@index([isActive])
@@ -243,31 +243,37 @@ model PanelSeat {
 }
 
 model MockSession {
-  id              String       @id @default(cuid())
-  userId          String
-  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  scenarioId      String
-  scenario        Scenario     @relation(fields: [scenarioId], references: [id])
-  clientRequestId String?
-  apiKeyId        String?
-  apiKey          ProviderKey? @relation(fields: [apiKeyId], references: [id], onDelete: SetNull)
-  keySource       KeySource    @default(ALOUD)
-  provider        LlmProvider  @default(OPENAI)
-  modelUsed       String
-  judgeModel      String?
-  status          MockStatus   @default(PENDING)
-  targetLevel     SignalLevel
-  startedAt       DateTime?
-  endedAt         DateTime?
-  durationSec     Int?
-  spendCents      Int          @default(0)
-  transcriptKey   String?
-  audioOptIn      Boolean      @default(false)
-  audioKey        String?
-  overallSignal   SignalLevel?
-  confidence      Int?
-  passed          Boolean?
-  reportJson      Json?
+  id               String       @id @default(cuid())
+  userId           String
+  user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  scenarioId       String
+  scenario         Scenario     @relation(fields: [scenarioId], references: [id])
+  clientRequestId  String?
+  apiKeyId         String?
+  apiKey           ProviderKey? @relation(fields: [apiKeyId], references: [id], onDelete: SetNull)
+  keySource        KeySource    @default(ALOUD)
+  provider         LlmProvider  @default(OPENAI)
+  modelUsed        String
+  judgeModel       String?
+  status           MockStatus   @default(PENDING)
+  targetLevel      SignalLevel
+  startedAt        DateTime?
+  endedAt          DateTime?
+  durationSec      Int?
+  spendCents       Int          @default(0)
+  // Durable seat cursor — written on each handoff so a mid-panel refresh
+  // rehydrates to the correct interviewer instead of seat 0 (D5).
+  activeSeatIndex  Int          @default(0)
+  // A turn was dropped after exhausting client retries — the report is partial,
+  // not silently scored as complete (D6).
+  degradedDelivery Boolean      @default(false)
+  transcriptKey    String?
+  audioOptIn       Boolean      @default(false)
+  audioKey         String?
+  overallSignal    SignalLevel?
+  confidence       Int?
+  passed           Boolean?
+  reportJson       Json?
 
   turns            MockTurn[]
   dimensionScores  DimensionScore[]
@@ -308,8 +314,11 @@ model MockTurn {
   createdAt            DateTime         @default(now())
 
   @@unique([sessionId, seq])
+  // Unique (not just indexed): clientTurnId is the 1:1 join key for the parallel
+  // fluency-audio upload, so the audio route can `update` one row, not updateMany.
+  // NULLs are distinct in Postgres, so COACH turns (clientTurnId null) are fine. (A6)
+  @@unique([sessionId, clientTurnId])
   @@index([sessionId, seq])
-  @@index([sessionId, clientTurnId])
 }
 
 model DimensionScore {
@@ -422,13 +431,13 @@ model Outcome {
 // pays for the commodity realtime minutes; Aloud's pinned key pays for judgment.
 enum KeySource {
   ALOUD // house key (trial / no key on file)
-  USER  // the user's own ProviderKey
+  USER // the user's own ProviderKey
 }
 
 enum KeyStatus {
   ACTIVE
-  INVALID    // 401 at validate/mint — never auto-retry
-  EXHAUSTED  // 429 insufficient_quota
+  INVALID // 401 at validate/mint — never auto-retry
+  EXHAUSTED // 429 insufficient_quota
   REVOKED
 }
 
@@ -441,12 +450,12 @@ model ProviderKey {
   userId          String
   user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   provider        LlmProvider @default(OPENAI)
-  ciphertextB64   String      // AES-256-GCM ciphertext
+  ciphertextB64   String // AES-256-GCM ciphertext
   ivB64           String
   tagB64          String
   dekVersion      Int         @default(1) // 1 = env KEK; >=2 = KMS envelope (P2)
-  last4           String      // display ONLY (e.g. "…a1b2")
-  fingerprint     String      // sha256(key) prefix — dedupe/audit, never the key
+  last4           String // display ONLY (e.g. "…a1b2")
+  fingerprint     String // sha256(key) prefix — dedupe/audit, never the key
   label           String?
   status          KeyStatus   @default(ACTIVE)
   capabilities    Json? // mint dry-run probe result { realtime, ttlSec, checkedAt }
@@ -467,12 +476,12 @@ model ProviderKey {
 // the digest can be re-validated/re-extracted on a prompt change. One per user;
 // re-upload overwrites. INTERVIEW_ENGINE_PLAN §14.1.
 model ResumeProfile {
-  id         String   @id @default(cuid())
-  userId     String   @unique
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  factsJson  Json
-  sourceText String   @db.Text
-  rawS3Key   String?
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  factsJson   Json
+  sourceText  String   @db.Text
+  rawS3Key    String?
   extractedAt DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
