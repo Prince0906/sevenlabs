@@ -229,6 +229,9 @@ export async function runJudgment(sessionId: string): Promise<void> {
       : null,
     fluency,
     disfluency: aggregateDisfluency(disfluencyReports),
+    // D6: the live link dropped a turn, so this transcript may be incomplete.
+    // Carry the caveat into the report rather than scoring silently on a gap.
+    degradedDelivery: session.degradedDelivery,
   };
 
   await prisma.$transaction([

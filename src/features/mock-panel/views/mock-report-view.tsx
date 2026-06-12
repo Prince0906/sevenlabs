@@ -32,6 +32,19 @@ export function ReportBody({ report }: { report: MockReport }) {
         />
       </motion.div>
 
+      {report.degradedDelivery && (
+        <motion.div
+          variants={staggerItem}
+          className="rounded-lg border border-amber-500/30 bg-amber-500/6 px-4 py-3"
+        >
+          <p className="text-sm leading-relaxed text-amber-200/90">
+            <span className="font-semibold">Connection hiccup.</span> Part of this
+            session didn’t reach our servers, so a few moments may be missing from the
+            transcript the panel scored. Read this verdict as directional.
+          </p>
+        </motion.div>
+      )}
+
       <motion.div variants={staggerItem}>
         <SeatRollupCard seatRollup={verdict.seatRollup} />
       </motion.div>

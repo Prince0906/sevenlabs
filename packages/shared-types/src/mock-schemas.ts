@@ -239,6 +239,10 @@ export const mockReportSchema = z.object({
     .nullable(),
   fluency: fluencySchema.nullish(),
   disfluency: disfluencySchema.nullish(),
+  // True when the live link dropped one or more turns (D6). The transcript the
+  // judge scored may be incomplete, so the verdict is directional. Optional so
+  // reports written before this field still decode (as not-degraded).
+  degradedDelivery: z.boolean().optional(),
 });
 
 // A1 — real-interview outcome capture (ROADMAP Inc 1). The one label a model

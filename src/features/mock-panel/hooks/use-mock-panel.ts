@@ -533,7 +533,10 @@ export function useMockPanel() {
     await peerRef.current?.awaitPlayoutEnd(); // let any final interviewer line finish
     closePeer();
     stopMic();
-    const r = await api.complete(s.sessionId, s.hitCeiling ? "ceiling" : undefined);
+    const r = await api.complete(s.sessionId, {
+      reason: s.hitCeiling ? "ceiling" : undefined,
+      degradedDelivery: s.degradedDelivery,
+    });
     if (r.kind === "debrief") dispatch({ type: "COMPLETE_DEBRIEF" });
     else if (r.kind === "not-completable") dispatch({ type: "COMPLETE_NOT_COMPLETABLE" });
     else dispatch({ type: "COMPLETE_DEBRIEF" }); // already debriefing/completed — go poll

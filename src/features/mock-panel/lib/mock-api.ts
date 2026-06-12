@@ -189,11 +189,17 @@ export type CompleteResult =
   | { kind: "not-completable" }
   | { kind: "error"; status: number; message: string };
 
-export async function complete(id: string, reason?: string): Promise<CompleteResult> {
+export async function complete(
+  id: string,
+  opts?: { reason?: string; degradedDelivery?: boolean }
+): Promise<CompleteResult> {
   const res = await fetch(`/api/mock/sessions/${id}/complete`, {
     method: "POST",
     headers: JSON_HEADERS,
-    body: JSON.stringify(reason ? { reason } : {}),
+    body: JSON.stringify({
+      ...(opts?.reason ? { reason: opts.reason } : {}),
+      ...(opts?.degradedDelivery ? { degradedDelivery: true } : {}),
+    }),
   });
   const body = await readJson(res);
   if (res.status === 202) {
