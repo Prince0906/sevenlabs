@@ -33,6 +33,23 @@ export function isOverCeiling(spendCents: number, elapsedSec: number): boolean {
 }
 
 /**
+ * The ONE ceiling predicate, called by BOTH the mint and turns routes so the
+ * BYOK-vs-house policy can't diverge. BYOK (USER): the user's key pays the
+ * realtime minutes, so only the `MAX_SESSION_SEC` hard time-stop applies — never
+ * the synthetic house $ ceiling (which exists to bound Aloud's own spend).
+ * House (ALOUD): the full spend OR time ceiling.
+ */
+export function isSessionOver(
+  keySource: "ALOUD" | "USER",
+  spendCents: number,
+  elapsedSec: number
+): boolean {
+  return keySource === "USER"
+    ? elapsedSec >= env.MAX_SESSION_SEC
+    : isOverCeiling(spendCents, elapsedSec);
+}
+
+/**
  * Global daily kill-switch: atomic add-if-under-cap (no TOCTOU). Returns false
  * → caller responds 503 CAPACITY. In-flight sessions are unaffected.
  */

@@ -18,7 +18,7 @@ const mockOpenai = vi.hoisted(() => ({
 }));
 const mockSpend = vi.hoisted(() => ({
   spendCentsForElapsed: vi.fn(() => 100),
-  isOverCeiling: vi.fn(() => false),
+  isSessionOver: vi.fn(() => false),
 }));
 const mockByok = vi.hoisted(() => ({ resolveSessionKey: vi.fn() }));
 const mockResume = vi.hoisted(() => ({ getResumeDigest: vi.fn(async () => "") }));
@@ -70,7 +70,7 @@ beforeEach(() => {
   mockPrisma.mockTurn.findMany.mockResolvedValue([]);
   mockOpenai.mintRealtimeEphemeral.mockResolvedValue(EPHEMERAL);
   mockSpend.spendCentsForElapsed.mockReturnValue(100);
-  mockSpend.isOverCeiling.mockReturnValue(false);
+  mockSpend.isSessionOver.mockReturnValue(false);
   mockByok.resolveSessionKey.mockResolvedValue({ keySource: "USER", apiKey: "sk-user-key" });
   mockResume.getResumeDigest.mockResolvedValue("");
 });
@@ -147,29 +147,31 @@ describe("POST .../mint — BYOK custody (key removal)", () => {
   });
 });
 
-describe("POST .../mint — spend ceiling (BYOK is time-only; house is the $ ceiling)", () => {
-  it("BYOK: a session past the $ ceiling but under MAX_SESSION_SEC is NOT force-stopped", async () => {
-    // House would stop here; BYOK must ignore the dollar ceiling (D7).
-    mockSpend.isOverCeiling.mockReturnValue(true);
+describe("POST .../mint — spend ceiling (delegates to the one isSessionOver predicate)", () => {
+  // The BYOK-vs-house branch itself is unit-tested in spend.test.ts; here we only
+  // verify the route delegates to it and force-stops on its result (D7).
+  it("410 SESSION_EXPIRED when isSessionOver returns true", async () => {
+    mockSpend.isSessionOver.mockReturnValue(true);
+    const res = await call();
+    expect(res.status).toBe(410);
+    expect(await res.json()).toMatchObject({ error: "SESSION_EXPIRED" });
+    expect(mockOpenai.mintRealtimeEphemeral).not.toHaveBeenCalled();
+  });
+
+  it("mints when isSessionOver returns false", async () => {
+    mockSpend.isSessionOver.mockReturnValue(false);
+    expect((await call()).status).toBe(200);
+  });
+
+  it("passes the session's keySource (USER) to isSessionOver", async () => {
     mockPrisma.mockSession.findFirst.mockResolvedValue(liveSession({ keySource: "USER" }));
-    expect((await call()).status).toBe(200);
+    await call();
+    expect(mockSpend.isSessionOver).toHaveBeenCalledWith("USER", expect.any(Number), expect.any(Number));
   });
 
-  it("BYOK: a session past MAX_SESSION_SEC is force-stopped (410)", async () => {
-    mockPrisma.mockSession.findFirst.mockResolvedValue(
-      liveSession({ keySource: "USER", startedAt: new Date(Date.now() - 7200_000) }) // ~2h > 3600s
-    );
-    expect((await call()).status).toBe(410);
-  });
-
-  it("HOUSE: a session over the $ ceiling is force-stopped (410)", async () => {
-    mockSpend.isOverCeiling.mockReturnValue(true); // ALOUD session
-    expect((await call()).status).toBe(410);
-  });
-
-  it("HOUSE: under the ceiling it mints", async () => {
-    mockSpend.isOverCeiling.mockReturnValue(false);
-    expect((await call()).status).toBe(200);
+  it("passes ALOUD for a house session", async () => {
+    await call();
+    expect(mockSpend.isSessionOver).toHaveBeenCalledWith("ALOUD", expect.any(Number), expect.any(Number));
   });
 });
 

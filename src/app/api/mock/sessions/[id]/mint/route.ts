@@ -12,7 +12,7 @@ import {
   openerInstruction,
   buildPanelContextDigest,
 } from "@sevenlabs/coach-core";
-import { spendCentsForElapsed, isOverCeiling } from "@/lib/mock/spend";
+import { spendCentsForElapsed, isSessionOver } from "@/lib/mock/spend";
 import { getResumeDigest } from "@/lib/mock/resume-digest";
 import { resolveSessionKey } from "@/lib/byok";
 
@@ -106,11 +106,7 @@ export async function POST(
       const elapsedSec = (Date.now() - mock.startedAt.getTime()) / 1000;
       const spendCents = spendCentsForElapsed(elapsedSec);
       await prisma.mockSession.update({ where: { id }, data: { spendCents } });
-      const over =
-        mock.keySource === "USER"
-          ? elapsedSec >= env.MAX_SESSION_SEC
-          : isOverCeiling(spendCents, elapsedSec);
-      if (over) {
+      if (isSessionOver(mock.keySource, spendCents, elapsedSec)) {
         return NextResponse.json({ error: "SESSION_EXPIRED" }, { status: 410 });
       }
     }

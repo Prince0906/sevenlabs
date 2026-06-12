@@ -16,6 +16,7 @@ import {
   estimateSessionUsd,
   spendCentsForElapsed,
   isOverCeiling,
+  isSessionOver,
 } from "@/lib/mock/spend";
 
 // These three are the authoritative, server-clock cost meter + per-session
@@ -57,6 +58,28 @@ describe("spend meter (pure)", () => {
     });
     it("is false just under both boundaries", () => {
       expect(isOverCeiling(399, 2699)).toBe(false); // $3.99, 2699s
+    });
+  });
+
+  // D7: the ONE predicate both mint and turns call. BYOK (USER) is metered by time
+  // ONLY — the $ ceiling protects Aloud's wallet, not the user's, so it must never
+  // force-stop a paying user. House (ALOUD) keeps the full $ + time ceiling.
+  describe("isSessionOver (BYOK-vs-house)", () => {
+    it("HOUSE: trips on the dollar ceiling", () => {
+      expect(isSessionOver("ALOUD", 400, 60)).toBe(true); // $4 == ceiling, under time
+    });
+    it("HOUSE: trips on time", () => {
+      expect(isSessionOver("ALOUD", 0, 2700)).toBe(true);
+    });
+    it("HOUSE: false under both", () => {
+      expect(isSessionOver("ALOUD", 399, 2699)).toBe(false);
+    });
+    it("BYOK: ignores the dollar ceiling — way over $ but under time is NOT over", () => {
+      expect(isSessionOver("USER", 10_000, 60)).toBe(false); // $100 spent, 60s → still fine
+    });
+    it("BYOK: trips only at MAX_SESSION_SEC", () => {
+      expect(isSessionOver("USER", 0, 2699)).toBe(false);
+      expect(isSessionOver("USER", 0, 2700)).toBe(true);
     });
   });
 });
