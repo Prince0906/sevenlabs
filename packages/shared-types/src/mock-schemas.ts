@@ -134,11 +134,17 @@ export const createMockSessionResponseSchema = z.object({
   }),
 });
 
-/** GET /sessions/:id rehydrate body. maxSeq is -1 when no turns exist yet. */
+/** GET /sessions/:id rehydrate body. maxSeq is -1 when no turns exist yet.
+ * The seat cursor + roster (D5) let an adopt/resume reconnect onto the right
+ * interviewer; defaulted so a thinner legacy body still decodes. */
 export const statusResponseSchema = z.object({
   status: mockStatusSchema,
   scenarioId: z.string(),
   maxSeq: z.number().int(),
+  activeSeatIndex: z.number().int().nonnegative().default(0),
+  keySource: z.enum(["ALOUD", "USER"]).default("ALOUD"),
+  maxDurationSec: z.number().nonnegative().default(0),
+  seats: z.array(panelSeatPublicSchema).default([]),
 });
 
 /** POST /sessions/:id/turns success body. metrics is null when word timings

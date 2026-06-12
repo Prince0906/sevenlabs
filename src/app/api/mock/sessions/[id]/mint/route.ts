@@ -86,6 +86,11 @@ export async function POST(
       );
     }
 
+    const seat = mock.scenario.panelSeats[seatIndex];
+    if (!seat) {
+      return NextResponse.json({ error: "Scenario unavailable" }, { status: 404 });
+    }
+
     // BYOK: re-mint on the same key plane the session was created with. If the
     // user removed their key mid-session, end gracefully (the off-band judge runs
     // on Aloud's key, so the report is never hostage) rather than silently
@@ -99,22 +104,23 @@ export async function POST(
       sessionApiKey = resolved.apiKey;
     }
 
-    // Per-session guard on the server clock — never re-mint past it. BYOK sessions
-    // have no dollar ceiling (the user's key pays); only the MAX_SESSION_SEC hard
-    // stop applies. House sessions keep the full spend + time ceiling.
-    if (mock.startedAt) {
-      const elapsedSec = (Date.now() - mock.startedAt.getTime()) / 1000;
-      const spendCents = spendCentsForElapsed(elapsedSec);
-      await prisma.mockSession.update({ where: { id }, data: { spendCents } });
-      if (isSessionOver(mock.keySource, spendCents, elapsedSec)) {
-        return NextResponse.json({ error: "SESSION_EXPIRED" }, { status: 410 });
-      }
+    // Persist the seat the client is (re)connecting to so a refresh/adopt
+    // rehydrates onto the right interviewer (D5). Folded into the spend update so
+    // it's one write. Per-session guard on the server clock — never re-mint past
+    // it. BYOK sessions have no dollar ceiling (the user's key pays); only the
+    // MAX_SESSION_SEC hard stop applies. House sessions keep spend + time.
+    const elapsedSec = mock.startedAt
+      ? (Date.now() - mock.startedAt.getTime()) / 1000
+      : 0;
+    const spendCents = spendCentsForElapsed(elapsedSec);
+    await prisma.mockSession.update({
+      where: { id },
+      data: { activeSeatIndex: seatIndex, ...(mock.startedAt ? { spendCents } : {}) },
+    });
+    if (mock.startedAt && isSessionOver(mock.keySource, spendCents, elapsedSec)) {
+      return NextResponse.json({ error: "SESSION_EXPIRED" }, { status: 410 });
     }
 
-    const seat = mock.scenario.panelSeats[seatIndex];
-    if (!seat) {
-      return NextResponse.json({ error: "Scenario unavailable" }, { status: 404 });
-    }
     // Variety: steer this seat to OPEN on a per-session sub-topic so the
     // interview differs each run (deterministic on (sessionId, seatOrder) → stable
     // across this seat's re-mints; the Bar Raiser has no opener — it adapts).

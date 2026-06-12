@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { env } from "@/lib/env";
 import { log } from "@/lib/log";
 
 const patchSchema = z.object({ event: z.enum(["live", "interrupt"]) });
@@ -62,7 +63,28 @@ export async function GET(
     const { id } = await params;
     const mock = await prisma.mockSession.findFirst({
       where: { id, userId },
-      select: { status: true, scenarioId: true },
+      select: {
+        status: true,
+        scenarioId: true,
+        keySource: true,
+        // D5: the seat cursor + roster so a refresh reconnects onto the right
+        // interviewer with the right isLast math (not silently back to seat 0).
+        activeSeatIndex: true,
+        scenario: {
+          select: {
+            panelSeats: {
+              orderBy: { seatOrder: "asc" },
+              select: {
+                id: true,
+                personaName: true,
+                ownedLPs: true,
+                isBarRaiser: true,
+                voice: true,
+              },
+            },
+          },
+        },
+      },
     });
     if (!mock) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -75,6 +97,16 @@ export async function GET(
       status: mock.status,
       scenarioId: mock.scenarioId,
       maxSeq: agg._max.seq ?? -1,
+      activeSeatIndex: mock.activeSeatIndex,
+      keySource: mock.keySource,
+      maxDurationSec: env.MAX_SESSION_SEC,
+      seats: mock.scenario.panelSeats.map((s) => ({
+        id: s.id,
+        personaName: s.personaName,
+        ownedLPs: s.ownedLPs,
+        isBarRaiser: s.isBarRaiser,
+        voice: s.voice,
+      })),
     });
   } catch (err) {
     log.error("[GET /api/mock/sessions/:id]", err);

@@ -96,8 +96,32 @@ describe("panelReducer — create recovery", () => {
     s = panelReducer(s, { type: "MIC_GRANTED" });
     s = panelReducer(s, { type: "CREATE_DUPLICATE", sessionId: "existing-1" });
     expect(s.sessionId).toBe("existing-1");
-    s = panelReducer(s, { type: "ADOPTED", status: "DEBRIEF" });
+    s = panelReducer(s, {
+      type: "RESUME_SNAPSHOT",
+      status: "DEBRIEF",
+      seats: [],
+      activeSeatIndex: 0,
+    });
     expect(s.phase).toBe("debrief-polling");
+  });
+
+  it("RESUME_SNAPSHOT seeds seats + the seat cursor, then reconnects (D5)", () => {
+    // A refresh/adopt mid-interview (seat 2 of 3) must rehydrate the roster and
+    // resume on seat 2 — not silently restart at seat 0 with an empty roster.
+    let s = panelReducer(initialPanelState(), { type: "START" });
+    s = panelReducer(s, { type: "MIC_GRANTED" });
+    s = panelReducer(s, { type: "CREATE_DUPLICATE", sessionId: "live-1" });
+    s = panelReducer(s, {
+      type: "RESUME_SNAPSHOT",
+      status: "LIVE",
+      seats: seats(),
+      activeSeatIndex: 2,
+    });
+    expect(s.phase).toBe("reconnecting");
+    expect(s.seats).toHaveLength(3);
+    expect(s.activeSeatIndex).toBe(2);
+    expect(s.completedSeatIndexes).toEqual([0, 1]);
+    expect(s.reachedLive).toBe(true);
   });
 
   it("surfaces already-live recovery without a session id", () => {

@@ -397,24 +397,34 @@ export function useMockPanel() {
   }, [enqueueUser, finalizeCoach, closePeer]);
 
   // ── phase-entry side effects ────────────────────────────────────────────────
+  // The single-writer commit queue, built identically for a fresh create and an
+  // adopt/resume so the latter keeps seq reconciliation + D6 degraded-delivery
+  // detection. Keep the two construction sites from drifting — that's the bug
+  // this helper prevents.
+  const buildQueue = useCallback(
+    (sessionId: string) =>
+      createTurnQueue({
+        post: (body) => api.postTurn(sessionId, body),
+        fetchMaxSeq: async () => {
+          const s = await api.getStatus(sessionId);
+          return s.kind === "ok" ? s.data.maxSeq : -1;
+        },
+        onSessionExpired: () => dispatch({ type: "SESSION_EXPIRED" }),
+        // A COACH turn dropped after exhausting retries would otherwise vanish
+        // silently and the judge would score an incomplete transcript. Surface it
+        // so the candidate + report can mark the session partial. (D6)
+        onDeliveryError: () => dispatch({ type: "DELIVERY_DEGRADED" }),
+      }),
+    []
+  );
+
   const doCreate = useCallback(async () => {
     const r = await api.createSession(scenarioRef.current, clientReqRef.current);
     switch (r.kind) {
       case "ok":
         ephemeralRef.current = r.data.ephemeral;
         seatsRef.current = r.data.seats;
-        queueRef.current = createTurnQueue({
-          post: (body) => api.postTurn(r.data.sessionId, body),
-          fetchMaxSeq: async () => {
-            const s = await api.getStatus(r.data.sessionId);
-            return s.kind === "ok" ? s.data.maxSeq : -1;
-          },
-          onSessionExpired: () => dispatch({ type: "SESSION_EXPIRED" }),
-          // A COACH turn dropped after exhausting retries would otherwise vanish
-          // silently and the judge would score an incomplete transcript. Surface
-          // it so the candidate + report can mark the session partial. (D6)
-          onDeliveryError: () => dispatch({ type: "DELIVERY_DEGRADED" }),
-        });
+        queueRef.current = buildQueue(r.data.sessionId);
         dispatch({
           type: "CREATE_OK",
           sessionId: r.data.sessionId,
@@ -425,13 +435,26 @@ export function useMockPanel() {
         });
         void doConnect({ greet: true });
         break;
-      case "duplicate":
+      case "duplicate": {
+        // Idempotent retry / StrictMode re-create: the session already exists.
+        // Adopt it, then rehydrate the seat roster + cursor + queue from the server
+        // so a reconnect resumes on the RIGHT seat with non-colliding seqs. (D5)
         dispatch({ type: "CREATE_DUPLICATE", sessionId: r.sessionId });
-        {
-          const st = await api.getStatus(r.sessionId);
-          if (st.kind === "ok") dispatch({ type: "ADOPTED", status: st.data.status });
+        const st = await api.getStatus(r.sessionId);
+        if (st.kind === "ok") {
+          seatsRef.current = st.data.seats;
+          const q = buildQueue(r.sessionId);
+          q.reconcileSeq(st.data.maxSeq); // continue seq past the persisted turns
+          queueRef.current = q;
+          dispatch({
+            type: "RESUME_SNAPSHOT",
+            status: st.data.status,
+            seats: st.data.seats,
+            activeSeatIndex: st.data.activeSeatIndex,
+          });
         }
         break;
+      }
       case "already-live":
         dispatch({ type: "CREATE_ALREADY_LIVE" });
         break;
@@ -447,7 +470,7 @@ export function useMockPanel() {
       default:
         dispatch({ type: "CREATE_ERROR", message: r.message });
     }
-  }, [doConnect]);
+  }, [doConnect, buildQueue]);
 
   const doHandoff = useCallback(async () => {
     const s = stateRef.current;

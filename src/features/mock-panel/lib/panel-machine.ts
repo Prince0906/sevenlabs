@@ -70,7 +70,7 @@ export type PanelAction =
   | { type: "CREATE_RATE_LIMITED" }
   | { type: "CREATE_VOICE_UNAVAILABLE" }
   | { type: "CREATE_ERROR"; message: string }
-  | { type: "ADOPTED"; status: MockStatusT }
+  | { type: "RESUME_SNAPSHOT"; status: MockStatusT; seats: PanelSeatPublic[]; activeSeatIndex: number }
   | { type: "DC_OPEN" }
   | { type: "PATCH_LIVE_OK" }
   | { type: "RESUMED_LIVE" }
@@ -184,7 +184,7 @@ export function panelReducer(state: PanelState, action: PanelAction): PanelState
       };
     case "CREATE_DUPLICATE":
       // Adopt the existing session id (NEVER navigate to undefined); the hook
-      // then GET /status and dispatches ADOPTED to reconcile.
+      // then GET /status and dispatches RESUME_SNAPSHOT to reconcile.
       return { ...state, sessionId: action.sessionId };
     case "CREATE_ALREADY_LIVE":
       // Global single-LIVE cap: a fresh request can't help — surface, no nav.
@@ -198,8 +198,22 @@ export function panelReducer(state: PanelState, action: PanelAction): PanelState
     case "CREATE_ERROR":
       return toError(state, "session-failed", action.message);
 
-    case "ADOPTED":
-      return reconcileStatus(state, action.status);
+    case "RESUME_SNAPSHOT": {
+      // Seed the seat roster + cursor from the server BEFORE reconciling the phase.
+      // Without seats, isLast math (activeSeatIndex >= seats.length - 1) treats every
+      // seat as the last and wraps after one; without the cursor, reconnect mints
+      // seat 0. completedSeatIndexes is reconstructed as [0..activeSeatIndex). (D5)
+      const seeded: PanelState = {
+        ...state,
+        seats: action.seats.length > 0 ? action.seats : state.seats,
+        activeSeatIndex: action.activeSeatIndex,
+        completedSeatIndexes: Array.from(
+          { length: action.activeSeatIndex },
+          (_, i) => i
+        ),
+      };
+      return reconcileStatus(seeded, action.status);
+    }
 
     case "DC_OPEN":
       return { ...state, phase: "awaiting-session-update" };
