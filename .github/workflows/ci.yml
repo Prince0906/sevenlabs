@@ -45,3 +45,41 @@ jobs:
           # Build never connects, but the Prisma datasource wants a syntactically
           # valid URL present at build time.
           DATABASE_URL: "postgresql://user:pass@localhost:5432/db"
+
+  schema-drift:
+    name: Schema/migration drift (prisma migrate diff)
+    runs-on: ubuntu-latest
+    # Replays every committed migration into a throwaway Postgres and diffs the
+    # result against prisma/schema.prisma. Fails (exit 2) if the schema has been
+    # changed without a matching migration — i.e. the `db:push` drift that left
+    # the moat tables out of prod. The shadow DB is the service below.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: shadow
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      SHADOW_DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/shadow"
+      # migrate diff --from-migrations/--to-schema doesn't connect here, but the
+      # Prisma config evaluates DATABASE_URL — give it a syntactically valid one.
+      DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/shadow"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+      - run: npm ci
+      - name: Fail if prisma/schema.prisma has drifted from committed migrations
+        run: >-
+          npx prisma migrate diff
+          --from-migrations prisma/migrations
+          --to-schema prisma/schema.prisma
+          --exit-code
