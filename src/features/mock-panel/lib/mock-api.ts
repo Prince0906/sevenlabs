@@ -217,6 +217,41 @@ export type ReportResult =
   | { kind: "not-modified" }
   | { kind: "error"; status: number; message: string };
 
+// ── /sessions/:id/outcome (D13 moat capture) ─────────────────────────────────
+// The real hire/no-hire label — the one signal a model can't manufacture. Captured
+// candidate-side when they return, kept off the credential. Includes the unresolved
+// states (GHOSTED / PENDING) so we don't only ever record the wins and losses.
+export type OutcomeResult = "ADVANCED" | "OFFER" | "REJECTED" | "GHOSTED" | "PENDING";
+
+export interface CapturedOutcome {
+  sessionId: string;
+  result: OutcomeResult;
+  predictedSignal: string | null;
+  predictedWeakest: string | null;
+  capturedAt: string;
+}
+
+export async function getOutcome(
+  id: string
+): Promise<{ outcome: CapturedOutcome | null; company: string | null }> {
+  const res = await fetch(`/api/mock/sessions/${id}/outcome`);
+  if (!res.ok) return { outcome: null, company: null };
+  const body = await readJson(res);
+  return {
+    outcome: (body.outcome as CapturedOutcome | null) ?? null,
+    company: typeof body.company === "string" ? body.company : null,
+  };
+}
+
+export async function submitOutcome(id: string, result: OutcomeResult): Promise<boolean> {
+  const res = await fetch(`/api/mock/sessions/${id}/outcome`, {
+    method: "POST",
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ result }),
+  });
+  return res.ok;
+}
+
 export async function getReport(id: string, etag?: string | null): Promise<ReportResult> {
   const res = await fetch(`/api/mock/sessions/${id}/report`, {
     // If-None-Match must echo the server's ETag byte-for-byte (quotes included).

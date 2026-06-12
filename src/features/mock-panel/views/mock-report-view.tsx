@@ -11,6 +11,7 @@ import { pageTransition, staggerContainer, staggerItem } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import { InclinationSeal } from "../components/inclination-seal";
 import { SeatRollupCard } from "../components/seat-rollup-card";
+import { OutcomeCapture } from "../components/outcome-capture";
 import { SIGNAL_CSS_VAR } from "../lib/seat-theme";
 import * as api from "../lib/mock-api";
 
@@ -345,7 +346,14 @@ export function MockReportView({ sessionId }: { sessionId: string }) {
           className="mx-auto w-full max-w-3xl p-6 lg:p-12"
         >
           {view.kind === "ready" ? (
-            <ReportBody report={view.report} />
+            <>
+              <ReportBody report={view.report} />
+              {/* The real-outcome ask lives on the RETURNING-visit report (this
+                  standalone route), not the just-finished live flow (D13). */}
+              <div className="mt-10">
+                <OutcomeCapture sessionId={sessionId} />
+              </div>
+            </>
           ) : view.kind === "failed" ? (
             <FailedScreen reason={view.reason} />
           ) : (

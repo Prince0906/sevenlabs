@@ -117,14 +117,22 @@ describe("GET /api/mock/sessions/:id/outcome", () => {
     expect(res.status).toBe(401);
   });
 
-  it("returns { outcome: null } when none captured", async () => {
+  it("returns { outcome: null, company } when none captured", async () => {
+    mockPrisma.mockSession.findFirst.mockResolvedValueOnce({ scenario: { company: "amazon" } });
     mockPrisma.outcome.findFirst.mockResolvedValueOnce(null);
     const res = await GET(new Request("http://localhost/x"), params("s1"));
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ outcome: null });
+    expect(await res.json()).toEqual({ outcome: null, company: "amazon" });
     // user-scoped read
     expect(mockPrisma.outcome.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({ where: { sessionId: "s1", userId: "u1" } })
     );
+  });
+
+  it("404 when the session isn't owned by the user", async () => {
+    mockPrisma.mockSession.findFirst.mockResolvedValueOnce(null);
+    mockPrisma.outcome.findFirst.mockResolvedValueOnce(null);
+    const res = await GET(new Request("http://localhost/x"), params("s1"));
+    expect(res.status).toBe(404);
   });
 });

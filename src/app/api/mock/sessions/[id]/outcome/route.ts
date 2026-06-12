@@ -102,28 +102,39 @@ export async function GET(
     }
     const { id } = await params;
 
-    const outcome = await prisma.outcome.findFirst({
-      where: { sessionId: id, userId },
-      select: {
-        sessionId: true,
-        result: true,
-        predictedSignal: true,
-        predictedWeakest: true,
-        capturedAt: true,
-      },
-    });
-    if (!outcome) {
-      return NextResponse.json({ outcome: null });
+    // The capture card needs the company name (for the prompt copy) whether or not
+    // an outcome exists yet, so fetch the session alongside the outcome. (D13)
+    const [mock, outcome] = await Promise.all([
+      prisma.mockSession.findFirst({
+        where: { id, userId },
+        select: { scenario: { select: { company: true } } },
+      }),
+      prisma.outcome.findFirst({
+        where: { sessionId: id, userId },
+        select: {
+          sessionId: true,
+          result: true,
+          predictedSignal: true,
+          predictedWeakest: true,
+          capturedAt: true,
+        },
+      }),
+    ]);
+    if (!mock) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
     return NextResponse.json({
-      outcome: {
-        sessionId: outcome.sessionId,
-        result: outcome.result,
-        predictedSignal: outcome.predictedSignal,
-        predictedWeakest: outcome.predictedWeakest,
-        capturedAt: outcome.capturedAt.toISOString(),
-      },
+      company: mock.scenario.company,
+      outcome: outcome
+        ? {
+            sessionId: outcome.sessionId,
+            result: outcome.result,
+            predictedSignal: outcome.predictedSignal,
+            predictedWeakest: outcome.predictedWeakest,
+            capturedAt: outcome.capturedAt.toISOString(),
+          }
+        : null,
     });
   } catch (err) {
     log.error("[GET /api/mock/sessions/:id/outcome]", err);
