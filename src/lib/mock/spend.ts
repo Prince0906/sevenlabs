@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { env } from "@/lib/env";
+import { log } from "@/lib/log";
 
 /**
  * The ONE authoritative spend meter, keyed on SERVER wall-clock — never the
@@ -60,11 +61,26 @@ export async function reserveGlobalSpend(holdUsd: number): Promise<boolean> {
     create: { day, estUsd: 0 },
     update: {},
   });
-  const affected = await prisma.$executeRaw`
+  // RETURNING the post-add total so the trip + the 80% approach are both alertable
+  // (the cap was a silent 503 before — C1 observability).
+  const rows = await prisma.$queryRaw<{ estUsd: string }[]>`
     UPDATE "GlobalSpend"
     SET "estUsd" = "estUsd" + ${holdUsd}
-    WHERE "day" = ${day} AND "estUsd" + ${holdUsd} <= ${env.DAILY_CAP_USD}`;
-  return affected > 0;
+    WHERE "day" = ${day} AND "estUsd" + ${holdUsd} <= ${env.DAILY_CAP_USD}
+    RETURNING "estUsd"`;
+  if (rows.length === 0) {
+    log.warn("daily spend cap reached — admission blocked", {
+      day: day.toISOString(),
+      holdUsd,
+      capUsd: env.DAILY_CAP_USD,
+    });
+    return false;
+  }
+  const estUsd = Number(rows[0]!.estUsd);
+  if (estUsd >= 0.8 * env.DAILY_CAP_USD) {
+    log.warn("daily spend cap 80% reached", { estUsd, capUsd: env.DAILY_CAP_USD });
+  }
+  return true;
 }
 
 /** One reservation per session; re-mint (TTL/resume) never re-charges. */
@@ -77,6 +93,7 @@ export async function createReservation(
     create: { sessionId, reservedUsd },
     update: {},
   });
+  log.info("spend reservation created", { sessionId, reservedUsd });
 }
 
 /** Settle at terminal status: reconcile GlobalSpend down by (reserved − settled). */
@@ -86,17 +103,27 @@ export async function settleReservation(
 ): Promise<void> {
   const r = await prisma.spendReservation.findUnique({ where: { sessionId } });
   if (!r || r.settledUsd !== null) return;
-  const refund = Math.max(0, Number(r.reservedUsd) - settledUsd);
+  // Compute the refund (reservedUsd − settledUsd) in Postgres `numeric`, NOT by
+  // round-tripping the stored Decimal through a JS float — only `settledUsd` (the
+  // measured server-clock cost) crosses the boundary as a number. Same txn, so the
+  // reservation settle and the GlobalSpend reconcile can't tear. (C3 money-math)
   await prisma.$transaction([
     prisma.spendReservation.update({
       where: { sessionId },
       data: { settledUsd },
     }),
     prisma.$executeRaw`
-      UPDATE "GlobalSpend"
-      SET "estUsd" = GREATEST("estUsd" - ${refund}, 0)
-      WHERE "day" = ${utcDayStart()}`,
+      UPDATE "GlobalSpend" g
+      SET "estUsd" = GREATEST(
+        g."estUsd" - GREATEST(r."reservedUsd" - ${settledUsd}::numeric, 0), 0)
+      FROM "SpendReservation" r
+      WHERE g."day" = ${utcDayStart()} AND r."sessionId" = ${sessionId}`,
   ]);
+  log.info("spend reservation settled", {
+    sessionId,
+    settledUsd,
+    reservedUsd: Number(r.reservedUsd),
+  });
 }
 
 /** Fixed-window rate limit via the durable RateBucket. Returns true if allowed. */
