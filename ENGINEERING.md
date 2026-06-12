@@ -178,8 +178,10 @@ These convert conventions into machine-checked guarantees. **Land the CI guardra
 ## 6. Sequenced roadmap
 
 > **Validation precedes feature build.** Phase 0 gates everything; nothing below it is trustworthy until HEAD compiles and a clean prod rebuild is possible.
+>
+> **Progress (2026-06-12):** Phase 0 ✅ **DONE** (commits `4bab7f2`/`425d6e1`/`b8eaf27`; cloud dev DB reconciled to schema). Also banked from later phases: pure `mapRealtimeEvent` extraction + tests (`58dcfa0`), realtime-config dedup (`7e5f29e`), mint-route tests (`3385922`), and a full CLAUDE.md remap (`e1532fe`). The remaining work is re-sequenced into **Batches A–D**: **A** reliability → live-test (D5/D6/D7-real/D14 + bound-DEBRIEF + clientTurnId-unique + turns/status/report tests); **B** moat (D4, the confidence delta, D15, D13); **C** harden before paying users (D9/D10/D11/D12 + observability); **D** a11y/design + finish D3 convergence + ESLint/ADRs. Forks still open: **D10, D13** (D8 = parked).
 
-### Phase 0 — Stop the bleeding (release integrity)
+### Phase 0 — Stop the bleeding (release integrity) — ✅ DONE
 Make HEAD compile from committed files alone; make a clean prod rebuild possible.
 - Commit the BYOK+resume+Outcome increment as ONE change with all tests (D1).
 - Generate + hand-edit the catch-up migration (3 tables, 3 enums, `disfluencyJson`/`keySource`, apiKey FK on the existing column) (D2).
@@ -194,7 +196,7 @@ Make HEAD compile from committed files alone; make a clean prod rebuild possible
 - Bound DEBRIEF: client absolute poll budget + report FAILED past deadline regardless of attempts.
 - `MockTurn @@unique([sessionId,clientTurnId])`; switch the audio route off `updateMany`.
 - Fence concurrent connections to a LIVE session (D14).
-- Extract the pure `mapRealtimeEvent`; add the first route tests (mint, turns, GET status, report) + transport-mapper tests.
+- ✅ Extracted the pure `mapRealtimeEvent` + transport-mapper tests; ✅ mint route tests. Remaining: turns / GET-status / report route tests.
 - **Run a real human live-test** of a full multi-seat session including a mid-panel refresh; record the result.
 - **Exit:** a mid-panel refresh reconnects to the correct seat with recent history; a forced turn-drop surfaces a partial report (not silent corruption); a BYOK session past the $ ceiling but under `MAX_SESSION_SEC` is NOT force-wrapped; a hung judge yields a FAILED report not an infinite spinner; the new tests are green; ≥1 full live session on record.
 
