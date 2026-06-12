@@ -78,6 +78,7 @@ export {
   evaluateDrill,
   finalizeVerdict,
   computeComposure,
+  computeResilience,
   aggregateFluency,
   selectOneRep,
   COMMITTEE_DEBRIEF_PROMPT,

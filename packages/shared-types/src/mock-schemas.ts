@@ -234,6 +234,10 @@ export const disfluencySchema = z.object({
 export const mockReportSchema = z.object({
   verdict: panelVerdictSchema,
   confidence: z.number().int().min(0).max(100),
+  // Within-speaker resilience delta (B2): 50 = composure held from the warmup
+  // baseline into the harder turns, >50 = it rose, <50 = it slipped. null when the
+  // session was too short for a trustworthy delta. Self-relative, never absolute.
+  resilience: z.number().int().min(0).max(100).nullish(),
   dimensions: z.array(mockReportDimensionSchema),
   oneRep: z
     .object({

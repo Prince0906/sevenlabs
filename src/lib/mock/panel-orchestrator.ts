@@ -17,6 +17,7 @@ import {
   evaluateDrill,
   finalizeVerdict,
   computeComposure,
+  computeResilience,
   aggregateFluency,
   aggregateDisfluency,
   selectOneRep,
@@ -178,6 +179,11 @@ export async function runJudgment(sessionId: string): Promise<void> {
   };
 
   const composure = computeComposure(userTurnMetrics, difficultyInt);
+  // Within-speaker resilience: did composure hold from the early baseline into the
+  // later (harder) turns? null below 4 usable turns — too short for a trustworthy
+  // delta. Candidate-facing self-relative read; NOT folded into the stored composure
+  // score and never on the credential (B2 / INTERVIEW_ENGINE_PLAN §6.2).
+  const resilience = computeResilience(userTurnMetrics, difficultyInt)?.resilience ?? null;
 
   // End-report fluency rollup (no live meters). null when no answer had usable
   // word timings (e.g. the audio path never ran) → the UI shows a fallback.
@@ -212,6 +218,7 @@ export async function runJudgment(sessionId: string): Promise<void> {
   const reportJson = {
     verdict,
     confidence: composure.score,
+    resilience,
     dimensions: dimensionRows.map((r) => ({
       key: r.key,
       seatId: r.seatId,
@@ -257,8 +264,8 @@ export async function runJudgment(sessionId: string): Promise<void> {
         sessionId,
         score: composure.score,
         composure: composure.composure,
-        resilience: null,
-        selfEfficacy: null,
+        resilience,
+        selfEfficacy: null, // self-report slider — a separate capture, not audio-derived
         difficultyApplied: difficultyInt,
       },
     }),

@@ -208,6 +208,35 @@ export function computeComposure(
   return { score: composure, composure };
 }
 
+/**
+ * Within-speaker RESILIENCE: does delivery composure HOLD under sustained
+ * pressure, measured against the candidate's OWN early-session baseline? Two
+ * invocations of the FROZEN computeComposure over an early vs late turn partition
+ * — never a new formula, never a cross-person comparison. Centered at 50: 50 =
+ * held steady; >50 = composure rose under pressure (settled in); <50 = it slipped.
+ *
+ * The session difficulty weight cancels (identical on both partitions), so this is
+ * a pure within-speaker delta, structurally accent/gender-neutral. Returns null
+ * below 4 usable turns: each side needs ≥2 turns for the steadiness/pause variance
+ * to be non-degenerate, and a shorter session can't support a trustworthy delta.
+ * This is a candidate-facing self-relative read, NOT a headline score and NEVER on
+ * the credential; the reliability study (not this code) sets the real minimum and
+ * band widths (INTERVIEW_ENGINE_PLAN §6.2). Resilience never appears in v1's
+ * stored Confidence Index composite — it is reported on its own, directionally.
+ */
+export function computeResilience(
+  userTurnMetrics: SpeechMetrics[],
+  difficultyApplied: number
+): { resilience: number; baselineComposure: number; pressureComposure: number } | null {
+  const turns = userTurnMetrics.filter((m) => m.turnDurationSec > 0 && m.wpm > 0);
+  if (turns.length < 4) return null;
+  const split = Math.floor(turns.length / 2);
+  const baselineComposure = computeComposure(turns.slice(0, split), difficultyApplied).composure;
+  const pressureComposure = computeComposure(turns.slice(split), difficultyApplied).composure;
+  const resilience = Math.round(clamp(50 + (pressureComposure - baselineComposure), 0, 100));
+  return { resilience, baselineComposure, pressureComposure };
+}
+
 /** Session-wide fluency rollup for the END report (no live meters). Derived from
  * the same per-answer SpeechMetrics computeComposure uses; returns null when no
  * answer had usable word timings so the UI can show a graceful fallback. */

@@ -92,6 +92,15 @@ export function ReportBody({ report }: { report: MockReport }) {
           </div>
           {hasConfidence && <span className="pb-2 text-[13px] text-muted-foreground">/ 100 composure</span>}
         </div>
+        {report.resilience != null && (
+          <p className="text-[13px] leading-relaxed text-muted-foreground">
+            {report.resilience >= 55
+              ? "Your delivery composure held — even sharpened — as the questions got harder, measured against your own warm-up. That steadiness under pressure is what carries into the real room."
+              : report.resilience >= 45
+                ? "Your composure stayed level from your warm-up through the harder questions — no pressure wobble in your delivery."
+                : "Your delivery composure slipped under the harder questions, relative to your own warm-up. That gap is the most trainable part — it shrinks with reps, and it's measured only against you, never anyone else."}
+          </p>
+        )}
         {!hasConfidence && (
           <p className="text-[11px] text-muted-foreground/70">
             Not enough delivery signal in this session to score composure.

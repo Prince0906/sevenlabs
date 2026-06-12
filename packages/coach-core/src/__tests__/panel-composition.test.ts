@@ -7,6 +7,7 @@ import {
   evaluateDrill,
   finalizeVerdict,
   computeComposure,
+  computeResilience,
   selectOneRep,
   buildCommitteeMessage,
   COMMITTEE_DEBRIEF_PROMPT,
@@ -183,6 +184,40 @@ describe("computeComposure (frozen v1 Confidence Index)", () => {
     expect(computeComposure(turns, 4).composure).toBeGreaterThanOrEqual(
       computeComposure(turns, 3).composure
     );
+  });
+});
+
+describe("computeResilience (within-speaker warmup delta)", () => {
+  const clean = () => metric({});
+  const noisy = () => metric({ wpm: 105, fillerCount: 9, longestPauseMs: 2600 });
+  const erratic = () => metric({ wpm: 210, fillerCount: 11, longestPauseMs: 300 });
+
+  it("returns null below 4 usable turns (too short for a trustworthy delta)", () => {
+    expect(computeResilience([clean(), clean(), clean()], 3)).toBeNull();
+    // turns with no word timings don't count toward the 4-turn floor
+    expect(
+      computeResilience([clean(), clean(), clean(), metric({ wpm: 0, turnDurationSec: 0 })], 3)
+    ).toBeNull();
+  });
+
+  it("centers at 50 when composure holds steady across the session", () => {
+    const r = computeResilience([clean(), clean(), clean(), clean()], 3);
+    expect(r).not.toBeNull();
+    expect(r!.resilience).toBe(50);
+  });
+
+  it("scores below 50 when delivery degrades from the early baseline", () => {
+    const r = computeResilience([clean(), clean(), noisy(), erratic()], 3);
+    expect(r).not.toBeNull();
+    expect(r!.resilience).toBeLessThan(50);
+    expect(r!.pressureComposure).toBeLessThan(r!.baselineComposure);
+  });
+
+  it("scores above 50 when delivery sharpens under pressure", () => {
+    const r = computeResilience([noisy(), erratic(), clean(), clean()], 3);
+    expect(r).not.toBeNull();
+    expect(r!.resilience).toBeGreaterThan(50);
+    expect(r!.pressureComposure).toBeGreaterThan(r!.baselineComposure);
   });
 });
 
