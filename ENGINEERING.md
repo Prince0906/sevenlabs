@@ -180,6 +180,8 @@ These convert conventions into machine-checked guarantees. **Land the CI guardra
 > **Validation precedes feature build.** Phase 0 gates everything; nothing below it is trustworthy until HEAD compiles and a clean prod rebuild is possible.
 >
 > **Progress (2026-06-12):** Phase 0 ✅ **DONE** (commits `4bab7f2`/`425d6e1`/`b8eaf27`; cloud dev DB reconciled to schema). Also banked from later phases: pure `mapRealtimeEvent` extraction + tests (`58dcfa0`), realtime-config dedup (`7e5f29e`), mint-route tests (`3385922`), and a full CLAUDE.md remap (`e1532fe`). The remaining work is re-sequenced into **Batches A–D**: **A** reliability → live-test (D5/D6/D7-real/D14 + bound-DEBRIEF + clientTurnId-unique + turns/status/report tests); **B** moat (D4, the confidence delta, D15, D13); **C** harden before paying users (D9/D10/D11/D12 + observability); **D** a11y/design + finish D3 convergence + ESLint/ADRs. Forks still open: **D10, D13** (D8 = parked).
+>
+> **Batch A ✅ code-complete (2026-06-12).** Shipped: D7 spend predicate (`0d7118e`), D6 engine + persistence (`ef7c1c4`/`847eeec`), the `activeSeatIndex`+`degradedDelivery`+`clientTurnId`-unique migration (`96b758e`, deployed clean to the cloud DB), audio route off `updateMany` (`68888ee`), D5 server rehydrate (`5ec64bc`), the wall-clock DEBRIEF bound (`4e73d47`), and turns/status/report route tests (`3385922`/`4e4b996`/`4e73d47`). **D14 (connection fence) is DEFERRED to Batch C** — the single-LIVE cap + non-persisted `clientRequestId` already fence the common two-tab/refresh case, and `@@unique([sessionId,seq])` keeps a residual race from silently corrupting; the durable per-connection epoch becomes necessary only once `clientRequestId` is persisted to enable true refresh-resume. The remaining Batch-A item is the **founder live-test** (A8), the actual exit.
 
 ### Phase 0 — Stop the bleeding (release integrity) — ✅ DONE
 Make HEAD compile from committed files alone; make a clean prod rebuild possible.
@@ -195,8 +197,8 @@ Make HEAD compile from committed files alone; make a clean prod rebuild possible
 - Unify the spend ceiling: one `isSessionOver` predicate for mint AND turns (D7).
 - Bound DEBRIEF: client absolute poll budget + report FAILED past deadline regardless of attempts.
 - `MockTurn @@unique([sessionId,clientTurnId])`; switch the audio route off `updateMany`.
-- Fence concurrent connections to a LIVE session (D14).
-- ✅ Extracted the pure `mapRealtimeEvent` + transport-mapper tests; ✅ mint route tests. Remaining: turns / GET-status / report route tests.
+- Fence concurrent connections to a LIVE session (D14). → **DEFERRED to Batch C** (Phase 3); the single-LIVE cap covers the common case today and it isn't a Phase-1 exit gate. Becomes load-bearing once `clientRequestId` is persisted for refresh-resume.
+- ✅ Pure `mapRealtimeEvent` + transport-mapper tests; ✅ mint / turns / GET-status / report route tests (`3385922`/`4e4b996`/`4e73d47`).
 - **Run a real human live-test** of a full multi-seat session including a mid-panel refresh; record the result.
 - **Exit:** a mid-panel refresh reconnects to the correct seat with recent history; a forced turn-drop surfaces a partial report (not silent corruption); a BYOK session past the $ ceiling but under `MAX_SESSION_SEC` is NOT force-wrapped; a hung judge yields a FAILED report not an infinite spinner; the new tests are green; ≥1 full live session on record.
 
@@ -209,6 +211,7 @@ Make HEAD compile from committed files alone; make a clean prod rebuild possible
 - **Exit:** a stored verdict carries non-null `rubricVersion`+`judgeModel`; `ConfidenceMetric.resilience`/`selfEfficacy` are computed from a warmup baseline; `reportJson` is schema-validated on write; ≥1 cohort of (prediction, real outcome) pairs exists partitioned by rubric version.
 
 ### Phase 3 — Harden custody + observability before paying users
+- Single-active-connection fence (D14, deferred from Batch A): durable per-connection epoch on `MockSession`, bumped on resume-mint, echoed on `/turns`, stale → `409 STALE_CONNECTION`; client recovery path + concurrency test. Land this with (or before) persisting `clientRequestId` for refresh-resume — that's what turns the incidental fence into a real race.
 - KMS envelope (`dekVersion >= 2`) + `KEY_ENCRYPTION_SECRET` in Secrets Manager; baseline decrypt logging (D9).
 - Reconcile spend against real usage (D10).
 - Per-money-event structured logs keyed on `sessionId`; log the daily-cap trip (silent today) + an 80% warning.
