@@ -29,7 +29,10 @@ export function redact(input: string): string {
 /** Redact any value (Error, object, primitive) into a safe string for logging. */
 export function redactUnknown(value: unknown): string {
   if (value instanceof Error) {
-    return redact(`${value.name}: ${value.message}`);
+    // The stack's first line IS "name: message", and the frames below can carry a
+    // secret too (a thrown URL/header), so redact the whole stack — not just the
+    // message — and keep it for debuggability. Fall back when there's no stack. (C4)
+    return redact(value.stack ?? `${value.name}: ${value.message}`);
   }
   if (typeof value === "string") return redact(value);
   try {
