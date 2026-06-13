@@ -8,11 +8,6 @@ output "app_instance_id" {
   value       = aws_instance.app.id
 }
 
-output "s3_bucket_name" {
-  description = "S3 bucket for audio storage (set as S3_BUCKET_NAME)."
-  value       = aws_s3_bucket.audio_bucket.bucket
-}
-
 output "ssh_command" {
   description = "Convenience SSH command."
   value       = "ssh ec2-user@${aws_eip.app.public_ip}"

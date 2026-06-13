@@ -2,7 +2,7 @@
 
 Replaces the old ECS Fargate + ALB + ECR stack (~$55/mo) with **one Free-Tier
 `t3.micro`** running the app as a Docker container behind **Caddy** (TLS).
-Postgres stays external; audio stays in S3. **~$0 for 12 months, then ~$9/mo.**
+Postgres stays external (Prisma cloud); no S3. **~$0 for 12 months, then ~$10–15/mo.**
 
 ```
 GitHub push → Actions (lint → test → prisma migrate deploy → build image →
@@ -12,7 +12,7 @@ GHCR) → SSH to EC2 → docker compose pull && up   ──>  Caddy :443 → app
 ## One-time setup
 
 **1. AWS account + IAM user** — use a *real* personal account (not Learner Lab).
-Create an IAM user with EC2 + S3 permissions; save its access key. Locally:
+Create an IAM user with EC2 permissions; save its access key. Locally:
 `aws configure` (or export `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_REGION`).
 
 **2. SSH key**
@@ -28,7 +28,7 @@ terraform apply \
   -var "ssh_public_key=$(cat ~/.ssh/aloud.pub)" \
   -var "admin_ssh_cidr=$(curl -s ifconfig.me)/32"
 ```
-Note the outputs: **`app_public_ip`** (Elastic IP) and **`s3_bucket_name`**.
+Note the output: **`app_public_ip`** (Elastic IP).
 
 **4. DNS + TLS** (needed for Google OAuth + HTTPS)
 - Point your domain's **A record** at `app_public_ip`.
@@ -47,9 +47,10 @@ Note the outputs: **`app_public_ip`** (Elastic IP) and **`s3_bucket_name`**.
 | `AUTH_SECRET` | `openssl rand -base64 32` |
 | `AUTH_URL` | `https://<domain>` (or `http://<ip>` interim) |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | OAuth creds |
-| `S3_BUCKET_NAME` | from `terraform output` |
-| `AWS_REGION` | e.g. `us-east-1` |
-| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | IAM user for the app's S3 access |
+
+> **No AWS/S3 secrets needed** — the interview panel uses no S3. Only set
+> `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `S3_BUCKET_NAME` if you revive
+> the parked Speaking Coach (and provision a bucket yourself).
 
 **6. Make the GHCR image public** — after the first CI run pushes it: GitHub →
 Packages → `sevenlabs` → Package settings → visibility **Public** (so the box can
