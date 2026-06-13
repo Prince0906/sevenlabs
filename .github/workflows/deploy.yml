@@ -133,7 +133,7 @@ jobs:
           fi
 
       - name: Copy compose + Caddyfile to the box
-        uses: appleboy/scp-action@v0.1.7 # pin to commit SHA before going public
+        uses: appleboy/scp-action@v1.0.0 # pin to commit SHA before going public
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ec2-user
