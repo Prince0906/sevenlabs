@@ -304,3 +304,38 @@ export type DimensionScoreData = z.infer<typeof dimensionScoreSchema>;
 export type PanelVerdictData = z.infer<typeof panelVerdictSchema>;
 export type ConfidenceMetricData = z.infer<typeof confidenceMetricSchema>;
 export type TurnEvents = z.infer<typeof turnEventsSchema>;
+
+/**
+ * Resume grounding facts — the shape persisted in `ResumeProfile.factsJson` and
+ * rendered into the interviewer prompt by coach-core's `buildResumeDigest`.
+ * Mirrors coach-core's `ResumeFacts` interface.
+ *
+ * D11 / OWASP-LLM01: `factsJson` is candidate-influenced data that flows into a
+ * live system prompt. `validateResumeFacts` guards it on WRITE; this schema is
+ * the contract parsed on READ at the prompt boundary
+ * (`src/lib/mock/resume-digest.ts`), so a manual DB edit or a future validator
+ * regression can never inject an unvalidated blob into a seat's instructions.
+ * Shape-only (no length caps): it must accept any legitimately-stored profile
+ * while rejecting structurally-wrong payloads.
+ */
+export const resumeFactCategorySchema = z.enum([
+  "role",
+  "project",
+  "skill",
+  "claim",
+]);
+
+export const resumeFactSchema = z.object({
+  category: resumeFactCategorySchema,
+  text: z.string(),
+  quote: z.string(),
+});
+
+export const resumeFactsSchema = z.object({
+  headline: z.string().optional(),
+  facts: z.array(resumeFactSchema),
+});
+
+export type ResumeFactCategoryT = z.infer<typeof resumeFactCategorySchema>;
+export type ResumeFactData = z.infer<typeof resumeFactSchema>;
+export type ResumeFactsData = z.infer<typeof resumeFactsSchema>;

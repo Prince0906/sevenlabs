@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/db";
-import { buildResumeDigest, type ResumeFacts } from "@sevenlabs/coach-core";
+import { buildResumeDigest } from "@sevenlabs/coach-core";
+import { resumeFactsSchema } from "@sevenlabs/shared-types";
+import { log } from "@/lib/log";
 
 /**
  * Render the user's stored resume into the seat-instruction digest injected at
@@ -14,5 +16,17 @@ export async function getResumeDigest(userId: string): Promise<string> {
     select: { factsJson: true },
   });
   if (!profile) return "";
-  return buildResumeDigest(profile.factsJson as unknown as ResumeFacts);
+  // D11 / OWASP-LLM01: factsJson is candidate-influenced data about to enter a
+  // live interviewer prompt. Parse it at this read boundary instead of trusting
+  // the column — on ANY shape mismatch fail CLOSED (no grounding) rather than
+  // inject an unvalidated blob. validateResumeFacts guards the write path; this
+  // guards a manual DB edit or a future validator regression.
+  const parsed = resumeFactsSchema.safeParse(profile.factsJson);
+  if (!parsed.success) {
+    log.warn("resume factsJson failed schema validation — skipping grounding", {
+      userId,
+    });
+    return "";
+  }
+  return buildResumeDigest(parsed.data);
 }

@@ -9,6 +9,7 @@ import {
   validateResumeFacts,
   type ResumeFacts,
 } from "@sevenlabs/coach-core";
+import { resumeFactsSchema } from "@sevenlabs/shared-types";
 import { extractResumeJson, ProviderError } from "@/lib/coach/openai";
 import {
   parseResumeFile,
@@ -103,16 +104,21 @@ export async function POST(request: Request) {
         { status: 422 }
       );
     }
+    // D11: assert the validated facts satisfy the stored contract before
+    // persisting, so the column can only ever hold schema-valid grounding data
+    // (symmetric with the read-side parse in resume-digest.ts). validateResumeFacts
+    // already produces this shape, so this is a defense-in-depth assertion.
+    const storedFacts = resumeFactsSchema.parse(facts);
 
     await prisma.resumeProfile.upsert({
       where: { userId },
       create: {
         userId,
-        factsJson: facts as unknown as Prisma.InputJsonValue,
+        factsJson: storedFacts as unknown as Prisma.InputJsonValue,
         sourceText: parsed.text,
       },
       update: {
-        factsJson: facts as unknown as Prisma.InputJsonValue,
+        factsJson: storedFacts as unknown as Prisma.InputJsonValue,
         sourceText: parsed.text,
       },
     });
@@ -144,7 +150,10 @@ export async function GET() {
     if (!profile) {
       return NextResponse.json({ exists: false });
     }
-    const facts = profile.factsJson as unknown as ResumeFacts;
+    // D11: parse on read here too — a malformed blob yields a null summary rather
+    // than a thrown cast (display path, so fail soft).
+    const parsedFacts = resumeFactsSchema.safeParse(profile.factsJson);
+    const facts = parsedFacts.success ? parsedFacts.data : null;
     return NextResponse.json({
       exists: true,
       headline: facts?.headline ?? null,
