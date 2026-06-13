@@ -13,6 +13,8 @@ import {
   estimateSessionUsd,
   settleReservation,
 } from "@/lib/mock/spend";
+import { getResumeDigest } from "@/lib/mock/resume-digest";
+import { resolveSessionKey, markKeyFromMintError } from "@/lib/byok";
 
 const bodySchema = z.object({
   scenarioId: z.string().min(1),
@@ -72,6 +74,28 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Rate limited" }, { status: 429 });
     }
 
+    // Self-heal stranded sessions before the cap check: a tab-close or dropped
+    // connection mid-panel leaves a row in LIVE/INTERRUPTED that nothing else
+    // reaps, so it would trip the single-live cap forever. Past MAX_SESSION_SEC
+    // a session is over the ceiling and can't even re-mint (see mint route), so
+    // it is definitively dead. SYSTEM_DESIGN §13.
+    const staleCutoff = new Date(Date.now() - env.MAX_SESSION_SEC * 1000);
+    const stale = await prisma.mockSession.findMany({
+      where: {
+        userId,
+        status: { in: ["LIVE", "INTERRUPTED"] },
+        startedAt: { lt: staleCutoff },
+      },
+      select: { id: true },
+    });
+    if (stale.length > 0) {
+      await prisma.mockSession.updateMany({
+        where: { id: { in: stale.map((s) => s.id) } },
+        data: { status: "ABANDONED", endedAt: new Date() },
+      });
+      await Promise.all(stale.map((s) => settleReservation(s.id, 0)));
+    }
+
     // Single-LIVE-session concurrency cap.
     const liveCount = await prisma.mockSession.count({
       where: { userId, status: "LIVE" },
@@ -91,9 +115,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Scenario unavailable" }, { status: 404 });
     }
 
-    // L4 global daily kill-switch (atomic add-if-under-cap soft hold).
+    // BYOK (D1/§3.6): if the user has a key on file, their key pays for the
+    // realtime minutes — so we skip the house reservation + global daily cap
+    // entirely (they're a house-spend protection, irrelevant when Aloud isn't
+    // paying). The single-live cap, rate limits, and MAX_SESSION_SEC hard stop
+    // all still apply. House/trial sessions keep the full kill-switch.
+    const sessionKey = await resolveSessionKey(userId);
+    const isByok = sessionKey.keySource === "USER";
+
+    // L4 global daily kill-switch (atomic add-if-under-cap soft hold) — house only.
     const estimatedUsd = estimateSessionUsd();
-    if (!(await reserveGlobalSpend(estimatedUsd))) {
+    if (!isByok && !(await reserveGlobalSpend(estimatedUsd))) {
       return NextResponse.json(
         { error: "At capacity, try again shortly" },
         { status: 503 }
@@ -107,23 +139,34 @@ export async function POST(request: Request) {
         clientRequestId,
         provider: "OPENAI",
         modelUsed: env.OPENAI_REALTIME_MODEL,
-        judgeModel: "gpt-4o-mini",
         targetLevel: scenario.targetLevel,
         status: "PENDING",
+        keySource: sessionKey.keySource,
+        apiKeyId: sessionKey.apiKeyId,
       },
     });
-    await createReservation(created.id, estimatedUsd);
+    if (!isByok) {
+      await createReservation(created.id, estimatedUsd);
+    }
 
     // Mint the config-locked ephemeral (lead seat persona). Audio is browser↔provider.
+    // The lead seat opens with the intro phase (its seed persona) and grounds it
+    // in the candidate's resume — the digest is per-user, so it's injected here
+    // at mint, never in the seed. INTERVIEW_ENGINE_PLAN §14.1.
     const lead = scenario.panelSeats[0]!;
+    const resumeDigest = await getResumeDigest(userId);
     try {
       const ephemeral = await mintRealtimeEphemeral({
-        instructions: lead.systemPrompt,
+        instructions: resumeDigest
+          ? `${lead.systemPrompt}\n\n${resumeDigest}`
+          : lead.systemPrompt,
         voice: lead.voice,
         safetyIdentifier: safetyId(userId),
+        apiKey: sessionKey.apiKey,
       });
       return NextResponse.json({
         sessionId: created.id,
+        keySource: sessionKey.keySource,
         seats: scenario.panelSeats.map((s) => ({
           id: s.id,
           personaName: s.personaName,
@@ -139,15 +182,21 @@ export async function POST(request: Request) {
         },
       });
     } catch (e) {
+      const status = e instanceof ProviderError ? e.status : 0;
       await prisma.mockSession.update({
         where: { id: created.id },
         data: { status: "FAILED" },
       });
       await settleReservation(created.id, 0);
-      log.error("mint failed at create", {
-        sessionId: created.id,
-        status: e instanceof ProviderError ? e.status : 0,
-      });
+      // Failure taxonomy (§3.5): if this was the USER's key, condemn it so the
+      // next attempt falls to the house key and the green-room/settings show it.
+      if (isByok) await markKeyFromMintError(userId, status);
+      log.error("mint failed at create", { sessionId: created.id, status });
+      // A rejected/exhausted user key is a key problem, not a voice outage — tell
+      // the client distinctly so it can point the candidate at Settings.
+      if (isByok && (status === 401 || status === 403 || status === 429)) {
+        return NextResponse.json({ error: "KEY_REJECTED" }, { status: 402 });
+      }
       return NextResponse.json({ error: "Voice unavailable" }, { status: 502 });
     }
   } catch (err) {

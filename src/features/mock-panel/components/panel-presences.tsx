@@ -22,7 +22,7 @@ export function PanelPresences({
   completedSeatIndexes,
 }: PanelPresencesProps) {
   return (
-    <div className="flex items-start justify-center gap-8 sm:gap-16">
+    <div className="flex items-start justify-center gap-6 sm:gap-10 lg:gap-16">
       {seats.map((seat, i) => {
         const tint = SIGNAL_CSS_VAR[seatLevel(i)];
         const isActive = i === activeSeatIndex;
@@ -34,7 +34,7 @@ export function PanelPresences({
         return (
           <div
             key={seat.id}
-            className="flex flex-col items-center text-center transition-all duration-700 ease-out"
+            className="flex w-19 flex-col items-center text-center transition-all duration-700 ease-out sm:w-auto sm:max-w-30"
             style={{
               transform: isActive ? "translateY(-8px)" : "none",
               opacity: isActive ? 1 : isDone ? 0.65 : 0.4,
@@ -70,13 +70,15 @@ export function PanelPresences({
             </div>
             <p
               className={cn(
-                "mt-3 truncate font-display text-base font-semibold tracking-tight transition-colors duration-500",
+                "mt-3 w-full truncate font-display text-base font-semibold tracking-tight transition-colors duration-500",
                 isActive ? "text-foreground" : "text-muted-foreground"
               )}
             >
               {name}
             </p>
-            <p className="mt-1 text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+            {/* Long role labels blow out the row on a 390px phone, so the role is
+                hidden below sm — the name + spotlight carry it on mobile. */}
+            <p className="mt-1 hidden w-full truncate text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground sm:block">
               {seat.isBarRaiser ? "Bar Raiser" : role || "Interviewer"}
             </p>
           </div>

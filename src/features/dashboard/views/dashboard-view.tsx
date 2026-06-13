@@ -13,13 +13,22 @@ import { StoriesCard } from "@/features/dashboard/components/stories-card";
 import { TodaysDrillCard } from "@/features/dashboard/components/todays-drill-card";
 import { WeekStats } from "@/features/dashboard/components/week-stats";
 import { SignalTrendChart } from "@/features/dashboard/components/signal-trend-chart";
+import {
+  PendingOutcomesCard,
+  type PendingOutcome,
+} from "@/features/dashboard/components/pending-outcomes-card";
 
 interface DashboardViewProps {
   data: CockpitData;
   interviewDateIso: string | null;
+  pendingOutcomes: PendingOutcome[];
 }
 
-export function DashboardView({ data, interviewDateIso }: DashboardViewProps) {
+export function DashboardView({
+  data,
+  interviewDateIso,
+  pendingOutcomes,
+}: DashboardViewProps) {
   const seniorLPs = masterySeniorLPs(data.mastery);
 
   return (
@@ -38,6 +47,8 @@ export function DashboardView({ data, interviewDateIso }: DashboardViewProps) {
             daysToInterview={data.daysToInterview}
             interviewDateIso={interviewDateIso}
           />
+
+          <PendingOutcomesCard sessions={pendingOutcomes} />
 
           <div className="grid gap-3 sm:grid-cols-3">
             <StreakCard streakDays={data.streakDays} />

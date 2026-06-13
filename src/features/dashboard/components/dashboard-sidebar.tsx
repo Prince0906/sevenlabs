@@ -39,6 +39,7 @@ import {
     Users,
     LogOut,
     ChevronsUpDown,
+    Settings,
 } from "lucide-react";
 
 interface MenuItem {
@@ -158,6 +159,7 @@ export function DashboardSidebar() {
     ];
 
     const othersMenuItems: MenuItem[] = [
+        { title: "Settings", url: "/settings", icon: Settings },
         { title: "Help and support", url: `mailto:${BRAND.supportEmail}`, icon: Headphones },
     ];
 

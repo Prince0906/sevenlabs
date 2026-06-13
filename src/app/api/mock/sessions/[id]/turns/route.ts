@@ -9,7 +9,7 @@ import {
   turnEventsSchema,
   type SpeechMetrics,
 } from "@sevenlabs/shared-types";
-import { spendCentsForElapsed, isOverCeiling } from "@/lib/mock/spend";
+import { spendCentsForElapsed, isSessionOver } from "@/lib/mock/spend";
 
 const bodySchema = z.object({
   seq: z.number().int().nonnegative(),
@@ -18,6 +18,8 @@ const bodySchema = z.object({
   transcript: z.string().optional(),
   words: z.array(wordTimestampSchema).optional(),
   events: turnEventsSchema.optional(),
+  // Stable join key for the parallel fluency-audio upload (USER turns).
+  clientTurnId: z.string().optional(),
 });
 
 /** Idempotent turn checkpoint. Server recomputes USER metrics from the word-span
@@ -41,7 +43,7 @@ export async function POST(
 
     const mock = await prisma.mockSession.findFirst({
       where: { id, userId },
-      select: { status: true, startedAt: true },
+      select: { status: true, startedAt: true, keySource: true },
     });
     if (!mock) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -88,6 +90,7 @@ export async function POST(
         seq: b.seq,
         role: b.role,
         seatId: b.seatId ?? null,
+        clientTurnId: b.clientTurnId ?? null,
         transcript: b.transcript ?? null,
         metricsJson: metrics ?? undefined,
         events: b.events ?? undefined,
@@ -100,7 +103,7 @@ export async function POST(
       const elapsedSec = (Date.now() - mock.startedAt.getTime()) / 1000;
       const spendCents = spendCentsForElapsed(elapsedSec);
       await prisma.mockSession.update({ where: { id }, data: { spendCents } });
-      sessionExpired = isOverCeiling(spendCents, elapsedSec);
+      sessionExpired = isSessionOver(mock.keySource, spendCents, elapsedSec);
     }
 
     return NextResponse.json({

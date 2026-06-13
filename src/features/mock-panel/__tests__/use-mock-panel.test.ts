@@ -20,6 +20,7 @@ function driveToLive(): PanelState {
   s = panelReducer(s, {
     type: "CREATE_OK",
     sessionId: "sess1",
+    keySource: "ALOUD",
     seats: seats(),
     maxDurationSec: 2700,
     ephemeralExpiresAt: 1000,
@@ -57,8 +58,13 @@ describe("panelReducer — seat handoff", () => {
 
   it("hands off via the exchange budget cap when the sentinel is absent", () => {
     let s = driveToLive();
-    for (let i = 0; i < 3; i++) s = panelReducer(s, { type: "USER_TURN" });
-    expect(s.exchangeCount).toBe(3);
+    // Below the cap it must NOT force a handoff (no more "forced to finish fast").
+    for (let i = 0; i < 13; i++) s = panelReducer(s, { type: "USER_TURN" });
+    s = panelReducer(s, { type: "COACH_DONE", transcript: "tell me more" });
+    expect(s.phase).toBe("live");
+    // At the cap (14 for a non-last seat) it force-hands-off as a safety valve.
+    s = panelReducer(s, { type: "USER_TURN" });
+    expect(s.exchangeCount).toBe(14);
     s = panelReducer(s, { type: "COACH_DONE", transcript: "ok, next question" });
     expect(s.phase).toBe("handing-off");
   });
@@ -76,8 +82,8 @@ describe("panelReducer — seat handoff", () => {
     s = reconnectToLive(s);
     expect(s.activeSeatIndex).toBe(2);
 
-    // last seat: no sentinel, budget cap of 4
-    for (let i = 0; i < 4; i++) s = panelReducer(s, { type: "USER_TURN" });
+    // last seat: no sentinel, safety cap of 18
+    for (let i = 0; i < 18; i++) s = panelReducer(s, { type: "USER_TURN" });
     s = panelReducer(s, { type: "COACH_DONE", transcript: "thank you" });
     expect(s.phase).toBe("wrapping");
     expect(s.completedSeatIndexes).toEqual([0, 1]);
@@ -90,8 +96,32 @@ describe("panelReducer — create recovery", () => {
     s = panelReducer(s, { type: "MIC_GRANTED" });
     s = panelReducer(s, { type: "CREATE_DUPLICATE", sessionId: "existing-1" });
     expect(s.sessionId).toBe("existing-1");
-    s = panelReducer(s, { type: "ADOPTED", status: "DEBRIEF" });
+    s = panelReducer(s, {
+      type: "RESUME_SNAPSHOT",
+      status: "DEBRIEF",
+      seats: [],
+      activeSeatIndex: 0,
+    });
     expect(s.phase).toBe("debrief-polling");
+  });
+
+  it("RESUME_SNAPSHOT seeds seats + the seat cursor, then reconnects (D5)", () => {
+    // A refresh/adopt mid-interview (seat 2 of 3) must rehydrate the roster and
+    // resume on seat 2 — not silently restart at seat 0 with an empty roster.
+    let s = panelReducer(initialPanelState(), { type: "START" });
+    s = panelReducer(s, { type: "MIC_GRANTED" });
+    s = panelReducer(s, { type: "CREATE_DUPLICATE", sessionId: "live-1" });
+    s = panelReducer(s, {
+      type: "RESUME_SNAPSHOT",
+      status: "LIVE",
+      seats: seats(),
+      activeSeatIndex: 2,
+    });
+    expect(s.phase).toBe("reconnecting");
+    expect(s.seats).toHaveLength(3);
+    expect(s.activeSeatIndex).toBe(2);
+    expect(s.completedSeatIndexes).toEqual([0, 1]);
+    expect(s.reachedLive).toBe(true);
   });
 
   it("surfaces already-live recovery without a session id", () => {
@@ -163,5 +193,21 @@ describe("panelReducer — barge-in / disconnect", () => {
       { type: "MIC_GRANTED" }
     );
     expect(panelReducer(preLive, { type: "DISCONNECTED" }).recovery).toBe("not-startable");
+  });
+});
+
+describe("panelReducer — degraded delivery (D6)", () => {
+  it("starts clean and latches true on a dropped turn", () => {
+    let s = driveToLive();
+    expect(s.degradedDelivery).toBe(false);
+    s = panelReducer(s, { type: "DELIVERY_DEGRADED" });
+    expect(s.degradedDelivery).toBe(true);
+  });
+
+  it("the partial-delivery flag survives into wrapping (not reset on end)", () => {
+    let s = panelReducer(driveToLive(), { type: "DELIVERY_DEGRADED" });
+    s = panelReducer(s, { type: "END_REQUESTED" });
+    expect(s.phase).toBe("wrapping");
+    expect(s.degradedDelivery).toBe(true);
   });
 });

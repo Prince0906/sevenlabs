@@ -35,6 +35,8 @@ export type RecoveryKind =
 export interface PanelState {
   phase: PanelPhase;
   sessionId: string | null;
+  /** ALOUD = house/trial; USER = the candidate's own key (BYOK → spend HUD on). */
+  keySource: "ALOUD" | "USER";
   seats: PanelSeatPublic[];
   activeSeatIndex: number;
   completedSeatIndexes: number[];
@@ -47,6 +49,9 @@ export interface PanelState {
   maxDurationSec: number;
   ephemeralExpiresAt: number | null;
   hitCeiling: boolean;
+  /** A turn was dropped after exhausting retries — the report is partial, not
+   * silently corrupt. Latches true; surfaced to the candidate + the report (D6). */
+  degradedDelivery: boolean;
   report: MockReport | null;
   reportEtag: string | null;
   recovery: RecoveryKind | null;
@@ -58,14 +63,14 @@ export type PanelAction =
   | { type: "START" }
   | { type: "MIC_GRANTED" }
   | { type: "MIC_DENIED" }
-  | { type: "CREATE_OK"; sessionId: string; seats: PanelSeatPublic[]; maxDurationSec: number; ephemeralExpiresAt: number }
+  | { type: "CREATE_OK"; sessionId: string; keySource: "ALOUD" | "USER"; seats: PanelSeatPublic[]; maxDurationSec: number; ephemeralExpiresAt: number }
   | { type: "CREATE_DUPLICATE"; sessionId: string }
   | { type: "CREATE_ALREADY_LIVE" }
   | { type: "CREATE_CAPACITY" }
   | { type: "CREATE_RATE_LIMITED" }
   | { type: "CREATE_VOICE_UNAVAILABLE" }
   | { type: "CREATE_ERROR"; message: string }
-  | { type: "ADOPTED"; status: MockStatusT }
+  | { type: "RESUME_SNAPSHOT"; status: MockStatusT; seats: PanelSeatPublic[]; activeSeatIndex: number }
   | { type: "DC_OPEN" }
   | { type: "PATCH_LIVE_OK" }
   | { type: "RESUMED_LIVE" }
@@ -83,6 +88,7 @@ export type PanelAction =
   | { type: "DISCONNECTED" }
   | { type: "RESUME_FAILED" }
   | { type: "SESSION_EXPIRED" }
+  | { type: "DELIVERY_DEGRADED" }
   | { type: "END_REQUESTED" }
   | { type: "COMPLETE_DEBRIEF" }
   | { type: "COMPLETE_NOT_COMPLETABLE" }
@@ -92,9 +98,15 @@ export type PanelAction =
 
 export const HANDOFF_SENTINEL = "handing you to my colleague";
 
-/** Safety cap when the persona's closing sentinel isn't detected. */
+/** Safety cap when the persona's closing sentinel isn't detected. The persona
+ * decides depth and emits the sentinel when its thread is done; this only
+ * force-hands-off a runaway seat. Kept generous so an interviewer can run a full
+ * ~15-minute segment (several topics, deep follow-ups) instead of racing a small
+ * counter (the "forced to finish fast" feel from the 2026-06-02 live test) — the
+ * natural handoff is the sentinel, and the spend ceiling caps total length
+ * regardless, so this only catches a persona that never emits its closing line. */
 export function seatBudget(isLast: boolean): number {
-  return isLast ? 4 : 3;
+  return isLast ? 18 : 14;
 }
 
 export function detectsSentinel(transcript: string): boolean {
@@ -105,6 +117,7 @@ export function initialPanelState(): PanelState {
   return {
     phase: "idle",
     sessionId: null,
+    keySource: "ALOUD",
     seats: [],
     activeSeatIndex: 0,
     completedSeatIndexes: [],
@@ -117,6 +130,7 @@ export function initialPanelState(): PanelState {
     maxDurationSec: 0,
     ephemeralExpiresAt: null,
     hitCeiling: false,
+    degradedDelivery: false,
     report: null,
     reportEtag: null,
     recovery: null,
@@ -161,6 +175,7 @@ export function panelReducer(state: PanelState, action: PanelAction): PanelState
       return {
         ...state,
         sessionId: action.sessionId,
+        keySource: action.keySource,
         seats: action.seats,
         maxDurationSec: action.maxDurationSec,
         ephemeralExpiresAt: action.ephemeralExpiresAt,
@@ -169,7 +184,7 @@ export function panelReducer(state: PanelState, action: PanelAction): PanelState
       };
     case "CREATE_DUPLICATE":
       // Adopt the existing session id (NEVER navigate to undefined); the hook
-      // then GET /status and dispatches ADOPTED to reconcile.
+      // then GET /status and dispatches RESUME_SNAPSHOT to reconcile.
       return { ...state, sessionId: action.sessionId };
     case "CREATE_ALREADY_LIVE":
       // Global single-LIVE cap: a fresh request can't help — surface, no nav.
@@ -183,8 +198,22 @@ export function panelReducer(state: PanelState, action: PanelAction): PanelState
     case "CREATE_ERROR":
       return toError(state, "session-failed", action.message);
 
-    case "ADOPTED":
-      return reconcileStatus(state, action.status);
+    case "RESUME_SNAPSHOT": {
+      // Seed the seat roster + cursor from the server BEFORE reconciling the phase.
+      // Without seats, isLast math (activeSeatIndex >= seats.length - 1) treats every
+      // seat as the last and wraps after one; without the cursor, reconnect mints
+      // seat 0. completedSeatIndexes is reconstructed as [0..activeSeatIndex). (D5)
+      const seeded: PanelState = {
+        ...state,
+        seats: action.seats.length > 0 ? action.seats : state.seats,
+        activeSeatIndex: action.activeSeatIndex,
+        completedSeatIndexes: Array.from(
+          { length: action.activeSeatIndex },
+          (_, i) => i
+        ),
+      };
+      return reconcileStatus(seeded, action.status);
+    }
 
     case "DC_OPEN":
       return { ...state, phase: "awaiting-session-update" };
@@ -256,6 +285,10 @@ export function panelReducer(state: PanelState, action: PanelAction): PanelState
 
     case "SESSION_EXPIRED":
       return { ...state, phase: "wrapping", hitCeiling: true };
+    case "DELIVERY_DEGRADED":
+      // A turn was dropped after exhausting retries; latch it so wrap → report
+      // can mark the transcript partial instead of scoring it as complete.
+      return { ...state, degradedDelivery: true };
     case "END_REQUESTED":
       return { ...state, phase: "wrapping" };
     case "COMPLETE_DEBRIEF":

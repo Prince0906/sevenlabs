@@ -5,7 +5,12 @@ import { prisma } from "@/lib/db";
 import { log } from "@/lib/log";
 import { drainJudgmentQueue } from "@/lib/mock/judgment-queue";
 
-const bodySchema = z.object({ reason: z.string().optional() });
+const bodySchema = z.object({
+  reason: z.string().optional(),
+  // D6: the client latches this when the turn queue drops a turn. Persisted at the
+  // LIVE→DEBRIEF transition so the off-band judge's report can flag the gap.
+  degradedDelivery: z.boolean().optional(),
+});
 
 /** CAS LIVE/INTERRUPTED → DEBRIEF and enqueue the JudgmentJob in ONE txn, so a
  * crash can't strand a DEBRIEF with no job. Kicks the queue post-response. §14. */
@@ -20,8 +25,9 @@ export async function POST(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     const { id } = await params;
-    // body is optional; parse defensively for the reason
-    bodySchema.safeParse(await request.json().catch(() => ({})));
+    // body is optional; parse defensively for the reason + degraded flag
+    const parsed = bodySchema.safeParse(await request.json().catch(() => ({})));
+    const degradedDelivery = parsed.success ? parsed.data.degradedDelivery ?? false : false;
 
     const mock = await prisma.mockSession.findFirst({
       where: { id, userId },
@@ -48,7 +54,7 @@ export async function POST(
     const [updated] = await prisma.$transaction([
       prisma.mockSession.updateMany({
         where: { id, status: { in: ["LIVE", "INTERRUPTED"] } },
-        data: { status: "DEBRIEF", endedAt, durationSec },
+        data: { status: "DEBRIEF", endedAt, durationSec, degradedDelivery },
       }),
       prisma.judgmentJob.upsert({
         where: { sessionId: id },

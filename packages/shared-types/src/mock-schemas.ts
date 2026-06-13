@@ -122,6 +122,9 @@ export const realtimeEphemeralSchema = z.object({
 /** POST /sessions success body. */
 export const createMockSessionResponseSchema = z.object({
   sessionId: z.string(),
+  // ALOUD = house/trial key; USER = the candidate's own key pays (BYOK), which
+  // turns on the spend HUD and removes the dollar ceiling. (§3.6/§3.7)
+  keySource: z.enum(["ALOUD", "USER"]).default("ALOUD"),
   seats: z.array(panelSeatPublicSchema),
   ephemeral: realtimeEphemeralSchema,
   spend: z.object({
@@ -131,11 +134,17 @@ export const createMockSessionResponseSchema = z.object({
   }),
 });
 
-/** GET /sessions/:id rehydrate body. maxSeq is -1 when no turns exist yet. */
+/** GET /sessions/:id rehydrate body. maxSeq is -1 when no turns exist yet.
+ * The seat cursor + roster (D5) let an adopt/resume reconnect onto the right
+ * interviewer; defaulted so a thinner legacy body still decodes. */
 export const statusResponseSchema = z.object({
   status: mockStatusSchema,
   scenarioId: z.string(),
   maxSeq: z.number().int(),
+  activeSeatIndex: z.number().int().nonnegative().default(0),
+  keySource: z.enum(["ALOUD", "USER"]).default("ALOUD"),
+  maxDurationSec: z.number().nonnegative().default(0),
+  seats: z.array(panelSeatPublicSchema).default([]),
 });
 
 /** POST /sessions/:id/turns success body. metrics is null when word timings
@@ -161,9 +170,74 @@ export const mockReportDimensionSchema = z.object({
   gap: z.string(),
 });
 
+/** End-report fluency / delivery rollup, derived from per-answer Whisper word
+ * timings (coach-core analyzeSpeech). OPTIONAL on the report: historical sessions
+ * (and any run where no answer audio was analyzed) won't have it — render a
+ * graceful fallback. Mirrors panel-orchestrator.ts reportJson.fluency EXACTLY. */
+export const fluencySchema = z.object({
+  answersScored: z.number().int().nonnegative(),
+  meanWpm: z.number().nonnegative(),
+  fillerCount: z.number().int().nonnegative(),
+  fillerPer100: z.number().nonnegative(),
+  pauseCount: z.number().int().nonnegative(),
+  longestPauseMs: z.number().nonnegative(),
+  speakingRatio: z.number().min(0).max(1),
+  perAnswer: z.array(
+    z.object({
+      wpm: z.number().nonnegative(),
+      fillerCount: z.number().int().nonnegative(),
+      pauseCount: z.number().int().nonnegative(),
+      longestPauseMs: z.number().nonnegative(),
+      turnDurationSec: z.number().nonnegative(),
+    })
+  ),
+});
+
+// Shape of a per-turn disfluency report (MockTurn.disfluencyJson) — used by the
+// orchestrator to safeParse stored reports before aggregating. Instance arrays
+// are kept loose (z.any) since the session rollup only needs the counts.
+export const disfluencyReportSchema = z.object({
+  wordCount: z.number(),
+  durationSec: z.number(),
+  fillers: z.object({
+    total: z.number(),
+    per100Words: z.number(),
+    byType: z.record(z.string(), z.number()),
+  }),
+  repetitions: z.object({ total: z.number(), instances: z.array(z.any()) }),
+  falseStarts: z.object({ total: z.number(), instances: z.array(z.any()) }),
+  pauses: z.object({
+    count: z.number(),
+    longestSec: z.number(),
+    totalSilentSec: z.number(),
+    silentRatio: z.number(),
+    instances: z.array(z.any()),
+  }),
+});
+
+// Session-level disfluency rollup surfaced in the end report (verbatim path only).
+export const disfluencySchema = z.object({
+  answersScored: z.number().int().nonnegative(),
+  totalWords: z.number().int().nonnegative(),
+  fillerTotal: z.number().int().nonnegative(),
+  fillerPer100: z.number().nonnegative(),
+  topFillers: z.array(
+    z.object({ token: z.string(), count: z.number().int().nonnegative() })
+  ),
+  repetitionTotal: z.number().int().nonnegative(),
+  falseStartTotal: z.number().int().nonnegative(),
+  notablePauseCount: z.number().int().nonnegative(),
+  longestPauseSec: z.number().nonnegative(),
+  totalSilentSec: z.number().nonnegative(),
+});
+
 export const mockReportSchema = z.object({
   verdict: panelVerdictSchema,
   confidence: z.number().int().min(0).max(100),
+  // Within-speaker resilience delta (B2): 50 = composure held from the warmup
+  // baseline into the harder turns, >50 = it rose, <50 = it slipped. null when the
+  // session was too short for a trustworthy delta. Self-relative, never absolute.
+  resilience: z.number().int().min(0).max(100).nullish(),
   dimensions: z.array(mockReportDimensionSchema),
   oneRep: z
     .object({
@@ -173,6 +247,36 @@ export const mockReportSchema = z.object({
       estMinutes: z.number(),
     })
     .nullable(),
+  fluency: fluencySchema.nullish(),
+  disfluency: disfluencySchema.nullish(),
+  // True when the live link dropped one or more turns (D6). The transcript the
+  // judge scored may be incomplete, so the verdict is directional. Optional so
+  // reports written before this field still decode (as not-degraded).
+  degradedDelivery: z.boolean().optional(),
+});
+
+// A1 — real-interview outcome capture (ROADMAP Inc 1). The one label a model
+// cannot manufacture; bound to the session's prior prediction for calibration.
+export const interviewOutcomeSchema = z.enum([
+  "ADVANCED",
+  "REJECTED",
+  "GHOSTED",
+  "OFFER",
+  "PENDING",
+]);
+
+export const outcomeRequestSchema = z.object({
+  result: interviewOutcomeSchema,
+  offerLevel: signalLevelSchema.nullish(), // only when result = OFFER
+  note: z.string().max(2000).optional(),
+});
+
+export const outcomeResponseSchema = z.object({
+  sessionId: z.string(),
+  result: interviewOutcomeSchema,
+  predictedSignal: signalLevelSchema.nullable(),
+  predictedWeakest: z.string().nullable(),
+  capturedAt: z.string(),
 });
 
 export type MintRequest = z.infer<typeof mintRequestSchema>;
@@ -185,6 +289,12 @@ export type StatusResponse = z.infer<typeof statusResponseSchema>;
 export type TurnResponse = z.infer<typeof turnResponseSchema>;
 export type MockReport = z.infer<typeof mockReportSchema>;
 export type MockReportDimension = z.infer<typeof mockReportDimensionSchema>;
+export type MockFluency = z.infer<typeof fluencySchema>;
+export type MockDisfluency = z.infer<typeof disfluencySchema>;
+export type DisfluencyReportData = z.infer<typeof disfluencyReportSchema>;
+export type InterviewOutcomeT = z.infer<typeof interviewOutcomeSchema>;
+export type OutcomeRequest = z.infer<typeof outcomeRequestSchema>;
+export type OutcomeResponse = z.infer<typeof outcomeResponseSchema>;
 
 export type Inclination = z.infer<typeof inclinationSchema>;
 export type ScoreDimensionT = z.infer<typeof scoreDimensionSchema>;
@@ -194,3 +304,38 @@ export type DimensionScoreData = z.infer<typeof dimensionScoreSchema>;
 export type PanelVerdictData = z.infer<typeof panelVerdictSchema>;
 export type ConfidenceMetricData = z.infer<typeof confidenceMetricSchema>;
 export type TurnEvents = z.infer<typeof turnEventsSchema>;
+
+/**
+ * Resume grounding facts — the shape persisted in `ResumeProfile.factsJson` and
+ * rendered into the interviewer prompt by coach-core's `buildResumeDigest`.
+ * Mirrors coach-core's `ResumeFacts` interface.
+ *
+ * D11 / OWASP-LLM01: `factsJson` is candidate-influenced data that flows into a
+ * live system prompt. `validateResumeFacts` guards it on WRITE; this schema is
+ * the contract parsed on READ at the prompt boundary
+ * (`src/lib/mock/resume-digest.ts`), so a manual DB edit or a future validator
+ * regression can never inject an unvalidated blob into a seat's instructions.
+ * Shape-only (no length caps): it must accept any legitimately-stored profile
+ * while rejecting structurally-wrong payloads.
+ */
+export const resumeFactCategorySchema = z.enum([
+  "role",
+  "project",
+  "skill",
+  "claim",
+]);
+
+export const resumeFactSchema = z.object({
+  category: resumeFactCategorySchema,
+  text: z.string(),
+  quote: z.string(),
+});
+
+export const resumeFactsSchema = z.object({
+  headline: z.string().optional(),
+  facts: z.array(resumeFactSchema),
+});
+
+export type ResumeFactCategoryT = z.infer<typeof resumeFactCategorySchema>;
+export type ResumeFactData = z.infer<typeof resumeFactSchema>;
+export type ResumeFactsData = z.infer<typeof resumeFactsSchema>;

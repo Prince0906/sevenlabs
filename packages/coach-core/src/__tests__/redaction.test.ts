@@ -51,6 +51,14 @@ describe("redactUnknown", () => {
     expect(out).not.toContain(SECRETS.openai);
   });
 
+  it("redacts a secret in the STACK frames, not only the message, and keeps the trace", () => {
+    const err = new Error("request failed");
+    err.stack = `Error: request failed\n    at fetch (https://api?key=${SECRETS.openai})`;
+    const out = redactUnknown(err);
+    expect(out).not.toContain(SECRETS.openai);
+    expect(out).toContain("at fetch"); // the trace is preserved (redacted) for debugging
+  });
+
   it("redacts a nested object", () => {
     const out = redactUnknown({ headers: { authorization: `Bearer ${SECRETS.openai}` } });
     expect(out).not.toContain(SECRETS.openai);

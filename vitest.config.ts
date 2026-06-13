@@ -10,8 +10,61 @@ export default defineConfig({
       junit: "./test-reports/junit.xml",
     },
     coverage: {
+      provider: "v8",
       reporter: ["text", "lcov"],
       reportsDirectory: "./test-reports/coverage",
+      // Gate the layers we hold to the testing standard (TESTING.md). `include`
+      // counts EVERY matching file, so an untested-but-included module scores 0 —
+      // intentional: a new untracked file shows up as a coverage drop.
+      include: [
+        "packages/coach-core/src/**/*.ts",
+        "src/lib/**/*.ts",
+        "src/app/api/mock/**/*.ts",
+        "src/app/api/keys/**/*.ts",
+        "src/app/api/resume/**/*.ts",
+        "src/features/mock-panel/lib/**/*.ts",
+      ],
+      exclude: [
+        "**/__tests__/**",
+        "**/*.test.ts",
+        "**/index.ts", // barrels — no logic
+        "**/*.d.ts",
+        // Pure I/O adapters / transport — exercised through mocked callers, not
+        // unit-tested directly (TESTING.md §"Deliberately not unit-tested").
+        "src/lib/coach/openai.ts",
+        "src/features/mock-panel/lib/realtime-connection.ts",
+        // Infra / framework glue / config — no unit-testable behavior. log.ts is a
+        // thin stdout chokepoint; its redaction LOGIC is tested in coach-core and
+        // is a named entry in the invariant contract (TESTING.md).
+        "src/lib/env.ts",
+        "src/lib/db.ts",
+        "src/lib/auth.ts",
+        "src/lib/log.ts",
+        "src/lib/brand.ts",
+        "src/lib/signal.ts",
+        "src/lib/motion.ts",
+        "src/lib/utils.ts",
+        // PARKED speaking-coach product — not the active investment.
+        "src/lib/coach/turn-orchestrator.ts",
+        "src/lib/coach/aggregates.ts",
+        "src/lib/coach/aggregate-types.ts",
+        "src/lib/coach/coach-prompt.ts",
+      ],
+      // Ratchet: set a few points BELOW current so a regression fails CI but
+      // today is green. Raise these as gaps close (e.g. the create-route test).
+      // The pure-logic core (coach-core) is held to a markedly higher bar.
+      thresholds: {
+        statements: 75,
+        branches: 66,
+        functions: 77,
+        lines: 76,
+        "packages/coach-core/src/**/*.ts": {
+          statements: 91,
+          branches: 84,
+          functions: 92,
+          lines: 92,
+        },
+      },
     },
     globals: true,
   },

@@ -58,6 +58,17 @@ export async function createSession(
   if (res.status === 503) return { kind: "capacity" };
   if (res.status === 429) return { kind: "rate-limited" };
   if (res.status === 502) return { kind: "voice-unavailable" };
+  // 402 KEY_REJECTED: the user's own key was rejected/exhausted at mint. It's now
+  // condemned server-side (next session falls to trial); give a key-specific
+  // message instead of a generic failure. (§3.5)
+  if (res.status === 402) {
+    return {
+      kind: "error",
+      status: 402,
+      message:
+        "Your OpenAI key was rejected or out of quota — update it in Settings, or run in trial mode.",
+    };
+  }
   return { kind: "error", status: res.status, message: errMsg(body, "Failed to start") };
 }
 
@@ -133,6 +144,7 @@ export interface TurnPostBody {
   transcript?: string;
   words?: WordTimestamp[];
   events?: TurnEvents;
+  clientTurnId?: string;
 }
 export type TurnResult =
   | { kind: "ok"; data: TurnResponse }
@@ -154,17 +166,51 @@ export async function postTurn(id: string, body: TurnPostBody): Promise<TurnResu
   return { kind: "error", status: res.status, message: errMsg(data, "Turn post failed") };
 }
 
+// ── POST /sessions/:id/turns/audio (best-effort fluency analysis) ────────────
+// Uploads ONE push-to-talk answer's audio for Whisper word-timing analysis. Fire-
+// and-forget from the hook; never blocks the interview. 202 means the matching
+// text turn row isn't written yet (the upload raced ahead) — retry a few times.
+export async function uploadTurnAudio(
+  id: string,
+  clientTurnId: string,
+  blob: Blob
+): Promise<void> {
+  const form = new FormData();
+  form.append("clientTurnId", clientTurnId);
+  const ext = blob.type.includes("mp4") ? "mp4" : blob.type.includes("ogg") ? "ogg" : "webm";
+  form.append("audio", blob, `answer.${ext}`);
+  for (let attempt = 0; attempt < 4; attempt++) {
+    let res: Response;
+    try {
+      res = await fetch(`/api/mock/sessions/${id}/turns/audio`, {
+        method: "POST",
+        body: form,
+      });
+    } catch {
+      return; // network error — best-effort, drop this answer's fluency
+    }
+    if (res.status !== 202) return; // 200 ok or a 4xx/5xx we won't retry past
+    await new Promise((r) => setTimeout(r, 1500)); // text turn not written yet
+  }
+}
+
 // ── POST /sessions/:id/complete ──────────────────────────────────────────────
 export type CompleteResult =
   | { kind: "debrief"; pollAfterMs: number }
   | { kind: "not-completable" }
   | { kind: "error"; status: number; message: string };
 
-export async function complete(id: string, reason?: string): Promise<CompleteResult> {
+export async function complete(
+  id: string,
+  opts?: { reason?: string; degradedDelivery?: boolean }
+): Promise<CompleteResult> {
   const res = await fetch(`/api/mock/sessions/${id}/complete`, {
     method: "POST",
     headers: JSON_HEADERS,
-    body: JSON.stringify(reason ? { reason } : {}),
+    body: JSON.stringify({
+      ...(opts?.reason ? { reason: opts.reason } : {}),
+      ...(opts?.degradedDelivery ? { degradedDelivery: true } : {}),
+    }),
   });
   const body = await readJson(res);
   if (res.status === 202) {
@@ -181,6 +227,41 @@ export type ReportResult =
   | { kind: "failed"; reason?: string }
   | { kind: "not-modified" }
   | { kind: "error"; status: number; message: string };
+
+// ── /sessions/:id/outcome (D13 moat capture) ─────────────────────────────────
+// The real hire/no-hire label — the one signal a model can't manufacture. Captured
+// candidate-side when they return, kept off the credential. Includes the unresolved
+// states (GHOSTED / PENDING) so we don't only ever record the wins and losses.
+export type OutcomeResult = "ADVANCED" | "OFFER" | "REJECTED" | "GHOSTED" | "PENDING";
+
+export interface CapturedOutcome {
+  sessionId: string;
+  result: OutcomeResult;
+  predictedSignal: string | null;
+  predictedWeakest: string | null;
+  capturedAt: string;
+}
+
+export async function getOutcome(
+  id: string
+): Promise<{ outcome: CapturedOutcome | null; company: string | null }> {
+  const res = await fetch(`/api/mock/sessions/${id}/outcome`);
+  if (!res.ok) return { outcome: null, company: null };
+  const body = await readJson(res);
+  return {
+    outcome: (body.outcome as CapturedOutcome | null) ?? null,
+    company: typeof body.company === "string" ? body.company : null,
+  };
+}
+
+export async function submitOutcome(id: string, result: OutcomeResult): Promise<boolean> {
+  const res = await fetch(`/api/mock/sessions/${id}/outcome`, {
+    method: "POST",
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ result }),
+  });
+  return res.ok;
+}
 
 export async function getReport(id: string, etag?: string | null): Promise<ReportResult> {
   const res = await fetch(`/api/mock/sessions/${id}/report`, {

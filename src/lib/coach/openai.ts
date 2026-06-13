@@ -1,7 +1,15 @@
-import type { WordTimestamp } from "@sevenlabs/shared-types";
+import { type WordTimestamp, REALTIME_INPUT_CONFIG } from "@sevenlabs/shared-types";
 import { env } from "@/lib/env";
 
 const OPENAI_BASE = "https://api.openai.com/v1";
+
+/**
+ * The PINNED judgment model — used by BOTH per-seat rubric scoring and the
+ * committee. Exported so the verdict records which model produced it (provenance
+ * for calibration). Never config-driven: cross-session comparability depends on
+ * it staying fixed (SYSTEM_DESIGN §8.3).
+ */
+export const JUDGE_MODEL = "gpt-4o-mini";
 
 /**
  * Carries a stable code + HTTP status ONLY — never the provider response body,
@@ -20,11 +28,14 @@ export class ProviderError extends Error {
 
 export async function transcribeAudio(
   audioBuffer: Buffer,
-  mimeType: string
+  mimeType: string,
+  // Whisper infers the codec from the filename extension, so a webm/mp4 answer
+  // must NOT be sent as "utterance.wav" — callers pass a matching name.
+  filename: string = "utterance.wav"
 ): Promise<{ transcript: string; words: WordTimestamp[]; durationSec: number }> {
   const formData = new FormData();
   const blob = new Blob([new Uint8Array(audioBuffer)], { type: mimeType });
-  formData.append("file", blob, "utterance.wav");
+  formData.append("file", blob, filename);
   formData.append("model", "whisper-1");
   formData.append("response_format", "verbose_json");
   formData.append("timestamp_granularities[]", "word");
@@ -106,7 +117,7 @@ export async function scoreAgainstRubric(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "gpt-4o-mini",
+      model: JUDGE_MODEL, // per-seat rubric scoring runs on the pinned judge model
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userMessage },
@@ -128,7 +139,58 @@ export async function scoreAgainstRubric(
   if (!content) {
     throw new Error("OpenAI returned empty rubric scoring response");
   }
-  return JSON.parse(content);
+  try {
+    return JSON.parse(content);
+  } catch {
+    // A truncated/malformed model response would otherwise throw a native
+    // SyntaxError that reads as a mystery FAILED in the queue logs.
+    throw new ProviderError("invalid_json_from_model", 500);
+  }
+}
+
+/**
+ * Resume profile extraction — a PINNED `gpt-4o-mini` JSON call (same plane as
+ * judgment: the extracted profile must be consistent across users, never the
+ * user's BYOK model). Returns parsed JSON; the route validates every fact's
+ * quote against the resume text before anything is stored or shown to a seat.
+ */
+export async function extractResumeJson(
+  systemPrompt: string,
+  userMessage: string,
+  signal?: AbortSignal
+): Promise<unknown> {
+  const res = await fetch(`${OPENAI_BASE}/chat/completions`, {
+    method: "POST",
+    signal,
+    headers: {
+      Authorization: `Bearer ${env.OPENAI_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "gpt-4o-mini", // PINNED — never config-driven
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userMessage },
+      ],
+      max_tokens: 900,
+      temperature: 0.2,
+      response_format: { type: "json_object" },
+    }),
+  });
+
+  if (!res.ok) {
+    throw new ProviderError("resume_extraction_failed", res.status);
+  }
+
+  const data = (await res.json()) as {
+    choices?: Array<{ message?: { content?: string } }>;
+  };
+  const raw = (data.choices?.[0]?.message?.content ?? "").trim();
+  try {
+    return JSON.parse(raw);
+  } catch {
+    throw new ProviderError("invalid_json_from_model", 500);
+  }
 }
 
 export async function synthesizeCoachSpeech(text: string): Promise<Buffer> {
@@ -164,6 +226,10 @@ export async function mintRealtimeEphemeral(params: {
   instructions: string;
   voice: string;
   safetyIdentifier: string;
+  // BYOK: the user's decrypted key signs the ephemeral so the realtime minutes
+  // bill to their account. Defaults to the house key (trial / no key on file).
+  // The raw key lives only in this call frame — never logged, never in an Error.
+  apiKey?: string;
 }): Promise<{
   value: string;
   expiresAt: number;
@@ -173,7 +239,7 @@ export async function mintRealtimeEphemeral(params: {
   const res = await fetch(env.OPENAI_REALTIME_MINT_URL, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${env.OPENAI_API_KEY}`,
+      Authorization: `Bearer ${params.apiKey ?? env.OPENAI_API_KEY}`,
       "Content-Type": "application/json",
       // Abuse identifier travels as a HEADER on the GA endpoint — passing it in
       // the body returns 400 "Unknown parameter: 'safety_identifier'".
@@ -186,14 +252,12 @@ export async function mintRealtimeEphemeral(params: {
         instructions: params.instructions,
         audio: {
           output: { voice: params.voice },
-          // Enable input transcription + server VAD AT MINT so it can't be
-          // forgotten or raced by the client. Without it OpenAI emits no
-          // input_audio_transcription.completed events and the judge would
-          // score an empty interview. (REALTIME_CLIENT_PLAN.md decision 2.)
-          input: {
-            transcription: { model: "gpt-4o-transcribe" },
-            turn_detection: { type: "server_vad" },
-          },
+          // Asserted AT MINT so input transcription + manual turn control can't be
+          // forgotten or raced by the client (without it OpenAI emits no transcript
+          // events and the judge scores an empty interview). The client re-asserts
+          // the same shared config on data-channel open. The full push-to-talk
+          // rationale lives on REALTIME_INPUT_CONFIG.
+          input: REALTIME_INPUT_CONFIG,
         },
       },
     }),
@@ -242,7 +306,7 @@ export async function judgeCommittee(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "gpt-4o-mini", // PINNED — never config-driven
+      model: JUDGE_MODEL, // PINNED — never config-driven
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userMessage },
@@ -260,5 +324,12 @@ export async function judgeCommittee(
   const data = (await res.json()) as {
     choices?: Array<{ message?: { content?: string } }>;
   };
-  return JSON.parse((data.choices?.[0]?.message?.content ?? "").trim());
+  const raw = (data.choices?.[0]?.message?.content ?? "").trim();
+  try {
+    return JSON.parse(raw);
+  } catch {
+    // Unguarded, a malformed committee verdict throws SyntaxError → the queue
+    // retries 3x → session FAILED with no readable cause. Name it instead.
+    throw new ProviderError("invalid_json_from_model", 500);
+  }
 }

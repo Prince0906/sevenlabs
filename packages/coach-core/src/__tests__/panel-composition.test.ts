@@ -7,6 +7,7 @@ import {
   evaluateDrill,
   finalizeVerdict,
   computeComposure,
+  computeResilience,
   selectOneRep,
   buildCommitteeMessage,
   COMMITTEE_DEBRIEF_PROMPT,
@@ -30,6 +31,7 @@ function metric(p: Partial<SpeechMetrics>): SpeechMetrics {
 describe("buildSeatRubric", () => {
   it("filters to the seat's owned LPs and embeds them + target + output spec", () => {
     const { systemPrompt, ownedLPs } = buildSeatRubric({
+      company: "amazon",
       ownedLPs: ["Ownership", "Bias for Action"],
       isBarRaiser: false,
       targetLevel: "SENIOR",
@@ -42,10 +44,28 @@ describe("buildSeatRubric", () => {
     expect(systemPrompt).not.toContain("Frugality"); // a non-owned LP is excluded
   });
 
-  it("throws on an LP name that is not a real Amazon LP", () => {
+  it("resolves the React/JS rubric and embeds the seat's owned competencies", () => {
+    const { systemPrompt } = buildSeatRubric({
+      company: "react",
+      ownedLPs: ["Closures & Scope", "State & the Re-render Model"],
+      isBarRaiser: false,
+      targetLevel: "SDE_II",
+    });
+    expect(systemPrompt).toContain("Closures & Scope");
+    expect(systemPrompt).toContain("State & the Re-render Model");
+    expect(systemPrompt).toContain("matchedLPs"); // identical output contract
+  });
+
+  it("throws on a competency name not in the company rubric", () => {
     expect(() =>
-      buildSeatRubric({ ownedLPs: ["Not An LP"], isBarRaiser: false, targetLevel: "SDE_II" })
+      buildSeatRubric({ company: "amazon", ownedLPs: ["Not An LP"], isBarRaiser: false, targetLevel: "SDE_II" })
     ).toThrow(/mismatch/);
+  });
+
+  it("throws on an unknown rubric company", () => {
+    expect(() =>
+      buildSeatRubric({ company: "nope", ownedLPs: [], isBarRaiser: false, targetLevel: "SDE_II" })
+    ).toThrow(/unknown rubric company/);
   });
 });
 
@@ -164,6 +184,40 @@ describe("computeComposure (frozen v1 Confidence Index)", () => {
     expect(computeComposure(turns, 4).composure).toBeGreaterThanOrEqual(
       computeComposure(turns, 3).composure
     );
+  });
+});
+
+describe("computeResilience (within-speaker warmup delta)", () => {
+  const clean = () => metric({});
+  const noisy = () => metric({ wpm: 105, fillerCount: 9, longestPauseMs: 2600 });
+  const erratic = () => metric({ wpm: 210, fillerCount: 11, longestPauseMs: 300 });
+
+  it("returns null below 4 usable turns (too short for a trustworthy delta)", () => {
+    expect(computeResilience([clean(), clean(), clean()], 3)).toBeNull();
+    // turns with no word timings don't count toward the 4-turn floor
+    expect(
+      computeResilience([clean(), clean(), clean(), metric({ wpm: 0, turnDurationSec: 0 })], 3)
+    ).toBeNull();
+  });
+
+  it("centers at 50 when composure holds steady across the session", () => {
+    const r = computeResilience([clean(), clean(), clean(), clean()], 3);
+    expect(r).not.toBeNull();
+    expect(r!.resilience).toBe(50);
+  });
+
+  it("scores below 50 when delivery degrades from the early baseline", () => {
+    const r = computeResilience([clean(), clean(), noisy(), erratic()], 3);
+    expect(r).not.toBeNull();
+    expect(r!.resilience).toBeLessThan(50);
+    expect(r!.pressureComposure).toBeLessThan(r!.baselineComposure);
+  });
+
+  it("scores above 50 when delivery sharpens under pressure", () => {
+    const r = computeResilience([noisy(), erratic(), clean(), clean()], 3);
+    expect(r).not.toBeNull();
+    expect(r!.resilience).toBeGreaterThan(50);
+    expect(r!.pressureComposure).toBeGreaterThan(r!.baselineComposure);
   });
 });
 

@@ -11,14 +11,6 @@ export const fadeUp: Variants = {
   },
 };
 
-export const fadeIn: Variants = {
-  initial: { opacity: 0 },
-  animate: {
-    opacity: 1,
-    transition: { duration: 0.2, ease: SOFT_EASE },
-  },
-};
-
 export const staggerContainer: Variants = {
   initial: {},
   animate: {

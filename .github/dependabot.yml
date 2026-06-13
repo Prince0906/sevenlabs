@@ -1,0 +1,36 @@
+version: 2
+updates:
+  # npm — the root manifest + lockfile cover packages/* (workspaces).
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: chore
+      include: scope
+    groups:
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
+    # Majors (e.g. Next 16->17, Prisma 7->8) open as individual PRs for review.
+
+  # GitHub Actions in the workflows (checkout, setup-node, docker/*,
+  # appleboy/*). This is the control that keeps the SHA-pinned third-party
+  # actions handling prod secrets up to date.
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: ci
+      include: scope
+    groups:
+      actions-minor-and-patch:
+        update-types:
+          - minor
+          - patch

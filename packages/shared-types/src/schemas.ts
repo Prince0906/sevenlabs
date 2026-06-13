@@ -27,12 +27,6 @@ export const createSessionRequestSchema = z.object({
   mode: coachingModeSchema.default("delivery"),
 });
 
-export const createSessionResponseSchema = z.object({
-  sessionId: z.string(),
-  openingCoachText: z.string(),
-  openingCoachAudioUrl: z.string().optional(),
-});
-
 export const turnCompleteRequestSchema = z.object({
   sessionId: z.string().min(1),
   clientTurnId: z.string().min(1),
@@ -61,44 +55,6 @@ export const turnCompleteResponseSchema = z.object({
   coachAudioUrl: z.string().optional(),
   duplicate: z.boolean().optional(),
   rubricScores: rubricScoresSchema.nullable().optional(),
-});
-
-export const wsClientTurnAudioSchema = z.object({
-  type: z.literal("turn_audio"),
-  clientTurnId: z.string().min(1),
-  base64: z.string().min(1),
-});
-
-export const wsServerTranscriptSchema = z.object({
-  type: z.literal("transcript"),
-  clientTurnId: z.string(),
-  transcript: z.string(),
-  words: z.array(wordTimestampSchema),
-});
-
-export const wsServerMetricsSchema = z.object({
-  type: z.literal("metrics"),
-  clientTurnId: z.string(),
-  metrics: speechMetricsSchema,
-});
-
-export const wsServerCoachTextSchema = z.object({
-  type: z.literal("coach_text"),
-  clientTurnId: z.string(),
-  coachText: z.string(),
-});
-
-export const wsServerCoachAudioSchema = z.object({
-  type: z.literal("coach_audio"),
-  clientTurnId: z.string(),
-  url: z.string(),
-});
-
-export const wsServerErrorSchema = z.object({
-  type: z.literal("error"),
-  code: z.string(),
-  message: z.string(),
-  clientTurnId: z.string().optional(),
 });
 
 export type WordTimestamp = z.infer<typeof wordTimestampSchema>;
