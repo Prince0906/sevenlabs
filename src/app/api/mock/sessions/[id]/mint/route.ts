@@ -14,7 +14,7 @@ import {
 } from "@sevenlabs/coach-core";
 import { spendCentsForElapsed, isSessionOver } from "@/lib/mock/spend";
 import { getResumeDigest } from "@/lib/mock/resume-digest";
-import { resolveSessionKey } from "@/lib/byok";
+import { resolveSessionKey, markKeyFromMintError } from "@/lib/byok";
 
 const bodySchema = z.object({
   // ttl_expiry / seat_handoff re-mint a LIVE session (no flip, no recharge);
@@ -178,10 +178,12 @@ export async function POST(
       }
       return NextResponse.json({ ephemeral });
     } catch (e) {
-      log.error("re-mint failed", {
-        sessionId: id,
-        status: e instanceof ProviderError ? e.status : 0,
-      });
+      const status = e instanceof ProviderError ? e.status : 0;
+      // Failure taxonomy (§3.5): a USER-key re-mint that 401/403/429s condemns the
+      // key (so it stops being retried and surfaces in settings). The session ends
+      // gracefully — the off-band judge runs on Aloud's key, report is never hostage.
+      if (mock.keySource === "USER") await markKeyFromMintError(userId, status);
+      log.error("re-mint failed", { sessionId: id, status });
       return NextResponse.json({ error: "Voice unavailable" }, { status: 502 });
     }
   } catch (err) {

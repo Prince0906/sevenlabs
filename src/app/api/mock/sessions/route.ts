@@ -14,7 +14,7 @@ import {
   settleReservation,
 } from "@/lib/mock/spend";
 import { getResumeDigest } from "@/lib/mock/resume-digest";
-import { resolveSessionKey } from "@/lib/byok";
+import { resolveSessionKey, markKeyFromMintError } from "@/lib/byok";
 
 const bodySchema = z.object({
   scenarioId: z.string().min(1),
@@ -182,15 +182,21 @@ export async function POST(request: Request) {
         },
       });
     } catch (e) {
+      const status = e instanceof ProviderError ? e.status : 0;
       await prisma.mockSession.update({
         where: { id: created.id },
         data: { status: "FAILED" },
       });
       await settleReservation(created.id, 0);
-      log.error("mint failed at create", {
-        sessionId: created.id,
-        status: e instanceof ProviderError ? e.status : 0,
-      });
+      // Failure taxonomy (§3.5): if this was the USER's key, condemn it so the
+      // next attempt falls to the house key and the green-room/settings show it.
+      if (isByok) await markKeyFromMintError(userId, status);
+      log.error("mint failed at create", { sessionId: created.id, status });
+      // A rejected/exhausted user key is a key problem, not a voice outage — tell
+      // the client distinctly so it can point the candidate at Settings.
+      if (isByok && (status === 401 || status === 403 || status === 429)) {
+        return NextResponse.json({ error: "KEY_REJECTED" }, { status: 402 });
+      }
       return NextResponse.json({ error: "Voice unavailable" }, { status: 502 });
     }
   } catch (err) {

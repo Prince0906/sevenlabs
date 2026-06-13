@@ -41,6 +41,30 @@ export async function resolveSessionKey(userId: string): Promise<ResolvedKey> {
   return { keySource: "USER", apiKey, apiKeyId: key.id };
 }
 
+/**
+ * Failure taxonomy (§3.5): when a mint fails on the USER key, condemn the key so
+ * the next session falls to the house key (resolveSessionKey is fail-closed on
+ * non-ACTIVE) and the green-room/settings surface it — never silently retry a
+ * dead key. 401/403 → INVALID, 429 → EXHAUSTED. A transient/5xx is NOT the key's
+ * fault, so it's left ACTIVE (the resume/retry path handles it).
+ */
+export async function markKeyFromMintError(
+  userId: string,
+  httpStatus: number
+): Promise<void> {
+  const status =
+    httpStatus === 401 || httpStatus === 403
+      ? "INVALID"
+      : httpStatus === 429
+        ? "EXHAUSTED"
+        : null;
+  if (!status) return;
+  await prisma.providerKey.updateMany({
+    where: { userId, provider: "OPENAI", status: "ACTIVE" },
+    data: { status },
+  });
+}
+
 export interface KeyCapabilities {
   realtime: boolean;
   ttlSec: number | null;

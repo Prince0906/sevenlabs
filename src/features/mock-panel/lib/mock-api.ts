@@ -58,6 +58,17 @@ export async function createSession(
   if (res.status === 503) return { kind: "capacity" };
   if (res.status === 429) return { kind: "rate-limited" };
   if (res.status === 502) return { kind: "voice-unavailable" };
+  // 402 KEY_REJECTED: the user's own key was rejected/exhausted at mint. It's now
+  // condemned server-side (next session falls to trial); give a key-specific
+  // message instead of a generic failure. (§3.5)
+  if (res.status === 402) {
+    return {
+      kind: "error",
+      status: 402,
+      message:
+        "Your OpenAI key was rejected or out of quota — update it in Settings, or run in trial mode.",
+    };
+  }
   return { kind: "error", status: res.status, message: errMsg(body, "Failed to start") };
 }
 

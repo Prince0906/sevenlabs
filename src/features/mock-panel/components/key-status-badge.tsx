@@ -47,6 +47,24 @@ export function KeyStatusBadge({
   if (!status || !status.byokEnabled) return null;
   const onOwnKey = status.exists && status.status === "ACTIVE";
 
+  // A stored key that's been condemned (INVALID/EXHAUSTED/REVOKED) — the session
+  // falls to the house key (resolveSessionKey is fail-closed), so say so plainly
+  // and point at Settings, rather than the generic "add your key" prompt. (§3.5)
+  if (status.exists && !onOwnKey) {
+    return (
+      <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+        <span aria-hidden className="size-1.5 rounded-full" style={{ backgroundColor: "var(--signal-newgrad)" }} />
+        <span>
+          Your saved key {status.status === "EXHAUSTED" ? "is out of quota" : "was rejected"} —
+          running in trial mode.{" "}
+          <Link href="/settings" className="underline underline-offset-2 hover:text-foreground">
+            Update it in Settings
+          </Link>
+        </span>
+      </div>
+    );
+  }
+
   if (!onOwnKey) {
     return (
       <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
