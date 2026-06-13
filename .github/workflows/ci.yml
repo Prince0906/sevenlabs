@@ -30,8 +30,8 @@ jobs:
     name: Lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
           node-version: 20
           cache: "npm"
@@ -42,8 +42,8 @@ jobs:
     name: Typecheck
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
           node-version: 20
           cache: "npm"
@@ -62,8 +62,8 @@ jobs:
       # syntactically valid URL when modules import it. Dummy, never connects.
       DATABASE_URL: "postgresql://user:pass@localhost:5432/db"
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
           node-version: 20
           cache: "npm"
@@ -71,7 +71,7 @@ jobs:
       - run: npm run test:coverage
       # vitest.config.ts always emits test-reports/junit.xml + an lcov report.
       # Keep them as an artifact for PR-failure triage (secret-free, optional).
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: test-reports
@@ -84,8 +84,8 @@ jobs:
       SKIP_ENV_VALIDATION: "true"
       DATABASE_URL: "postgresql://user:pass@localhost:5432/db"
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
           node-version: 20
           cache: "npm"
@@ -116,8 +116,8 @@ jobs:
       SHADOW_DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/shadow"
       DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/shadow"
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
           node-version: 20
           cache: "npm"

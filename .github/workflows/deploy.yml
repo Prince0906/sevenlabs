@@ -45,8 +45,8 @@ jobs:
       SKIP_ENV_VALIDATION: "true"
       DATABASE_URL: "postgresql://user:pass@localhost:5432/db"
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
           node-version: 20
           cache: "npm"
@@ -63,7 +63,7 @@ jobs:
     outputs:
       image: ${{ steps.img.outputs.image }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Compute lowercase image name
         id: img
         run: |
@@ -96,8 +96,8 @@ jobs:
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
           node-version: 20
           cache: "npm"
@@ -133,7 +133,7 @@ jobs:
           fi
 
       - name: Copy compose + Caddyfile to the box
-        uses: appleboy/scp-action@v0.1.7 # pin to commit SHA before going public
+        uses: appleboy/scp-action@v1.0.0 # pin to commit SHA before going public
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ec2-user
@@ -148,7 +148,7 @@ jobs:
       # AUTH_URL must equal the public https origin (https://<SITE_ADDRESS>) or
       # Auth.js mis-derives the OAuth callback behind Caddy's TLS.
       - name: Write env, pull, restart & health-check
-        uses: appleboy/ssh-action@v1.2.0 # pin to commit SHA before going public
+        uses: appleboy/ssh-action@v1.2.5 # pin to commit SHA before going public
         env:
           APP_IMAGE: ${{ needs.build.outputs.image }}
         with:
