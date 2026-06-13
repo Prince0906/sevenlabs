@@ -1,6 +1,6 @@
 # Aloud — Confidence Interview Engine (BYOK, Real-Time)
 
-**Status:** Canonical build plan. This document supersedes the six design lenses and adjudicates every contradiction the critics found. Where this doc and any prior plan disagree, this doc wins. Companion docs (ROADMAP.md, CONFIDENCE_DETECTION_PLAN.md, DEFENSIBILITY_PLAN.md) remain reference material.
+**Status:** Canonical build plan. This document supersedes the six design lenses and adjudicates every contradiction the critics found. Where this doc and any prior plan disagree, this doc wins. (The earlier deep-dive memos it superseded — ROADMAP, CONFIDENCE_*, DEFENSIBILITY_PLAN — were removed; they remain in git history.)
 
 ---
 

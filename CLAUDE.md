@@ -103,4 +103,4 @@ Prod is a **single AWS Free-Tier EC2 box** (t3.micro, Amazon Linux 2023, Elastic
 - **Surface uncertainty before coding.** If a task has multiple reasonable readings (e.g. "fix the orchestrator" — coach or panel?), ask.
 - **Goal-driven.** State the verification step (usually a specific `vitest` invocation) before implementing.
 
-Canonical docs: `ENGINEERING.md` / `ENGINEERING_EXPLAINED.md` (current system design), `INTERVIEW_ENGINE_PLAN.md` (binding decisions), `AUDIT_FINDINGS.md`; plus reference plans (`ROADMAP.md`, `CONFIDENCE_ENGINE_PLAN.md`, `DEFENSIBILITY_PLAN.md`).
+Canonical docs: `ENGINEERING.md` / `ENGINEERING_EXPLAINED.md` (current system design), `INTERVIEW_ENGINE_PLAN.md` (binding decisions), `AUDIT_FINDINGS.md` (audit evidence). Earlier planning memos (ROADMAP, CONFIDENCE_*, DEFENSIBILITY_PLAN) were removed as superseded — recover from git history if needed.
