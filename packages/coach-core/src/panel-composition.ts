@@ -158,7 +158,7 @@ export function finalizeVerdict(
   };
 }
 
-// --- Confidence Index (v1 = Composure only). FROZEN. SYSTEM_DESIGN §9. ---
+// --- Confidence Index (v1 = Composure only). FROZEN. ---
 export const DIFFICULTY_TO_INT = {
   WARMUP: 2,
   CALIBRATED: 3,
@@ -286,7 +286,7 @@ export function selectOneRep(
   return getFallbackDrillQuestion(company);
 }
 
-// --- Committee debrief (off-band, Aloud's pinned model). SYSTEM_DESIGN §8.3. ---
+// --- Committee debrief (off-band, Aloud's pinned model). ---
 export const COMMITTEE_DEBRIEF_PROMPT = `You are the hiring-committee debrief for a React/JavaScript interview panel. Several interviewers each scored their OWN competency areas independently; you synthesize their reads into one calibrated verdict. Do NOT re-score the candidate — weigh the independent reads, and weight the Bar Raiser (the highest-bar interviewer) heavily.
 
 Output a SINGLE JSON object with EXACTLY this shape:

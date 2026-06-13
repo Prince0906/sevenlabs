@@ -13,7 +13,7 @@ import type {
  * Typed bare-fetch wrappers for the 6 /api/mock routes. Each returns a result
  * DISCRIMINATED over both status code AND body shape, so the state machine can
  * branch without re-parsing. Matches the existing res.ok + res.json().catch
- * convention. (REALTIME_CLIENT_PLAN.md step 6.)
+ * convention.
  */
 const JSON_HEADERS = { "Content-Type": "application/json" };
 

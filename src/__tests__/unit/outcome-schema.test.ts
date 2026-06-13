@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { outcomeRequestSchema } from "@sevenlabs/shared-types";
 
-// A1 — Real-Outcome Capture contract (ROADMAP Inc 1). Locks the request shape the
+// A1 — Real-Outcome Capture contract. Locks the request shape the
 // /api/mock/sessions/:id/outcome route validates before writing a calibration row.
 describe("outcomeRequestSchema", () => {
   it("accepts a round-level result", () => {

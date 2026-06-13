@@ -7,14 +7,14 @@ const OPENAI_BASE = "https://api.openai.com/v1";
  * The PINNED judgment model — used by BOTH per-seat rubric scoring and the
  * committee. Exported so the verdict records which model produced it (provenance
  * for calibration). Never config-driven: cross-session comparability depends on
- * it staying fixed (SYSTEM_DESIGN §8.3).
+ * it staying fixed.
  */
 export const JUDGE_MODEL = "gpt-4o-mini";
 
 /**
  * Carries a stable code + HTTP status ONLY — never the provider response body,
  * which can echo the Authorization header / account info. This is the BYOK/realtime
- * safety contract (SYSTEM_DESIGN §16): no `await res.text()` into an Error message.
+ * safety contract: no `await res.text()` into an Error message.
  */
 export class ProviderError extends Error {
   constructor(
@@ -220,7 +220,7 @@ export async function synthesizeCoachSpeech(text: string): Promise<Buffer> {
  * The persona instructions are config-LOCKED here at mint. The browser opens the
  * WebRTC peer itself with `value` against `realtimeUrl` — Aloud is never in the
  * audio path. TTL is runtime-discovered from `expiresAt`, never hard-coded.
- * (SYSTEM_DESIGN §10. Realtime model is config-driven; the judge model is pinned.)
+ * (Realtime model is config-driven; the judge model is pinned.)
  */
 export async function mintRealtimeEphemeral(params: {
   instructions: string;
@@ -291,7 +291,6 @@ export async function mintRealtimeEphemeral(params: {
  * Committee debrief — a DEDICATED judgment call with raised max_tokens so the
  * verdict prose + rollup never truncates into invalid JSON. The judgment model
  * stays PINNED (never config-driven) for cross-session calibration comparability.
- * (SYSTEM_DESIGN §8.3)
  */
 export async function judgeCommittee(
   systemPrompt: string,

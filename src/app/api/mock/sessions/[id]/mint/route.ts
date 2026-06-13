@@ -36,7 +36,7 @@ function safetyId(userId: string): string {
  * provider's short token TTL on a long interview, or to resume one the browser
  * marked INTERRUPTED. No new global hold and no re-charge: the original
  * reservation already covers this session's metered minutes; we only refuse if
- * it has crossed the per-session ceiling. SYSTEM_DESIGN §15. */
+ * it has crossed the per-session ceiling. */
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }

@@ -49,7 +49,7 @@ function pickRecorderMime(): string | undefined {
  * The full client orchestration: create -> per-seat connect/handoff -> wrap ->
  * debrief-poll -> report, with every recovery path. The pure state machine
  * lives in panel-machine.ts (unit-tested); this hook performs the side effects
- * on phase entry and dispatches the results back. (REALTIME_CLIENT_PLAN.md.)
+ * on phase entry and dispatches the results back.
  */
 export function useMockPanel() {
   const [state, dispatch] = useReducer(panelReducer, undefined, initialPanelState);

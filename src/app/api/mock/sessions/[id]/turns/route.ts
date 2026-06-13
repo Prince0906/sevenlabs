@@ -23,7 +23,7 @@ const bodySchema = z.object({
 });
 
 /** Idempotent turn checkpoint. Server recomputes USER metrics from the word-span
- * (never wall-clock) and reconciles spend on the server clock. SYSTEM_DESIGN §4. */
+ * (never wall-clock) and reconciles spend on the server clock. */
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }

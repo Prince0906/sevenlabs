@@ -6,7 +6,7 @@ import { log } from "@/lib/log";
 const JUDGMENT_DEADLINE_SEC = 180;
 
 /** Poll: 202 while DEBRIEF (within deadline), 200 report when COMPLETED (ETag/304),
- * 200 FAILED past the deadline so the browser stops spinning. SYSTEM_DESIGN §14. */
+ * 200 FAILED past the deadline so the browser stops spinning. */
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }

@@ -13,7 +13,7 @@ const bodySchema = z.object({
 });
 
 /** CAS LIVE/INTERRUPTED → DEBRIEF and enqueue the JudgmentJob in ONE txn, so a
- * crash can't strand a DEBRIEF with no job. Kicks the queue post-response. §14. */
+ * crash can't strand a DEBRIEF with no job. Kicks the queue post-response. */
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }

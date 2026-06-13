@@ -135,7 +135,7 @@ model PracticeTurn {
 
 // ============================================================
 // Confidence Engine (real-time adversarial panel) — additive (P0)
-// See SYSTEM_DESIGN.md §11–§14. Everything above is untouched.
+// Everything above is untouched.
 // MockTurn.role reuses PracticeTurnRole; role=COACH means "interviewer seat".
 // ============================================================
 
@@ -198,7 +198,7 @@ enum JobStatus {
 
 // Real-world result of the interview this mock prepared for. The single label a
 // foundation model cannot manufacture — captured against our prior prediction so
-// the (prediction → outcome) pair is the calibration corpus. ROADMAP Inc 1 (A1).
+// the (prediction → outcome) pair is the calibration corpus. A1.
 enum InterviewOutcome {
   ADVANCED // moved to the next round
   REJECTED // did not advance
@@ -304,7 +304,7 @@ model MockTurn {
   transcript           String?          @db.Text
   metricsJson          Json?
   // Verbatim disfluency report (fillers/repeats/false-starts/pauses) from the
-  // Deepgram path; null when only the cleaning Whisper fallback ran. ROADMAP A1.
+  // Deepgram path; null when only the cleaning Whisper fallback ran. A1.
   disfluencyJson       Json?
   events               Json?
   transcriptionMissing Boolean          @default(false)
@@ -406,7 +406,7 @@ model JudgmentJob {
 }
 
 // One real-interview outcome per mock session. predicted* are snapshotted at
-// capture time so the labeled pair survives rubric/model churn (ROADMAP A1; the
+// capture time so the labeled pair survives rubric/model churn (A1; the
 // keystone the confidence calibration and the whole moat read from).
 model Outcome {
   id        String      @id @default(cuid())

@@ -37,7 +37,6 @@ describe("Application Integration", () => {
     it("should list all required env variables for deployment", () => {
       const requiredEnvVars = [
         "DATABASE_URL",
-        "APP_URL",
         "OPENAI_API_KEY",
         "AWS_ACCESS_KEY_ID",
         "AWS_SECRET_ACCESS_KEY",

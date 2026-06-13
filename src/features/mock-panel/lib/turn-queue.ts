@@ -11,7 +11,7 @@ import type { TurnResult, TurnPostBody } from "./mock-api";
  * race a duplicate. The payload is frozen by the caller at enqueue; retries
  * replay the byte-identical body. seatId is snapshotted by the caller BEFORE a
  * handoff advances the active seat, so a late COACH .done from a torn-down peer
- * keeps the correct (old) seat. (REALTIME_CLIENT_PLAN.md decision 6 + step 7.)
+ * keeps the correct (old) seat.
  */
 export interface FinalizedTurn {
   role: "USER" | "COACH";

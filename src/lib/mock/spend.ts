@@ -5,7 +5,7 @@ import { log } from "@/lib/log";
 /**
  * The ONE authoritative spend meter, keyed on SERVER wall-clock — never the
  * client-reported realtimeMsConsumed (a malicious client could report 0 to
- * defeat the ceiling). SYSTEM_DESIGN §13.
+ * defeat the ceiling).
  */
 
 function utcDayStart(): Date {

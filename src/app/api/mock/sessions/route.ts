@@ -78,7 +78,7 @@ export async function POST(request: Request) {
     // connection mid-panel leaves a row in LIVE/INTERRUPTED that nothing else
     // reaps, so it would trip the single-live cap forever. Past MAX_SESSION_SEC
     // a session is over the ceiling and can't even re-mint (see mint route), so
-    // it is definitively dead. SYSTEM_DESIGN §13.
+    // it is definitively dead.
     const staleCutoff = new Date(Date.now() - env.MAX_SESSION_SEC * 1000);
     const stale = await prisma.mockSession.findMany({
       where: {

@@ -2,7 +2,7 @@ import { z } from "zod";
 import { signalLevelSchema } from "./schemas";
 
 /**
- * Confidence-engine (real-time panel) schemas. See SYSTEM_DESIGN.md §5/§8/§9.
+ * Confidence-engine (real-time panel) schemas.
  * Frozen P0 ordinal map: the rubric scorer emits a SignalLevel per LP (no
  * numeric score), so DimensionScore.score is derived from this map.
  */
@@ -54,7 +54,7 @@ export const dimensionScoreSchema = z.object({
 });
 
 /** The committee verdict the judgment model must emit (validated, then the
- * deterministic veto override is applied in code — SYSTEM_DESIGN §8.4). */
+ * deterministic veto override is applied in code). */
 export const panelVerdictSchema = z.object({
   overallSignal: signalLevelSchema,
   inclination: inclinationSchema,
@@ -255,7 +255,7 @@ export const mockReportSchema = z.object({
   degradedDelivery: z.boolean().optional(),
 });
 
-// A1 — real-interview outcome capture (ROADMAP Inc 1). The one label a model
+// A1 — real-interview outcome capture. The one label a model
 // cannot manufacture; bound to the session's prior prediction for calibration.
 export const interviewOutcomeSchema = z.enum([
   "ADVANCED",

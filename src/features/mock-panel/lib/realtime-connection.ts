@@ -10,7 +10,7 @@ import { mapRealtimeEvent } from "./realtime-events";
  * ephemeral.value and NO ?model= (the model is bound to the ephemeral). On
  * data-channel open we send a session.update enabling input transcription +
  * semantic VAD (belt-and-suspenders over the mint config) and the caller waits
- * for onSessionUpdated before accepting speech. (REALTIME_CLIENT_PLAN.md step 8.)
+ * for onSessionUpdated before accepting speech.
  */
 export interface RealtimeCallbacks {
   onSessionUpdated?: () => void;

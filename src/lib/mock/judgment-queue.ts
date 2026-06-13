@@ -5,7 +5,7 @@ import { reapRateBuckets } from "./spend";
 import { log } from "@/lib/log";
 
 /**
- * Durable judgment queue (SYSTEM_DESIGN §14). `complete` writes a JudgmentJob in
+ * Durable judgment queue. `complete` writes a JudgmentJob in
  * the same txn as LIVE→DEBRIEF, so a crash can't strand a DEBRIEF with no job.
  * A boot sweep + interval re-claims PENDING jobs and RUNNING jobs whose lease
  * expired (a process that died mid-judgment) — `after()` alone dies on redeploy.

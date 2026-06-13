@@ -5,7 +5,6 @@ export const env = createEnv({
   server: {
     // Database
     DATABASE_URL: z.string().min(1),
-    APP_URL: z.string().default("http://localhost:3000"),
 
     // AWS S3 (audio storage — also used by Terraform for DevOps)
     AWS_ACCESS_KEY_ID: z.string().min(1),
@@ -29,7 +28,7 @@ export const env = createEnv({
     // Whisper (which cleans speech, so disfluency reads artificially low).
     DEEPGRAM_API_KEY: z.string().optional(),
 
-    // Confidence engine — real-time voice. Config-driven (see SYSTEM_DESIGN.md):
+    // Confidence engine — real-time voice. Config-driven:
     // realtime model/endpoints can change; judgment model stays pinned in code.
     // Defaults keep the env valid before these are set in prod.
     OPENAI_REALTIME_MODEL: z.string().default("gpt-realtime"),

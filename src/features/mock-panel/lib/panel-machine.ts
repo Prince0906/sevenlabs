@@ -4,7 +4,7 @@ import type { PanelSeatPublic, MockReport, MockStatusT } from "@sevenlabs/shared
  * Pure state machine for the live panel. No React, no I/O — the hook performs
  * side effects (mint/connect/post/timers) on phase transitions and dispatches
  * the result back as an action. Keeping it pure makes every transition +
- * recovery path unit-testable. (REALTIME_CLIENT_PLAN.md step 9.)
+ * recovery path unit-testable.
  */
 export type PanelPhase =
   | "idle"

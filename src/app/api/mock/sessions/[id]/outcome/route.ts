@@ -5,7 +5,7 @@ import { log } from "@/lib/log";
 import { outcomeRequestSchema } from "@sevenlabs/shared-types";
 
 /**
- * A1 — Real-Outcome Capture (ROADMAP Inc 1, the keystone).
+ * A1 — Real-Outcome Capture (the keystone).
  *
  * Records the real-world result of the interview this mock prepared for, bound to
  * the session's prior prediction. The (prediction → outcome) pair is the one

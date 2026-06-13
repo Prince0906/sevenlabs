@@ -3,7 +3,7 @@ import type { SignalLevel } from "@sevenlabs/shared-types";
 /**
  * The panel's seniority climb IS the color: seat 0 amber (New Grad), seat 1
  * blue (SDE II), seat 2 emerald (Senior / Bar Raiser). Color signifies the
- * panel advancing through you, never decoration. (REALTIME_CLIENT_PLAN.md UI.)
+ * panel advancing through you, never decoration.
  */
 export const SEAT_LEVELS: SignalLevel[] = ["NEW_GRAD", "SDE_II", "SENIOR"];
 

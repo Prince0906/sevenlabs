@@ -72,12 +72,11 @@ Validated by `src/lib/env.ts`. Copy `.env.example` → `.env` and fill in:
 
 | Variable | Default |
 |---|---|
-| `APP_URL` | `http://localhost:3000` |
 | `AWS_REGION` | `us-east-1` |
 | `OPENAI_REALTIME_MODEL` | `gpt-realtime` *(use a GA id, not a `*-preview` one)* |
 | `OPENAI_REALTIME_MINT_URL` | `…/v1/realtime/client_secrets` |
 | `OPENAI_REALTIME_URL` | `…/v1/realtime/calls` |
-| `SESSION_CEILING_USD` · `MAX_SESSION_SEC` · `DAILY_CAP_USD` · `REALTIME_USD_PER_MIN` | `4` · `2700` · `50` · `0.3` |
+| `SESSION_CEILING_USD` · `MAX_SESSION_SEC` · `DAILY_CAP_USD` · `REALTIME_USD_PER_MIN` | `4` · `3600` · `50` · `0.3` |
 
 ## Project layout
 

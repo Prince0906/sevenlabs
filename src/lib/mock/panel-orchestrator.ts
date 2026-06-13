@@ -77,7 +77,7 @@ async function scoreSeat(
 }
 
 /**
- * The off-band judgment pipeline (SYSTEM_DESIGN §5/§8/§9). Runs on Aloud's pinned
+ * The off-band judgment pipeline. Runs on Aloud's pinned
  * model, after the live session is DEBRIEF. Idempotent; throws on Bar-Raiser
  * failure so the queue can retry/FAIL rather than emit a verdict missing the veto.
  */
@@ -302,7 +302,7 @@ export async function runJudgment(sessionId: string): Promise<void> {
       : []),
   ]);
 
-  // Reconcile the daily spend hold (server-clock cost; SYSTEM_DESIGN §13).
+  // Reconcile the daily spend hold (server-clock cost).
   await settleReservation(sessionId, (session.spendCents ?? 0) / 100);
 
   log.info("panel judgment complete", {

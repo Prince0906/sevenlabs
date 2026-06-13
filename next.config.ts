@@ -4,7 +4,7 @@ import type { NextConfig } from "next";
 // which needs per-request nonce wiring in middleware — the P1 gate before BYOK).
 // `frame-ancestors 'none'` is the meaningful one for a credential-bearing app:
 // it blocks clickjacking of the sign-in / live-session UI. `microphone=(self)`
-// keeps the realtime mic grant first-party only. SYSTEM_DESIGN §21.
+// keeps the realtime mic grant first-party only.
 const securityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "X-Frame-Options", value: "DENY" },
