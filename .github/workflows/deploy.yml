@@ -148,7 +148,7 @@ jobs:
       # AUTH_URL must equal the public https origin (https://<SITE_ADDRESS>) or
       # Auth.js mis-derives the OAuth callback behind Caddy's TLS.
       - name: Write env, pull, restart & health-check
-        uses: appleboy/ssh-action@v1.2.0 # pin to commit SHA before going public
+        uses: appleboy/ssh-action@v1.2.5 # pin to commit SHA before going public
         env:
           APP_IMAGE: ${{ needs.build.outputs.image }}
         with:
