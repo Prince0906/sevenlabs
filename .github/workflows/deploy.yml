@@ -1,21 +1,49 @@
-name: CI/CD Pipeline
+name: Deploy
+
+# Maintainer-only CD. Runs ONLY on push to main (a PR or a fork can never reach
+# it). Builds the image, pushes to GHCR, migrates the external Prisma cloud DB,
+# then rolls the single EC2 box behind Caddy. All secrets live here and nowhere
+# else. Contributor gates (lint/typecheck/test/build/drift) live in ci.yml.
+#
+# Red-commit safety has TWO layers: branch protection requires the CI checks on
+# the PR (see CONTRIBUTING / branchProtection), AND the `gate` job below re-runs
+# the cheap checks so a red main physically cannot ship even if branch
+# protection is ever misconfigured.
+#
+# Do NOT enable ACTIONS_STEP_DEBUG on this workflow: it can surface secret
+# values that are otherwise masked.
+#
+# NOTE (supply chain): before making the repo public, replace each third-party
+# action tag below with its 40-char commit SHA (e.g.
+# `docker/login-action@<sha> # v3.3.0`). Dependabot (github-actions ecosystem)
+# will then keep the pins current. First-party actions/* stay on major tags.
 
 on:
   push:
     branches: ["main"]
-  pull_request:
-    branches: ["main"]
 
+# One deploy at a time, and NEVER cancel one mid-roll (a cancelled deploy can
+# leave a pulled-but-not-restarted image or a half-written .env). Queue instead.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+# Least privilege: read the repo, write the GHCR package. Nothing else.
 permissions:
   contents: read
-  checks: write
   packages: write
 
 jobs:
-  # ── Phase 1 — Lint ────────────────────────────────────────────────
-  lint:
-    name: "Phase 1a - Lint"
+  # Belt-and-suspenders: re-run the cheap gate from this exact commit so a red
+  # main can't deploy even if branch protection is off. (Full coverage suite;
+  # build/drift are covered by branch protection on the PR.)
+  gate:
+    name: Re-gate before deploy
     runs-on: ubuntu-latest
+    if: github.repository == 'Prince0906/sevenlabs'
+    env:
+      SKIP_ENV_VALIDATION: "true"
+      DATABASE_URL: "postgresql://user:pass@localhost:5432/db"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -23,37 +51,48 @@ jobs:
           node-version: 20
           cache: "npm"
       - run: npm ci
-      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run test:coverage
 
-  # ── Phase 1 — Tests ───────────────────────────────────────────────
-  test:
-    name: "Phase 1b - Tests"
+  # Build & push the image FIRST, so a build failure never touches the prod DB.
+  build:
+    name: Build & push image
+    needs: gate
     runs-on: ubuntu-latest
+    if: github.repository == 'Prince0906/sevenlabs'
+    outputs:
+      image: ${{ steps.img.outputs.image }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Compute lowercase image name
+        id: img
+        run: |
+          name="ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')"
+          echo "image=${name}:${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          echo "name=${name}" >> "$GITHUB_OUTPUT"
+      - name: Log in to GHCR
+        uses: docker/login-action@v3 # pin to commit SHA before going public
         with:
-          node-version: 20
-          cache: "npm"
-      - run: npm ci
-      - name: Run unit & integration tests
-        run: npm run test:ci
-        env:
-          SKIP_ENV_VALIDATION: "true"
-      - name: Upload test reports
-        uses: actions/upload-artifact@v4
-        if: always()
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build & push
+        uses: docker/build-push-action@v6 # pin to commit SHA before going public
         with:
-          name: test-reports
-          path: test-reports/
+          context: .
+          push: true
+          tags: |
+            ${{ steps.img.outputs.name }}:latest
+            ${{ steps.img.outputs.image }}
 
-  # ── Phase 2 — Apply DB migrations (idempotent) ────────────────────
-  # Runs before deploy so the schema is current before the new code serves.
+  # DB migrations run AFTER the image is proven buildable, BEFORE the box
+  # restarts — so the schema is current before the new code serves, and a failed
+  # build never leaves the DB ahead of the running image. Idempotent.
   migrate:
-    name: "Phase 2 - DB migrations"
-    needs: [lint, test]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    name: Apply DB migrations
+    needs: build
     runs-on: ubuntu-latest
+    if: github.repository == 'Prince0906/sevenlabs'
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
     steps:
@@ -66,37 +105,35 @@ jobs:
       - run: npx prisma migrate deploy
       - run: npx prisma migrate status
 
-  # ── Phase 3 — Build image, push to GHCR, deploy to the EC2 box ────
   deploy:
-    name: "Phase 3 - Build & deploy to EC2"
+    name: Roll the EC2 box
     needs: migrate
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    if: github.repository == 'Prince0906/sevenlabs'
+    # GitHub Environment with required reviewers is the real human approval gate
+    # for this secrets-bearing job — configure its protection rules in repo
+    # Settings -> Environments -> production (see branchProtection).
+    environment: production
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Compute lowercase image name
-        id: img
-        run: echo "name=ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
-
-      - name: Log in to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build & push image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          push: true
-          tags: |
-            ${{ steps.img.outputs.name }}:latest
-            ${{ steps.img.outputs.name }}:${{ github.sha }}
+      # Fail fast if the BYOK key-encryption secret is missing: without it the
+      # app boots but /api/keys returns 503 and BYOK silently dies in prod.
+      # (It must also be >= 32 chars or the app's own Zod env rejects it.)
+      - name: Assert required secrets are present
+        env:
+          KEY_ENCRYPTION_SECRET: ${{ secrets.KEY_ENCRYPTION_SECRET }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+        run: |
+          for v in KEY_ENCRYPTION_SECRET DATABASE_URL OPENAI_API_KEY AUTH_SECRET; do
+            if [ -z "${!v}" ]; then echo "::error::$v is unset"; exit 1; fi
+          done
+          if [ "${#KEY_ENCRYPTION_SECRET}" -lt 32 ]; then
+            echo "::error::KEY_ENCRYPTION_SECRET must be >= 32 chars"; exit 1
+          fi
 
       - name: Copy compose + Caddyfile to the box
-        uses: appleboy/scp-action@v0.1.7
+        uses: appleboy/scp-action@v0.1.7 # pin to commit SHA before going public
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ec2-user
@@ -105,31 +142,69 @@ jobs:
           target: "/opt/sevenlabs"
           strip_components: 1
 
-      - name: Write env + pull + restart
-        uses: appleboy/ssh-action@v1.2.0
+      # Secrets are forwarded as named SSH env vars (envs:) — they are NOT
+      # interpolated into the script string, so they never render into a logged
+      # command. The box writes its own .env from those vars under umask 077.
+      # AUTH_URL must equal the public https origin (https://<SITE_ADDRESS>) or
+      # Auth.js mis-derives the OAuth callback behind Caddy's TLS.
+      - name: Write env, pull, restart & health-check
+        uses: appleboy/ssh-action@v1.2.0 # pin to commit SHA before going public
+        env:
+          APP_IMAGE: ${{ needs.build.outputs.image }}
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
+          envs: APP_IMAGE,SITE_ADDRESS,DATABASE_URL,OPENAI_API_KEY,KEY_ENCRYPTION_SECRET,AUTH_SECRET,AUTH_URL,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,S3_BUCKET_NAME,AWS_REGION,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY
+          envs_format: 'export {NAME}={VALUE}'
+          SITE_ADDRESS: ${{ secrets.SITE_ADDRESS }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          KEY_ENCRYPTION_SECRET: ${{ secrets.KEY_ENCRYPTION_SECRET }}
+          AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+          AUTH_URL: ${{ secrets.AUTH_URL }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           script: |
             set -euo pipefail
             cd /opt/sevenlabs
-            cat > .env <<'ENVEOF'
+            umask 077
+            cat > .env <<ENVEOF
             NODE_ENV=production
             PORT=3000
-            APP_IMAGE=${{ steps.img.outputs.name }}:${{ github.sha }}
-            SITE_ADDRESS=${{ secrets.SITE_ADDRESS }}
-            DATABASE_URL=${{ secrets.DATABASE_URL }}
-            OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
-            AUTH_SECRET=${{ secrets.AUTH_SECRET }}
-            AUTH_URL=${{ secrets.AUTH_URL }}
-            GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
-            GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
-            S3_BUCKET_NAME=${{ secrets.S3_BUCKET_NAME }}
-            AWS_REGION=${{ secrets.AWS_REGION }}
-            AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
-            AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            APP_IMAGE=${APP_IMAGE}
+            SITE_ADDRESS=${SITE_ADDRESS}
+            DATABASE_URL=${DATABASE_URL}
+            OPENAI_API_KEY=${OPENAI_API_KEY}
+            KEY_ENCRYPTION_SECRET=${KEY_ENCRYPTION_SECRET}
+            AUTH_SECRET=${AUTH_SECRET}
+            AUTH_URL=${AUTH_URL}
+            GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+            GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+            S3_BUCKET_NAME=${S3_BUCKET_NAME}
+            AWS_REGION=${AWS_REGION}
+            AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+            AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
             ENVEOF
             docker compose pull
             docker compose up -d
             docker image prune -f
+
+            # Health gate: poll /api/health (returns 503 while Postgres is
+            # unreachable) through the running container until 200, or fail the
+            # deploy after ~90s (longer than the image's 60s HEALTHCHECK
+            # start-period). On failure, dump logs for triage.
+            echo "Waiting for app health..."
+            for i in $(seq 1 30); do
+              if docker compose exec -T app wget -q -O- http://localhost:3000/api/health >/dev/null 2>&1; then
+                echo "Healthy."; exit 0
+              fi
+              sleep 3
+            done
+            echo "::error::App did not become healthy in ~90s."
+            docker compose logs --tail=80 app
+            exit 1

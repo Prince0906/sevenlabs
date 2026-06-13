@@ -6,18 +6,44 @@ Thanks for contributing! This guide covers setup, conventions, and the checks ev
 
 Follow the Quick Start in [README.md](README.md): `npm install`, copy `.env.example` → `.env`, `npm run db:push && npm run prisma:seed`, then `npm run dev`.
 
-## The gate — run before every push
+## CI/CD
 
-Every change must keep all four green:
+Every pull request runs one workflow — **CI** (`.github/workflows/ci.yml`). It
+runs on every PR, including from forks, and needs **no secrets**. Five checks
+must be green to merge:
+
+| Check | What it means | Reproduce locally |
+|---|---|---|
+| **Lint** | ESLint passes (incl. `no-console` — secrets must go through `redact()`). | `npm run lint` |
+| **Typecheck** | `tsc --noEmit` compiles the whole repo. | `npm run typecheck` |
+| **Tests + coverage gate** | Vitest suite passes **and** coverage doesn't regress (the threshold is a ratchet — see [`TESTING.md`](TESTING.md)). | `npm run test:coverage` |
+| **Clean build** | `next build` succeeds from a fresh `npm ci` — catches a `HEAD` that imports an untracked file. | `npm run build` |
+| **Schema/migration drift** | `prisma/schema.prisma` matches the committed migrations. If you changed the schema, add a migration. | `npx prisma migrate diff --from-migrations prisma/migrations --to-schema prisma/schema.prisma --exit-code` |
+
+### One command before you push
 
 ```bash
-npx tsc --noEmit                        # types
-npm run lint                            # ESLint
-SKIP_ENV_VALIDATION=true npm test       # Vitest
-SKIP_ENV_VALIDATION=true npm run build  # production build
+npm run verify
 ```
 
-Run a single test file with `npx vitest run path/to/file.test.ts`, or by name with `npx vitest run -t "name of test"`.
+This runs **lint → typecheck → tests+coverage → build** with the exact env CI
+uses. If `verify` is green locally, CI will be green too. (Schema-drift isn't in
+`verify` because it needs a throwaway Postgres; run the `prisma migrate diff`
+above only if you touched the schema.) Run a single test file with
+`npx vitest run path/to/file.test.ts`, or by name with `-t "name of test"`.
+
+### Merging
+
+A PR merges once **all five CI checks are green** and a maintainer approves. CI
+runs automatically — you don't configure anything.
+
+### Deployment (maintainers only)
+
+Deploys are **automatic and out of a contributor's hands**. When a PR merges to
+`main`, the **Deploy** workflow (`.github/workflows/deploy.yml`) re-gates the
+commit, builds the Docker image, pushes it to GHCR, applies DB migrations, and
+rolls the app on our single EC2 box. It uses maintainer-only secrets and
+**never runs on a PR or a fork** — you never touch it. See [`DEPLOY.md`](DEPLOY.md).
 
 ## Branches & commits
 
@@ -41,8 +67,10 @@ Vitest. Tests live next to the logic they cover (`packages/coach-core/src/__test
 
 ## Docs
 
-If you change what we're building or the order, update [`ROADMAP.md`](ROADMAP.md) (the single source of truth). Update `CLAUDE.md` if it's a working instruction for future contributors. The deep-dive references ([`DEFENSIBILITY_PLAN.md`](DEFENSIBILITY_PLAN.md), [`CONFIDENCE_DETECTION_PLAN.md`](CONFIDENCE_DETECTION_PLAN.md), [`CONFIDENCE_ENGINE_PLAN.md`](CONFIDENCE_ENGINE_PLAN.md)) are point-in-time records — leave them as-is.
+If you change what we're building or the order, update [`ENGINEERING.md`](ENGINEERING.md) (system design + sequenced roadmap) or [`INTERVIEW_ENGINE_PLAN.md`](INTERVIEW_ENGINE_PLAN.md) (product/feature plan) — whichever the change affects. Update `CLAUDE.md` if it's a working instruction for future contributors.
 
 ## Reporting issues & security
 
-Open a GitHub issue for bugs and feature requests. For anything security-sensitive (API keys, spend, auth), email `support@aloud.app` rather than filing a public issue.
+Open a GitHub issue for bugs and feature requests. For anything
+security-sensitive (BYOK keys, spend, auth, secrets), follow
+[`SECURITY.md`](SECURITY.md) — report privately, never in a public issue.

@@ -1,12 +1,15 @@
 # Aloud
 
+[![CI](https://github.com/Prince0906/sevenlabs/actions/workflows/ci.yml/badge.svg)](https://github.com/Prince0906/sevenlabs/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 **Interview prep, out loud.** Voice-first FAANG behavioral interview practice that scores your answers against the company's real rubric and tells you whether you read as **New Grad, SDE II, or Senior** — built to grow your confidence speaking under pressure.
 
 Two surfaces:
 - **Speaking Coach** — turn-based: record an answer → transcript → delivery + rubric feedback (spoken back).
 - **Bar-Raiser Panel** — real-time: three AI interviewers in a live voice loop, then a committee verdict.
 
-**Source of truth:** product/feature plan is [`INTERVIEW_ENGINE_PLAN.md`](INTERVIEW_ENGINE_PLAN.md); system design + long-run maintenance is [`ENGINEERING.md`](ENGINEERING.md), with a plain-English companion in [`ENGINEERING_EXPLAINED.md`](ENGINEERING_EXPLAINED.md) and the audit evidence in [`AUDIT_FINDINGS.md`](AUDIT_FINDINGS.md). The active product is the **Bar-Raiser Panel**; the **Speaking Coach** is a parked surface (kept, not currently invested in). Earlier plans — [`ROADMAP.md`](ROADMAP.md), [`DEFENSIBILITY_PLAN.md`](DEFENSIBILITY_PLAN.md), [`CONFIDENCE_DETECTION_PLAN.md`](CONFIDENCE_DETECTION_PLAN.md), [`CONFIDENCE_ENGINE_PLAN.md`](CONFIDENCE_ENGINE_PLAN.md) — are superseded references. Working notes are in [`CLAUDE.md`](CLAUDE.md).
+**Source of truth:** product/feature plan is [`INTERVIEW_ENGINE_PLAN.md`](INTERVIEW_ENGINE_PLAN.md); system design + long-run maintenance is [`ENGINEERING.md`](ENGINEERING.md), with a plain-English companion in [`ENGINEERING_EXPLAINED.md`](ENGINEERING_EXPLAINED.md) and the audit evidence in [`AUDIT_FINDINGS.md`](AUDIT_FINDINGS.md). The active product is the **Bar-Raiser Panel**; the **Speaking Coach** is a parked surface (kept, not currently invested in). Working notes are in [`CLAUDE.md`](CLAUDE.md).
 
 ## Prerequisites
 
@@ -46,8 +49,9 @@ npm run dev                 # → http://localhost:3000
 | `npx prisma migrate deploy` | apply migrations (production) |
 | `npm run prisma:seed` | seed the scenario + interviewer seats |
 | `npm test` · `npm run test:watch` | run Vitest once · in watch mode |
-| `npm run test:coverage` | tests with coverage |
-| `npm run lint` | ESLint |
+| `npm run test:coverage` | tests with the coverage gate |
+| `npm run lint` · `npm run typecheck` | ESLint · `tsc --noEmit` |
+| **`npm run verify`** | **the full CI gate locally** (lint → typecheck → tests+coverage → build) — run before every push |
 | `npm run copy:vad` | re-copy the VAD assets to `public/vad/` |
 
 ## Environment

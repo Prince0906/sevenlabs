@@ -1,24 +1,33 @@
-name: CI gates
+name: CI
 
-# Cheap, fast guardrails that run on every PR and on pushes to main.
-# These catch the failure classes that mocked unit tests structurally cannot:
-#   - typecheck: a clean `tsc --noEmit` over the whole repo
-#   - build:     a clean-clone `npm ci && next build` (catches "HEAD imports an
-#                untracked/uncommitted file" — i.e. a fresh checkout that won't compile)
-# The Prisma schema/migration drift gate is added alongside the catch-up
-# migration (it needs a throwaway Postgres for the shadow database).
+# The single contributor-facing gate. Runs on every PR (including from forks)
+# and on pushes to main. Fork-safe by design: NO secrets are read here.
+# Deployment (GHCR build, EC2 SSH, prisma migrate deploy) lives in deploy.yml,
+# runs main-only, and is the ONLY place secrets appear.
+#
+# Reproduce the whole gate locally with `npm run verify` (everything except
+# schema-drift, which needs a throwaway Postgres).
 
 on:
   push:
     branches: ["main"]
   pull_request:
 
+# Cancel superseded in-progress runs on the SAME PR branch to save minutes.
+# main pushes are NOT cancelled (the ref is part of the group, and a main run
+# finishing matters): a second push to main starts its own run instead of
+# killing the first.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+# Least privilege: CI only reads the repo. No packages/checks/etc.
 permissions:
   contents: read
 
 jobs:
-  typecheck:
-    name: Typecheck (tsc --noEmit)
+  lint:
+    name: Lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -26,12 +35,54 @@ jobs:
         with:
           node-version: 20
           cache: "npm"
+      - run: npm ci # postinstall runs `prisma generate && copy:vad`
+      - run: npm run lint
+
+  typecheck:
+    name: Typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+      - run: npm ci # `prisma generate` writes src/generated/prisma, which tsc needs
+      - run: npm run typecheck
+
+  test:
+    name: Tests + coverage gate
+    runs-on: ubuntu-latest
+    # Full Vitest suite with coverage. The per-layer thresholds in
+    # vitest.config.ts (TESTING.md) fail the build on a regression — a ratchet,
+    # not a vanity number. This is the ONLY test job in the whole pipeline.
+    env:
+      SKIP_ENV_VALIDATION: "true"
+      # Zod env is bypassed above; the Prisma datasource still wants a
+      # syntactically valid URL when modules import it. Dummy, never connects.
+      DATABASE_URL: "postgresql://user:pass@localhost:5432/db"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
       - run: npm ci
-      - run: npx tsc --noEmit
+      - run: npm run test:coverage
+      # vitest.config.ts always emits test-reports/junit.xml + an lcov report.
+      # Keep them as an artifact for PR-failure triage (secret-free, optional).
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-reports
+          path: test-reports/
 
   build:
-    name: Clean build (npm ci && next build)
+    name: Clean build
     runs-on: ubuntu-latest
+    env:
+      SKIP_ENV_VALIDATION: "true"
+      DATABASE_URL: "postgresql://user:pass@localhost:5432/db"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -40,19 +91,15 @@ jobs:
           cache: "npm"
       - run: npm ci
       - run: npm run build
-        env:
-          SKIP_ENV_VALIDATION: "true"
-          # Build never connects, but the Prisma datasource wants a syntactically
-          # valid URL present at build time.
-          DATABASE_URL: "postgresql://user:pass@localhost:5432/db"
 
   schema-drift:
-    name: Schema/migration drift (prisma migrate diff)
+    name: Schema/migration drift
     runs-on: ubuntu-latest
-    # Replays every committed migration into a throwaway Postgres and diffs the
-    # result against prisma/schema.prisma. Fails (exit 2) if the schema has been
-    # changed without a matching migration — i.e. the `db:push` drift that left
-    # the moat tables out of prod. The shadow DB is the service below.
+    # Replays every committed migration into a throwaway Postgres (the service
+    # below — this is the shadow DB and IS load-bearing: --from-migrations
+    # connects to it to replay SQL) and diffs the result against
+    # prisma/schema.prisma. Fails (exit 2) if the schema drifted from the
+    # committed migrations — i.e. a `db:push` that skipped a migration.
     services:
       postgres:
         image: postgres:16
@@ -67,8 +114,6 @@ jobs:
           --health-retries 5
     env:
       SHADOW_DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/shadow"
-      # migrate diff --from-migrations/--to-schema doesn't connect here, but the
-      # Prisma config evaluates DATABASE_URL — give it a syntactically valid one.
       DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/shadow"
     steps:
       - uses: actions/checkout@v4
