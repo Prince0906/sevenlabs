@@ -13,11 +13,11 @@ Two surfaces:
 
 ## Prerequisites
 
-- **Node.js 20.9+** (LTS) and npm
+- **Node.js 22+** (active LTS) and npm
 - A **PostgreSQL** database
 - An **OpenAI API key** — with Realtime access (and a GA realtime model) for the panel
-- An **AWS S3** bucket + credentials (stores practice audio)
 - **Google OAuth** credentials (for Google sign-in; email/password sign-up also works)
+- *(Optional)* An **AWS S3** bucket + credentials — only the parked **Speaking Coach** stores audio in S3; the **interview panel needs no AWS at all**
 
 ## Quick start
 
@@ -66,12 +66,12 @@ Validated by `src/lib/env.ts`. Copy `.env.example` → `.env` and fill in:
 | `OPENAI_API_KEY` | Whisper / GPT / TTS + Realtime |
 | `AUTH_SECRET` | Auth.js session secret (`openssl rand -base64 32`) |
 | `GOOGLE_CLIENT_ID` · `GOOGLE_CLIENT_SECRET` | Google OAuth |
-| `AWS_ACCESS_KEY_ID` · `AWS_SECRET_ACCESS_KEY` · `S3_BUCKET_NAME` | audio storage |
 
 **Optional (sensible defaults)**
 
 | Variable | Default |
 |---|---|
+| `AWS_ACCESS_KEY_ID` · `AWS_SECRET_ACCESS_KEY` · `S3_BUCKET_NAME` | **coach-only** audio storage — leave unset to run the panel with no AWS |
 | `AWS_REGION` | `us-east-1` |
 | `OPENAI_REALTIME_MODEL` | `gpt-realtime` *(use a GA id, not a `*-preview` one)* |
 | `OPENAI_REALTIME_MINT_URL` | `…/v1/realtime/client_secrets` |
