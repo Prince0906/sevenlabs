@@ -128,20 +128,49 @@ These live in **GitHub settings / your cloud accounts**, not in code, so the rep
 can't do them for you. Do them **before** relying on the pipeline or making the
 repo public.
 
-### A. Branch protection on `main` — **do this first**
+### A. Branch protection on `main`
 
-Settings → Branches → add a rule for `main`:
-- **Require a pull request before merging** (≥ 1 approval).
-- **Require status checks to pass** — add these **five**, names must match exactly:
+A branch protection rule blocks unsafe changes to `main`: no direct pushes, PRs
+can't merge with failing checks, etc. Without it the CI checks still *run* but
+aren't *required* — a red PR can still be merged (the Deploy `gate` job is a
+backstop, not a replacement). It's optional while the repo is solo/pre-launch,
+but set it up before the repo gets real contributor traffic.
+
+**Two gotchas to avoid first:**
+
+1. **Status-check names must match EXACTLY.** Requiring a check name that never
+   runs (a typo, or an old name from before the workflow rename) leaves every PR
+   stuck on *"Expected — waiting for status to be reported"* and **unmergeable**.
+   Add exactly the five names below. They only appear in the picker after CI has
+   run at least once on the repo (e.g. on a recent PR).
+2. **The solo-maintainer self-approval trap.** If you require a PR **and** set
+   *Required approvals ≥ 1*, you lock yourself out — GitHub won't let you approve
+   your own PR and there's no one else to. As the sole maintainer set
+   **Required approvals = 0** (you still open a PR, but can merge it yourself), or
+   add yourself to a bypass list.
+
+**Recommended (light) setup — Settings → Branches → Add branch protection rule:**
+- **Branch name pattern:** `main`
+- ✅ **Require a pull request before merging**
+  - **Required approvals: 0** (avoid the self-approval trap)
+  - ⬜ Leave *"Require review from Code Owners"* OFF (CODEOWNERS exists; enabling
+    it demands your own approval — same lock-out)
+- ✅ **Require status checks to pass before merging** — add these **five**, exact:
   - `Lint`
   - `Typecheck`
   - `Tests + coverage gate`
   - `Clean build`
   - `Schema/migration drift`
-- **Require branches to be up to date before merging.**
+  - (optional) ✅ *Require branches to be up to date before merging*
+- ⬜ Leave *"Do not allow bypassing the above settings"* OFF for now (keeps an
+  admin override; tick it later for strict discipline)
 
-Without this, the CI checks run but aren't *required* — a red PR could still be
-merged. (The Deploy `gate` job is a backstop, not a replacement.)
+> Newer GitHub UI: the same lives under **Settings → Rules → Rulesets → New branch
+> ruleset** (Enforcement: Active; Target: default branch; add the PR + status-check
+> rules; add yourself to the Bypass list). Either system works.
+
+**When contributors arrive:** bump *Required approvals* to 1, optionally enable
+code-owner review and "include administrators."
 
 ### B. Create the `production` Environment
 
