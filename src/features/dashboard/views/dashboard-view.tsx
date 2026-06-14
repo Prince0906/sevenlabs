@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/page-header";
 import { pageTransition } from "@/lib/motion";
 import type { CockpitData } from "@/lib/coach/aggregate-types";
@@ -20,15 +21,57 @@ import {
 
 interface DashboardViewProps {
   data: CockpitData;
+  hasPanels: boolean;
   interviewDateIso: string | null;
   pendingOutcomes: PendingOutcome[];
 }
 
 export function DashboardView({
   data,
+  hasPanels,
   interviewDateIso,
   pendingOutcomes,
 }: DashboardViewProps) {
+  // First-run: a brand-new user (no panels yet) gets one confident invitation
+  // into the live room, not a cockpit of empty em-dashes pointing at the
+  // parked coach.
+  if (!hasPanels) {
+    return (
+      <div className="flex flex-1 flex-col">
+        <PageHeader title="Dashboard" className="lg:hidden" />
+        <div className="flex-1 overflow-y-auto">
+          <motion.div
+            variants={pageTransition}
+            initial="initial"
+            animate="animate"
+            className="mx-auto max-w-5xl space-y-10 p-6 lg:p-12"
+          >
+            <CockpitGreeting
+              targetCompany={data.targetCompany}
+              daysToInterview={data.daysToInterview}
+              interviewDateIso={interviewDateIso}
+            />
+            <div className="rounded-xl border bg-card p-8 text-center sm:p-12">
+              <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+                Your first interview
+              </p>
+              <h2 className="mx-auto mt-3 max-w-xl font-display text-3xl font-semibold tracking-tight sm:text-4xl">
+                Step into the room when you&apos;re ready.
+              </h2>
+              <p className="mx-auto mt-3 max-w-md text-[15px] leading-relaxed text-muted-foreground">
+                A live, three-interviewer panel scores you against the real bar — and
+                shows you exactly where you stand. About 15 minutes.
+              </p>
+              <Button size="xl" asChild className="mt-7">
+                <Link href="/mock">Start my first panel</Link>
+              </Button>
+            </div>
+          </motion.div>
+        </div>
+      </div>
+    );
+  }
+
   const seniorLPs = masterySeniorLPs(data.mastery);
 
   return (

@@ -11,7 +11,7 @@ export default async function DashboardPage() {
     redirect("/sign-in");
   }
 
-  const [data, user, pending] = await Promise.all([
+  const [data, user, pending, panelCount] = await Promise.all([
     getCockpitData(userId),
     prisma.user.findUnique({
       where: { id: userId },
@@ -25,11 +25,16 @@ export default async function DashboardPage() {
       orderBy: { endedAt: "desc" },
       take: 5,
     }),
+    // Has this user ever run a panel? Drives the first-run zero-state below —
+    // a brand-new user gets one confident "start your first interview" hero
+    // instead of an empty cockpit of em-dashes.
+    prisma.mockSession.count({ where: { userId } }),
   ]);
 
   return (
     <DashboardView
       data={data}
+      hasPanels={panelCount > 0}
       interviewDateIso={user?.interviewDate?.toISOString() ?? null}
       pendingOutcomes={pending.map((s) => ({
         id: s.id,
