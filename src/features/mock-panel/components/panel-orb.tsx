@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, type RefObject } from "react";
+import { useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 interface PanelOrbProps {
@@ -38,8 +39,22 @@ export function PanelOrb({
   const haloRef = useRef<HTMLDivElement>(null);
   const ringRef = useRef<HTMLDivElement>(null);
   const smoothRef = useRef(0);
+  const reduced = useReducedMotion();
 
   useEffect(() => {
+    if (reduced) {
+      // Reduced-motion: a still, softly-lit orb — no breathe/swell RAF loop.
+      if (coreRef.current) coreRef.current.style.transform = "scale(1)";
+      if (haloRef.current) {
+        haloRef.current.style.transform = "scale(1)";
+        haloRef.current.style.opacity = "0.55";
+      }
+      if (ringRef.current) {
+        ringRef.current.style.transform = "scale(1)";
+        ringRef.current.style.opacity = "0.4";
+      }
+      return;
+    }
     let raf = 0;
     let t = 0;
     const tick = () => {
@@ -65,7 +80,7 @@ export function PanelOrb({
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [reactive, levelRef]);
+  }, [reduced, reactive, levelRef]);
 
   return (
     <div
