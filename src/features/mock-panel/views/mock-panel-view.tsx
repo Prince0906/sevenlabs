@@ -65,13 +65,15 @@ export function MockPanelView({ scenarioId = SCENARIO_ID }: { scenarioId?: strin
       p.recovery === "judgment-timeout" || p.recovery === "session-failed" ? (
         <FailedScreen reason={p.recovery === "judgment-timeout" ? "judgment_timeout" : undefined} />
       ) : (
-        <div className="py-12">
-          <RecoveryBanner
-            kind={p.recovery}
-            onRetry={p.retryConnect}
-            onEndAndScore={p.endAndScore}
-            onStartOver={p.startOver}
-          />
+        <div className="flex min-h-[60vh] flex-col items-center justify-center">
+          <div className="w-full max-w-md">
+            <RecoveryBanner
+              kind={p.recovery}
+              onRetry={p.retryConnect}
+              onEndAndScore={p.endAndScore}
+              onStartOver={p.startOver}
+            />
+          </div>
         </div>
       );
   } else if (LIVE_SHELL_PHASES.has(p.phase)) {
@@ -227,8 +229,8 @@ export function Intro({
       </motion.div>
 
       <motion.div variants={staggerItem} className="flex flex-col items-center gap-3 text-center">
-        <Button size="lg" onClick={onStart}>
-          Start the panel
+        <Button size="xl" onClick={onStart}>
+          Take the room
         </Button>
         <p className="max-w-xs text-sm leading-relaxed text-muted-foreground">
           We&apos;ll ask for your microphone first. A recording of each answer is sent to our
@@ -246,8 +248,21 @@ function LiveShell({ p }: { p: ReturnType<typeof useMockPanel> }) {
   const tint = SIGNAL_CSS_VAR[seatLevel(p.activeSeatIndex)];
   const activeSpeaker = p.coachResponseInFlight ? "COACH" : p.phase === "live" ? "USER" : null;
 
-  let label = "Connecting the line…";
-  let hint = "One moment";
+  // Pre-live connect phases. Stage the copy so the wait reads like the room
+  // waking up (never a frozen "One moment"), and offer a quiet escape back to
+  // the lobby — the live test flagged a long, featureless connecting beat.
+  const connecting =
+    p.phase === "acquiring-mic" ||
+    p.phase === "creating" ||
+    p.phase === "connecting" ||
+    p.phase === "awaiting-session-update";
+  let label =
+    p.phase === "acquiring-mic"
+      ? "Getting your mic ready…"
+      : p.phase === "creating"
+        ? "Securing a private line…"
+        : "Waking your interviewers…";
+  let hint = connecting ? "This can take a moment — hang tight" : "One moment";
   let dim = false;
   let reactive = false;
   let busy = false;
@@ -299,6 +314,14 @@ function LiveShell({ p }: { p: ReturnType<typeof useMockPanel> }) {
           dim={dim}
         />
       </motion.div>
+
+      {connecting && (
+        <motion.div variants={staggerItem} className="-mt-4 flex justify-center">
+          <Button variant="ghost" size="sm" onClick={p.startOver}>
+            Cancel
+          </Button>
+        </motion.div>
+      )}
 
       <motion.div variants={staggerItem} className="space-y-4">
         <div className="flex items-center gap-3">
