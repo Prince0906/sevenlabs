@@ -76,7 +76,7 @@ function NavSection({ label, items, pathname }: NavSectionProps) {
                                         : false
                                 }
                                 tooltip={item.title}
-                                className="h-9 px-3 py-2 text-[13px] tracking-tight font-medium border border-transparent data-[active=true]:border-border data-[active=true]:shadow-[...]"
+                                className="h-9 px-3 py-2 text-[13px] tracking-tight font-medium border border-transparent data-[active=true]:border-border data-[active=true]:shadow-sm"
                                 render={(props) =>
                                     item.url ? (
                                         <Link href={item.url} {...props}>
