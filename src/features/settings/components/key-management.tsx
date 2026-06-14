@@ -14,9 +14,9 @@ interface KeyStatus {
 
 const STATUS_LABEL: Record<string, { text: string; tint: string }> = {
   ACTIVE: { text: "Active", tint: "var(--signal-senior)" },
-  INVALID: { text: "Invalid — re-add", tint: "var(--signal-newgrad)" },
-  EXHAUSTED: { text: "No quota", tint: "var(--signal-newgrad)" },
-  REVOKED: { text: "Revoked", tint: "var(--signal-newgrad)" },
+  INVALID: { text: "Invalid — re-add", tint: "var(--destructive)" },
+  EXHAUSTED: { text: "No quota", tint: "var(--destructive)" },
+  REVOKED: { text: "Revoked", tint: "var(--destructive)" },
 };
 
 /**
@@ -168,7 +168,7 @@ export function KeyManagement() {
         </div>
       )}
 
-      {error && <p className="mt-3 text-sm text-[var(--signal-newgrad)]">{error}</p>}
+      {error && <p className="mt-3 text-sm text-[var(--destructive)]">{error}</p>}
     </div>
   );
 }

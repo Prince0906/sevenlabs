@@ -29,7 +29,7 @@ export function DangerZone() {
   };
 
   return (
-    <div className="rounded-lg border border-signal-newgrad/30 bg-signal-newgrad/5 p-4">
+    <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4">
       <p className="text-sm font-medium text-foreground">Delete account</p>
       <p className="mt-1 text-sm text-muted-foreground">
         Permanently deletes your account and everything tied to it — every panel, verdict,
@@ -41,7 +41,7 @@ export function DangerZone() {
         <Button
           variant="outline"
           size="sm"
-          className="mt-3 border-signal-newgrad/40 text-signal-newgrad hover:bg-signal-newgrad/10"
+          className="mt-3 border-destructive/40 text-destructive hover:bg-destructive/10"
           onClick={() => setArmed(true)}
         >
           Delete account
@@ -50,7 +50,7 @@ export function DangerZone() {
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <Button
             size="sm"
-            className="bg-signal-newgrad text-white hover:bg-signal-newgrad/90"
+            className="bg-destructive text-white hover:bg-destructive/90"
             disabled={deleting}
             onClick={remove}
           >
@@ -67,7 +67,7 @@ export function DangerZone() {
         </div>
       )}
 
-      {error && <p className="mt-2 text-sm text-signal-newgrad">{error}</p>}
+      {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
     </div>
   );
 }
