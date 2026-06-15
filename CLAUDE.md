@@ -38,7 +38,7 @@ npm run lint                        # eslint
 
 ## Architecture
 
-**Monorepo via npm workspaces** (`packages/*`). Next.js app at repo root (`src/`). Single-process at :3000 — interview panel, coach, and dashboard share one web container. The two products share a pure-logic core and provider clients but **must not be merged** (different transports). Full system design: `ENGINEERING.md` (plain-English: `ENGINEERING_EXPLAINED.md`).
+**Monorepo via npm workspaces** (`packages/*`). Next.js app at repo root (`src/`). Single-process at :3000 — interview panel, coach, and dashboard share one web container. The two products share a pure-logic core and provider clients but **must not be merged** (different transports). Full system design: `ENGINEERING.md`.
 
 ### Interview panel (Bar-Raiser, real-time) — the ACTIVE product
 
@@ -103,4 +103,4 @@ Prod is a **single AWS Free-Tier EC2 box** (t3.micro, Amazon Linux 2023, Elastic
 - **Surface uncertainty before coding.** If a task has multiple reasonable readings (e.g. "fix the orchestrator" — coach or panel?), ask.
 - **Goal-driven.** State the verification step (usually a specific `vitest` invocation) before implementing.
 
-Canonical docs: `ENGINEERING.md` / `ENGINEERING_EXPLAINED.md` (current system design), `INTERVIEW_ENGINE_PLAN.md` (binding decisions), `AUDIT_FINDINGS.md` (audit evidence). Earlier planning memos (ROADMAP, CONFIDENCE_*, DEFENSIBILITY_PLAN) were removed as superseded — recover from git history if needed.
+Canonical docs: `ENGINEERING.md` (current system design), `INTERVIEW_ENGINE_PLAN.md` (binding decisions), `DESIGN_PRINCIPLES.md` (UI/UX design rules). Superseded memos (ROADMAP, CONFIDENCE_*, DEFENSIBILITY_PLAN, ENGINEERING_EXPLAINED, AUDIT_FINDINGS) were removed as superseded — recover from git history if needed.
