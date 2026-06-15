@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Mic, BarChart3, TrendingUp, Check, ArrowRight } from "lucide-react";
+import { Mic, BarChart3, TrendingUp, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/logo";
 import { ShareableSignalCard } from "@/features/speaking-coach/components/shareable-signal-card";
@@ -15,56 +15,20 @@ const STEPS = [
   {
     icon: Mic,
     color: "var(--signal-newgrad)",
-    title: "Speak your answer out loud",
-    desc: "Pick a real behavioral question and answer it by voice — the way you actually will in the room, not by typing into ChatGPT.",
+    title: "Step into the room",
+    desc: "Three interviewers question you by voice, in turn — real follow-ups, the way it actually goes in the room, not typing into ChatGPT.",
   },
   {
     icon: BarChart3,
     color: "var(--signal-sde2)",
-    title: "Scored against the real rubric",
-    desc: "A Bar Raiser–trained model grades your answer on the company's actual Leadership Principles — not vague encouragement.",
+    title: "The Bar Raiser drills deeper",
+    desc: "Your strongest claim gets stress-tested by the highest bar in the room — exactly where a real panel would push.",
   },
   {
     icon: TrendingUp,
     color: "var(--signal-senior)",
-    title: "Watch your signal climb",
-    desc: "Track your level from New Grad to Senior across sessions, and drill the exact principle holding you back.",
-  },
-];
-
-const TIERS = [
-  {
-    name: "Free",
-    price: "$0",
-    cadence: "forever",
-    features: [
-      "10 practice sessions / month",
-      "Delivery metrics (pace, fillers, pauses)",
-      "3 saved stories",
-    ],
-    cta: "Start free",
-    highlight: false,
-  },
-  {
-    name: "Pro",
-    price: "$19",
-    cadence: "/ month",
-    features: [
-      "Unlimited sessions",
-      "Full rubric scoring, every answer",
-      "Story bank + progress dashboard",
-      "Days-to-interview tracking",
-    ],
-    cta: "Get Pro",
-    highlight: true,
-  },
-  {
-    name: "Pro Annual",
-    price: "$149",
-    cadence: "/ year",
-    features: ["Everything in Pro", "Two months free", "Priority support"],
-    cta: "Get annual",
-    highlight: false,
+    title: "Get a committee verdict",
+    desc: "A per-interviewer read and the level you reached — New Grad, SDE II, or Senior — plus the one rep to run next. A verdict, not a number.",
   },
 ];
 
@@ -102,23 +66,24 @@ export function LandingView() {
             className="space-y-6"
           >
             <motion.p variants={staggerItem} className={EYEBROW}>
-              Voice-first interview prep
+              Live voice interview panel
             </motion.p>
             <motion.h1
               variants={staggerItem}
               className="font-display text-4xl font-semibold leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl"
             >
-              Practice your FAANG answers{" "}
-              <span className="text-signal-senior">out loud</span> — and get
-              scored like the real thing.
+              Face a real FAANG panel{" "}
+              <span className="text-signal-senior">out loud</span> — and hear
+              exactly where you stand.
             </motion.h1>
             <motion.p
               variants={staggerItem}
               className="max-w-prose text-base leading-relaxed text-muted-foreground lg:text-lg"
             >
-              Every answer is scored against the company&rsquo;s actual rubric.
-              See whether you read as New Grad, SDE II, or Senior — not just
-              whether you said &ldquo;um.&rdquo;
+              Three interviewers question you by voice and a committee scores
+              you against the company&rsquo;s actual rubric. See whether you
+              read as New Grad, SDE II, or Senior — not just whether you said
+              &ldquo;um.&rdquo;
             </motion.p>
             <motion.div
               variants={staggerItem}
@@ -126,7 +91,7 @@ export function LandingView() {
             >
               <Button size="lg" asChild>
                 <Link href="/sign-up">
-                  Start practicing free
+                  Start your first panel
                   <ArrowRight className="size-4" />
                 </Link>
               </Button>
@@ -138,7 +103,7 @@ export function LandingView() {
               variants={staggerItem}
               className="text-xs text-muted-foreground"
             >
-              No card required · 10 free sessions a month
+              Free while in beta · no card
             </motion.p>
           </motion.div>
 
@@ -168,7 +133,7 @@ export function LandingView() {
           <div className="space-y-3 text-center">
             <p className={EYEBROW}>The difference</p>
             <h2 className="font-display text-3xl font-semibold tracking-tight lg:text-4xl">
-              Other tools cheer. We coach.
+              Other tools cheer. We hold the bar.
             </h2>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
@@ -253,58 +218,23 @@ export function LandingView() {
           <div className="space-y-3 text-center">
             <p className={EYEBROW}>Pricing</p>
             <h2 className="font-display text-3xl font-semibold tracking-tight lg:text-4xl">
-              Cheaper than one hour with a coach
+              Free while in beta
             </h2>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-3">
-            {TIERS.map((tier) => (
-              <div
-                key={tier.name}
-                className={
-                  tier.highlight
-                    ? "relative rounded-2xl border-2 border-signal-senior/50 bg-background p-6 shadow-sm"
-                    : "rounded-2xl border bg-background p-6"
-                }
-              >
-                {tier.highlight && (
-                  <span className="absolute -top-3 left-6 rounded-full bg-signal-senior px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
-                    Most popular
-                  </span>
-                )}
-                <p className="text-sm font-medium">{tier.name}</p>
-                <p className="mt-3">
-                  <span className="font-display text-4xl font-semibold tracking-tight">
-                    {tier.price}
-                  </span>{" "}
-                  <span className="text-sm text-muted-foreground">
-                    {tier.cadence}
-                  </span>
-                </p>
-                <ul className="mt-5 space-y-2.5">
-                  {tier.features.map((f) => (
-                    <li key={f} className="flex items-start gap-2 text-sm">
-                      <Check className="mt-0.5 size-4 shrink-0 text-signal-senior" />
-                      <span className="text-muted-foreground">{f}</span>
-                    </li>
-                  ))}
-                </ul>
-                <Button
-                  className="mt-6 w-full"
-                  variant={tier.highlight ? "default" : "outline"}
-                  asChild
-                >
-                  <Link href="/sign-up">{tier.cta}</Link>
-                </Button>
-              </div>
-            ))}
+          <p className="mx-auto max-w-xl text-center text-base leading-relaxed text-muted-foreground">
+            Every panel is free while we&rsquo;re in beta — no card, no limits.
+            Prefer your own account? Bring your own OpenAI key for unlimited,
+            full-length interviews billed straight to you.
+          </p>
+          <div className="flex justify-center">
+            <Button size="lg" asChild>
+              <Link href="/sign-up">Start your first panel</Link>
+            </Button>
           </div>
 
-          <p className="text-center text-sm text-muted-foreground">
-            <span className="font-medium text-foreground">
-              No annual tricks. Cancel anytime. 14-day refund.
-            </span>{" "}
-            The pricing you see is the price you pay.
+          <p className="text-center text-xs text-muted-foreground">
+            Paid plans arrive after beta — there&rsquo;ll always be a free way to practice.
           </p>
         </div>
       </section>
@@ -322,13 +252,12 @@ export function LandingView() {
             Walk in knowing you read as Senior.
           </h2>
           <p className="mx-auto max-w-xl text-base text-muted-foreground">
-            Start practicing out loud today. Your first ten sessions are free —
-            no card, no tricks.
+            Step into the room today — free while we&rsquo;re in beta, no card.
           </p>
           <div className="flex justify-center">
             <Button size="lg" asChild>
               <Link href="/sign-up">
-                Start practicing free
+                Start your first panel
                 <ArrowRight className="size-4" />
               </Link>
             </Button>

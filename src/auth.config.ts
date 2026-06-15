@@ -24,11 +24,16 @@ export const authConfig = {
     },
     async jwt({ token, user }) {
       if (user?.id) token.sub = user.id;
+      // Carry the display name onto the token so the JWT session exposes it
+      // (credentials users otherwise have no name in session.user → the
+      // dashboard greeting fell back to the raw email prefix).
+      if (user) token.name = user.name ?? null;
       return token;
     },
     async session({ session, token }) {
       if (token?.sub && session.user) {
         session.user.id = token.sub;
+        session.user.name = token.name ?? null;
       }
       return session;
     },

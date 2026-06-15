@@ -183,6 +183,15 @@
 }
 .panel-breathe { animation: panel-breathe 3.2s ease-in-out infinite; }
 
+/* Respect reduced-motion: still the room's infinite animations (the orb's RAF
+ * loop is gated separately in panel-orb.tsx via useReducedMotion). */
+@media (prefers-reduced-motion: reduce) {
+    .panel-breathe,
+    .animate-pulse {
+        animation: none !important;
+    }
+}
+
 @layer base {
     * {
         @apply border-border outline-ring/50;

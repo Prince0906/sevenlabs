@@ -65,13 +65,15 @@ export function MockPanelView({ scenarioId = SCENARIO_ID }: { scenarioId?: strin
       p.recovery === "judgment-timeout" || p.recovery === "session-failed" ? (
         <FailedScreen reason={p.recovery === "judgment-timeout" ? "judgment_timeout" : undefined} />
       ) : (
-        <div className="py-12">
-          <RecoveryBanner
-            kind={p.recovery}
-            onRetry={p.retryConnect}
-            onEndAndScore={p.endAndScore}
-            onStartOver={p.startOver}
-          />
+        <div className="flex min-h-[60vh] flex-col items-center justify-center">
+          <div className="w-full max-w-md">
+            <RecoveryBanner
+              kind={p.recovery}
+              onRetry={p.retryConnect}
+              onEndAndScore={p.endAndScore}
+              onStartOver={p.startOver}
+            />
+          </div>
         </div>
       );
   } else if (LIVE_SHELL_PHASES.has(p.phase)) {
@@ -227,8 +229,8 @@ export function Intro({
       </motion.div>
 
       <motion.div variants={staggerItem} className="flex flex-col items-center gap-3 text-center">
-        <Button size="lg" onClick={onStart}>
-          Start the panel
+        <Button size="xl" onClick={onStart}>
+          Take the room
         </Button>
         <p className="max-w-xs text-sm leading-relaxed text-muted-foreground">
           We&apos;ll ask for your microphone first. A recording of each answer is sent to our
@@ -246,8 +248,21 @@ function LiveShell({ p }: { p: ReturnType<typeof useMockPanel> }) {
   const tint = SIGNAL_CSS_VAR[seatLevel(p.activeSeatIndex)];
   const activeSpeaker = p.coachResponseInFlight ? "COACH" : p.phase === "live" ? "USER" : null;
 
-  let label = "Connecting the line…";
-  let hint = "One moment";
+  // Pre-live connect phases. Stage the copy so the wait reads like the room
+  // waking up (never a frozen "One moment"), and offer a quiet escape back to
+  // the lobby — the live test flagged a long, featureless connecting beat.
+  const connecting =
+    p.phase === "acquiring-mic" ||
+    p.phase === "creating" ||
+    p.phase === "connecting" ||
+    p.phase === "awaiting-session-update";
+  let label =
+    p.phase === "acquiring-mic"
+      ? "Getting your mic ready…"
+      : p.phase === "creating"
+        ? "Securing a private line…"
+        : "Waking your interviewers…";
+  let hint = connecting ? "This can take a moment — hang tight" : "One moment";
   let dim = false;
   let reactive = false;
   let busy = false;
@@ -300,6 +315,14 @@ function LiveShell({ p }: { p: ReturnType<typeof useMockPanel> }) {
         />
       </motion.div>
 
+      {connecting && (
+        <motion.div variants={staggerItem} className="-mt-4 flex justify-center">
+          <Button variant="ghost" size="sm" onClick={p.startOver}>
+            Cancel
+          </Button>
+        </motion.div>
+      )}
+
       <motion.div variants={staggerItem} className="space-y-4">
         <div className="flex items-center gap-3">
           <span className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
@@ -307,26 +330,32 @@ function LiveShell({ p }: { p: ReturnType<typeof useMockPanel> }) {
           </span>
           <span className="h-px flex-1 bg-border" />
         </div>
-        {p.liveTranscript.length === 0 && !p.coachStreaming ? (
-          <p className="font-display text-base italic text-muted-foreground/70">
-            The first interviewer will begin shortly…
-          </p>
-        ) : (
-          <div className="space-y-5">
-            {p.liveTranscript.map((t, i) => (
-              <TranscriptLine key={i} role={t.role} seatId={t.seatId} text={t.text} seatById={seatById} />
-            ))}
-            {p.coachStreaming && (
-              <TranscriptLine
-                role="COACH"
-                seatId={seat?.id ?? null}
-                text={p.coachStreaming}
-                seatById={seatById}
-                streaming
-              />
-            )}
-          </div>
-        )}
+        {/* Live region: screen readers announce each committed turn as it lands.
+            The wrapper is always mounted (even while empty) so the first line
+            counts as an addition; the streaming partial is aria-hidden so it
+            isn't re-read on every token — its committed form announces once. */}
+        <div role="log" aria-live="polite" aria-relevant="additions" aria-label="Live interview transcript">
+          {p.liveTranscript.length === 0 && !p.coachStreaming ? (
+            <p className="font-display text-base italic text-muted-foreground/70">
+              The first interviewer will begin shortly…
+            </p>
+          ) : (
+            <div className="space-y-5">
+              {p.liveTranscript.map((t, i) => (
+                <TranscriptLine key={i} role={t.role} seatId={t.seatId} text={t.text} seatById={seatById} />
+              ))}
+              {p.coachStreaming && (
+                <TranscriptLine
+                  role="COACH"
+                  seatId={seat?.id ?? null}
+                  text={p.coachStreaming}
+                  seatById={seatById}
+                  streaming
+                />
+              )}
+            </div>
+          )}
+        </div>
       </motion.div>
 
       <motion.div variants={staggerItem}>
@@ -384,7 +413,10 @@ export function TranscriptLine({
   const meta = seatId ? seatById.get(seatId) : undefined;
   const tone = meta ? SIGNAL_THEME[seatLevel(meta.i)].text : "text-foreground";
   return (
-    <div className="border-l-2 border-border pl-4">
+    // While streaming, hide from assistive tech so the partial isn't read
+    // token-by-token; the committed turn (rendered without `streaming`) is the
+    // one a screen reader announces.
+    <div className="border-l-2 border-border pl-4" aria-hidden={streaming || undefined}>
       <p className={cn("font-display text-[13px] font-semibold uppercase tracking-[0.1em]", tone)}>
         {meta?.name ?? "Interviewer"}
       </p>

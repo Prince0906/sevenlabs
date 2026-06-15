@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { InclinationSeal } from "../components/inclination-seal";
 import { SeatRollupCard } from "../components/seat-rollup-card";
 import { OutcomeCapture } from "../components/outcome-capture";
+import { ShareResult } from "../components/share-result";
 import { SIGNAL_CSS_VAR } from "../lib/seat-theme";
 import * as api from "../lib/mock-api";
 
@@ -226,6 +227,10 @@ export function ReportBody({ report }: { report: MockReport }) {
           </Button>
         </motion.section>
       )}
+
+      <motion.div variants={staggerItem}>
+        <ShareResult report={report} />
+      </motion.div>
     </motion.div>
   );
 }
