@@ -195,6 +195,7 @@ Settings → Secrets and variables → **Actions** → repository secrets. The
 | `AUTH_URL` | Must equal the public `https://` origin, or Auth.js mis-derives the OAuth callback behind Caddy's TLS. |
 | `DATABASE_URL` | Prisma Postgres cloud connection string. |
 | `OPENAI_API_KEY` | House key (Whisper/GPT/TTS/Realtime + the pinned judge). |
+| `DEEPGRAM_API_KEY` | **Optional.** Verbatim ASR for disfluency/fluency metrics; unset ⇒ Whisper fallback (disfluency reads artificially low). |
 | `AUTH_SECRET` | Auth.js session secret (`openssl rand -base64 32`). |
 | `KEY_ENCRYPTION_SECRET` | BYOK KEK — **≥ 32 chars** or the deploy assert fails and the app's Zod env rejects it. Without it, `/api/keys` returns 503 and BYOK silently dies. |
 | `GOOGLE_CLIENT_ID` · `GOOGLE_CLIENT_SECRET` | Google OAuth. |
@@ -208,11 +209,11 @@ Packages. Set its visibility to **Public**, or the EC2 box can't
 
 ### E. Before making the repo public (supply chain)
 
-1. **SHA-pin the third-party actions** in `deploy.yml` — replace each tag with
-   its 40-char commit SHA (kept as a trailing `# v3.3.0` comment):
-   `docker/login-action`, `docker/build-push-action`, `appleboy/scp-action`,
-   `appleboy/ssh-action`. First-party `actions/*` may stay on major tags.
-   Dependabot (already configured) then keeps the pins current.
+1. **SHA-pin the third-party actions** in `deploy.yml` — ✅ **done**: each is
+   pinned to a 40-char commit SHA with a trailing `# vX.Y.Z` comment
+   (`docker/login-action`, `docker/build-push-action`, `appleboy/scp-action`,
+   `appleboy/ssh-action`). First-party `actions/*` stay on major tags;
+   Dependabot (already configured) keeps the pins current.
 2. **Enable Private Vulnerability Reporting** — Settings → Security → enable, so
    `SECURITY.md`'s "report privately" path actually exists.
 3. Confirm **`ACTIONS_STEP_DEBUG` is not set** as a secret/variable on the repo.
