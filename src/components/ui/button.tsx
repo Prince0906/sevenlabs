@@ -1,7 +1,8 @@
 "use client"
 
 import * as React from "react"
-import { Slot } from "@radix-ui/react-slot"
+import { mergeProps } from "@base-ui/react/merge-props"
+import { useRender } from "@base-ui/react/use-render"
 import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "@/lib/utils"
@@ -44,27 +45,30 @@ const buttonVariants = cva(
   }
 )
 
-export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof buttonVariants> {
-  asChild?: boolean
-}
-
 function Button({
   className,
   variant,
   size,
   asChild = false,
+  render,
+  children,
   ...props
-}: ButtonProps) {
-  const Comp = asChild ? Slot : "button"
-  return (
-    <Comp
-      data-slot="button"
-      className={cn(buttonVariants({ variant, size, className }))}
-      {...props}
-    />
-  )
+}: useRender.ComponentProps<"button"> &
+  VariantProps<typeof buttonVariants> & { asChild?: boolean }) {
+  // The rest of the primitives are on Base UI; keep the familiar shadcn `asChild`
+  // API but map it to Base UI's `render` so the whole UI layer sits on one
+  // substrate (this dropped the last Radix Slot dependency).
+  const resolvedRender =
+    render ?? (asChild && React.isValidElement(children) ? children : undefined)
+  return useRender({
+    defaultTagName: "button",
+    props: mergeProps<"button">(
+      { className: cn(buttonVariants({ variant, size }), className) },
+      resolvedRender ? props : { ...props, children }
+    ),
+    render: resolvedRender,
+    state: { slot: "button" },
+  })
 }
 
 export { Button, buttonVariants }
