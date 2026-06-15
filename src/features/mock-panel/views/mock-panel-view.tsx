@@ -330,26 +330,32 @@ function LiveShell({ p }: { p: ReturnType<typeof useMockPanel> }) {
           </span>
           <span className="h-px flex-1 bg-border" />
         </div>
-        {p.liveTranscript.length === 0 && !p.coachStreaming ? (
-          <p className="font-display text-base italic text-muted-foreground/70">
-            The first interviewer will begin shortly…
-          </p>
-        ) : (
-          <div className="space-y-5">
-            {p.liveTranscript.map((t, i) => (
-              <TranscriptLine key={i} role={t.role} seatId={t.seatId} text={t.text} seatById={seatById} />
-            ))}
-            {p.coachStreaming && (
-              <TranscriptLine
-                role="COACH"
-                seatId={seat?.id ?? null}
-                text={p.coachStreaming}
-                seatById={seatById}
-                streaming
-              />
-            )}
-          </div>
-        )}
+        {/* Live region: screen readers announce each committed turn as it lands.
+            The wrapper is always mounted (even while empty) so the first line
+            counts as an addition; the streaming partial is aria-hidden so it
+            isn't re-read on every token — its committed form announces once. */}
+        <div role="log" aria-live="polite" aria-relevant="additions" aria-label="Live interview transcript">
+          {p.liveTranscript.length === 0 && !p.coachStreaming ? (
+            <p className="font-display text-base italic text-muted-foreground/70">
+              The first interviewer will begin shortly…
+            </p>
+          ) : (
+            <div className="space-y-5">
+              {p.liveTranscript.map((t, i) => (
+                <TranscriptLine key={i} role={t.role} seatId={t.seatId} text={t.text} seatById={seatById} />
+              ))}
+              {p.coachStreaming && (
+                <TranscriptLine
+                  role="COACH"
+                  seatId={seat?.id ?? null}
+                  text={p.coachStreaming}
+                  seatById={seatById}
+                  streaming
+                />
+              )}
+            </div>
+          )}
+        </div>
       </motion.div>
 
       <motion.div variants={staggerItem}>
@@ -407,7 +413,10 @@ export function TranscriptLine({
   const meta = seatId ? seatById.get(seatId) : undefined;
   const tone = meta ? SIGNAL_THEME[seatLevel(meta.i)].text : "text-foreground";
   return (
-    <div className="border-l-2 border-border pl-4">
+    // While streaming, hide from assistive tech so the partial isn't read
+    // token-by-token; the committed turn (rendered without `streaming`) is the
+    // one a screen reader announces.
+    <div className="border-l-2 border-border pl-4" aria-hidden={streaming || undefined}>
       <p className={cn("font-display text-[13px] font-semibold uppercase tracking-[0.1em]", tone)}>
         {meta?.name ?? "Interviewer"}
       </p>
