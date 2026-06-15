@@ -2,6 +2,7 @@ import type { SignalLevel, Inclination } from "@sevenlabs/shared-types";
 import { SIGNAL_LABEL, SIGNAL_THEME } from "@/lib/signal";
 import { cn } from "@/lib/utils";
 import { SIGNAL_CSS_VAR } from "../lib/seat-theme";
+import { HireCelebration } from "./hire-celebration";
 
 const INCLINATION_LABEL: Record<Inclination, string> = {
   STRONG_HIRE: "Strong Hire",
@@ -25,10 +26,15 @@ interface InclinationSealProps {
 export function InclinationSeal({ overallSignal, inclination, barRaiserVeto, summary }: InclinationSealProps) {
   const theme = SIGNAL_THEME[overallSignal];
   const veto = SIGNAL_THEME.SENIOR; // emerald, the Bar Raiser's tint
+  // The dopamine beat — a restrained burst when the committee leans hire and the
+  // Bar Raiser didn't veto. Motion-safe (the burst itself skips reduced-motion).
+  const isHire =
+    (inclination === "HIRE" || inclination === "STRONG_HIRE") && !barRaiserVeto;
 
   return (
     <section className="space-y-6">
-      <div>
+      <div className="relative">
+        {isHire && <HireCelebration />}
         <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">Signal reached</p>
         <p
           className={cn("mt-1.5 font-display text-6xl font-semibold tracking-[-0.02em]", theme.text)}
