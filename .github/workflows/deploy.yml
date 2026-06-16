@@ -13,10 +13,10 @@ name: Deploy
 # Do NOT enable ACTIONS_STEP_DEBUG on this workflow: it can surface secret
 # values that are otherwise masked.
 #
-# NOTE (supply chain): before making the repo public, replace each third-party
-# action tag below with its 40-char commit SHA (e.g.
-# `docker/login-action@<sha> # v3.3.0`). Dependabot (github-actions ecosystem)
-# will then keep the pins current. First-party actions/* stay on major tags.
+# SUPPLY CHAIN: the third-party actions below are SHA-pinned to a 40-char commit
+# with a trailing version comment (e.g. `docker/login-action@<sha> # v3.7.0`);
+# Dependabot (github-actions ecosystem) keeps the pins current. First-party
+# actions/* stay on major tags.
 
 on:
   push:
@@ -71,13 +71,13 @@ jobs:
           echo "image=${name}:${{ github.sha }}" >> "$GITHUB_OUTPUT"
           echo "name=${name}" >> "$GITHUB_OUTPUT"
       - name: Log in to GHCR
-        uses: docker/login-action@v3 # pin to commit SHA before going public
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build & push
-        uses: docker/build-push-action@v6 # pin to commit SHA before going public
+        uses: docker/build-push-action@4f58ea79222b3b9dc2c8bbdd6debcef730109a75 # v6.9.0
         with:
           context: .
           push: true
@@ -133,7 +133,7 @@ jobs:
           fi
 
       - name: Copy compose + Caddyfile to the box
-        uses: appleboy/scp-action@v1.0.0 # pin to commit SHA before going public
+        uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345 # v1.0.0
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ec2-user
@@ -148,18 +148,19 @@ jobs:
       # AUTH_URL must equal the public https origin (https://<SITE_ADDRESS>) or
       # Auth.js mis-derives the OAuth callback behind Caddy's TLS.
       - name: Write env, pull, restart & health-check
-        uses: appleboy/ssh-action@v1.2.5 # pin to commit SHA before going public
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
         env:
           APP_IMAGE: ${{ needs.build.outputs.image }}
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
-          envs: APP_IMAGE,SITE_ADDRESS,DATABASE_URL,OPENAI_API_KEY,KEY_ENCRYPTION_SECRET,AUTH_SECRET,AUTH_URL,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,S3_BUCKET_NAME,AWS_REGION,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY
+          envs: APP_IMAGE,SITE_ADDRESS,DATABASE_URL,OPENAI_API_KEY,DEEPGRAM_API_KEY,KEY_ENCRYPTION_SECRET,AUTH_SECRET,AUTH_URL,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,S3_BUCKET_NAME,AWS_REGION,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY
           envs_format: 'export {NAME}={VALUE}'
           SITE_ADDRESS: ${{ secrets.SITE_ADDRESS }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          DEEPGRAM_API_KEY: ${{ secrets.DEEPGRAM_API_KEY }}
           KEY_ENCRYPTION_SECRET: ${{ secrets.KEY_ENCRYPTION_SECRET }}
           AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
           AUTH_URL: ${{ secrets.AUTH_URL }}
@@ -180,6 +181,7 @@ jobs:
             SITE_ADDRESS=${SITE_ADDRESS}
             DATABASE_URL=${DATABASE_URL}
             OPENAI_API_KEY=${OPENAI_API_KEY}
+            DEEPGRAM_API_KEY=${DEEPGRAM_API_KEY}
             KEY_ENCRYPTION_SECRET=${KEY_ENCRYPTION_SECRET}
             AUTH_SECRET=${AUTH_SECRET}
             AUTH_URL=${AUTH_URL}
