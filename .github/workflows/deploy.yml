@@ -167,14 +167,12 @@ jobs:
       # Auth.js mis-derives the OAuth callback behind Caddy's TLS.
       - name: Write env, pull, restart & health-check
         uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
+        # appleboy `envs:` forwards variables from THIS step's env block (not from
+        # `with:` inputs). They MUST live here or they arrive unset on the box and
+        # `set -u` aborts. AWS/S3 are intentionally dropped — the panel never uses
+        # S3, and forwarding empty optionals would trip `set -u` the same way.
         env:
           APP_IMAGE: ${{ needs.build.outputs.image }}
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ec2-user
-          key: ${{ secrets.EC2_SSH_KEY }}
-          envs: APP_IMAGE,SITE_ADDRESS,DATABASE_URL,OPENAI_API_KEY,DEEPGRAM_API_KEY,KEY_ENCRYPTION_SECRET,AUTH_SECRET,AUTH_URL,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,S3_BUCKET_NAME,AWS_REGION,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY
-          envs_format: 'export {NAME}={VALUE}'
           SITE_ADDRESS: ${{ secrets.SITE_ADDRESS }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -184,10 +182,12 @@ jobs:
           AUTH_URL: ${{ secrets.AUTH_URL }}
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
-          S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
-          AWS_REGION: ${{ secrets.AWS_REGION }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_KEY }}
+          envs: APP_IMAGE,SITE_ADDRESS,DATABASE_URL,OPENAI_API_KEY,DEEPGRAM_API_KEY,KEY_ENCRYPTION_SECRET,AUTH_SECRET,AUTH_URL,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET
+          envs_format: 'export {NAME}={VALUE}'
           script: |
             set -euo pipefail
             cd /opt/sevenlabs
@@ -199,16 +199,12 @@ jobs:
             SITE_ADDRESS=${SITE_ADDRESS}
             DATABASE_URL=${DATABASE_URL}
             OPENAI_API_KEY=${OPENAI_API_KEY}
-            DEEPGRAM_API_KEY=${DEEPGRAM_API_KEY}
+            DEEPGRAM_API_KEY=${DEEPGRAM_API_KEY:-}
             KEY_ENCRYPTION_SECRET=${KEY_ENCRYPTION_SECRET}
             AUTH_SECRET=${AUTH_SECRET}
             AUTH_URL=${AUTH_URL}
             GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
             GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
-            S3_BUCKET_NAME=${S3_BUCKET_NAME}
-            AWS_REGION=${AWS_REGION}
-            AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-            AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
             ENVEOF
             docker compose pull
             docker compose up -d
