@@ -104,10 +104,17 @@ jobs:
       - run: npm ci
       - run: npx prisma migrate deploy
       - run: npx prisma migrate status
+      # Seed reference data (the Scenario + its PanelSeats). seed.ts uses upsert,
+      # so this is idempotent and safe on every deploy; without it a fresh prod DB
+      # has no scenario and /mock can't start an interview (app boots fine).
+      - run: npm run prisma:seed
 
   deploy:
     name: Roll the EC2 box
-    needs: migrate
+    # Both: migrate gates correctness; build is needed so needs.build.outputs.image
+    # resolves (it's empty if build isn't a DIRECT dependency, which would blank
+    # APP_IMAGE and silently fall back to :latest instead of the pinned SHA).
+    needs: [build, migrate]
     runs-on: ubuntu-latest
     if: github.repository == 'Prince0906/sevenlabs'
     # GitHub Environment with required reviewers is the real human approval gate
@@ -127,8 +134,16 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+          AUTH_URL: ${{ secrets.AUTH_URL }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          SITE_ADDRESS: ${{ secrets.SITE_ADDRESS }}
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
         run: |
-          for v in KEY_ENCRYPTION_SECRET DATABASE_URL OPENAI_API_KEY AUTH_SECRET; do
+          for v in KEY_ENCRYPTION_SECRET DATABASE_URL OPENAI_API_KEY AUTH_SECRET \
+                   AUTH_URL GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET SITE_ADDRESS \
+                   EC2_HOST EC2_SSH_KEY; do
             if [ -z "${!v}" ]; then echo "::error::$v is unset"; exit 1; fi
           done
           if [ "${#KEY_ENCRYPTION_SECRET}" -lt 32 ]; then
