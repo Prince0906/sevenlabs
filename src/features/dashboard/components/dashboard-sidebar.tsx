@@ -24,6 +24,7 @@ import {
 import {
     DropdownMenu,
     DropdownMenuContent,
+    DropdownMenuGroup,
     DropdownMenuItem,
     DropdownMenuLabel,
     DropdownMenuSeparator,
@@ -135,10 +136,12 @@ function UserMenu() {
                 <ChevronsUpDown className="size-4 text-sidebar-foreground group-data-[collapsible=icon]:hidden" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>
-                    <div className="font-medium truncate">{name}</div>
-                    {email && <div className="text-xs text-muted-foreground truncate font-normal">{email}</div>}
-                </DropdownMenuLabel>
+                <DropdownMenuGroup>
+                    <DropdownMenuLabel>
+                        <div className="font-medium truncate">{name}</div>
+                        {email && <div className="text-xs text-muted-foreground truncate font-normal">{email}</div>}
+                    </DropdownMenuLabel>
+                </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => signOut({ callbackUrl: "/sign-in" })}>
                     <LogOut className="size-4 mr-2" />
