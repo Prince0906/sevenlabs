@@ -115,6 +115,9 @@ jobs:
     # Settings -> Environments -> production (see branchProtection).
     environment: production
     steps:
+      # Needed so the SCP step below has deploy/docker-compose.yml + Caddyfile
+      # on the runner to copy; without it the scp tar is empty and the job fails.
+      - uses: actions/checkout@v6
       # Fail fast if the BYOK key-encryption secret is missing: without it the
       # app boots but /api/keys returns 503 and BYOK silently dies in prod.
       # (It must also be >= 32 chars or the app's own Zod env rejects it.)
