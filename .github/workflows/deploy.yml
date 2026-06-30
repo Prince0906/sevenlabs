@@ -45,7 +45,7 @@ jobs:
       SKIP_ENV_VALIDATION: "true"
       DATABASE_URL: "postgresql://user:pass@localhost:5432/db"
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v6
         with:
           node-version: 22
@@ -63,7 +63,7 @@ jobs:
     outputs:
       image: ${{ steps.img.outputs.image }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Compute lowercase image name
         id: img
         run: |
@@ -96,7 +96,7 @@ jobs:
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v6
         with:
           node-version: 22
@@ -117,7 +117,7 @@ jobs:
     steps:
       # Needed so the SCP step below has deploy/docker-compose.yml + Caddyfile
       # on the runner to copy; without it the scp tar is empty and the job fails.
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       # Fail fast if the BYOK key-encryption secret is missing: without it the
       # app boots but /api/keys returns 503 and BYOK silently dies in prod.
       # (It must also be >= 32 chars or the app's own Zod env rejects it.)
