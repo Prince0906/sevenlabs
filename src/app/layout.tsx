@@ -29,11 +29,11 @@ export const metadata: Metadata = {
     template: `%s · ${BRAND.name}`,
   },
   description:
-    "Practice your FAANG behavioral answers out loud and get scored against the company's actual rubric — see whether you read as New Grad, SDE II, or Senior.",
+    "A live three-interviewer voice panel that scores you against the real bar — see whether you read as New Grad, SDE II, or Senior before it counts.",
   openGraph: {
     title: `${BRAND.name} — ${BRAND.tagline}`,
     description:
-      "Voice-first interview practice with company-specific rubric scoring. Hear exactly where you lost the interviewer.",
+      "Get judged before it counts. A live three-interviewer panel tells you the level you read as — before a real one does.",
     siteName: BRAND.name,
   },
 };
