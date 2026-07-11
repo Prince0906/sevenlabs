@@ -8,7 +8,6 @@ import { PageHeader } from "@/components/page-header";
 import { pageTransition } from "@/lib/motion";
 import { SIGNAL_LABEL } from "@/lib/signal";
 import { CockpitGreeting } from "@/features/dashboard/components/cockpit-greeting";
-import { StoriesCard } from "@/features/dashboard/components/stories-card";
 import {
   PendingOutcomesCard,
   type PendingOutcome,
@@ -159,7 +158,9 @@ export function DashboardView({
             </section>
           )}
 
-          <StoriesCard />
+          {/* Future gamified widgets (daily streak, story bank) land here once
+              they have real backing data. The dashboard shows shipped features
+              only; no "coming soon" tiles. */}
         </motion.div>
       </div>
     </div>

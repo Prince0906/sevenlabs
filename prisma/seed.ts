@@ -14,7 +14,7 @@ const SCENARIO = {
   type: "BAR_RAISER_PANEL" as const,
   difficulty: "CALIBRATED" as const,
   targetLevel: "SDE_II" as const,
-  title: "React & JavaScript — Technical Panel",
+  title: "React & JavaScript Technical Panel",
   promptText:
     "A simulated React/JavaScript interview panel: three interviewers covering JavaScript fundamentals, React internals, and rendering performance, plus a Bar Raiser who drills your strongest area. Conceptual questions with real follow-ups, then a committee verdict.",
   estMinutes: 25,
