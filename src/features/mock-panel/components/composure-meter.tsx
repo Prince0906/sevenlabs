@@ -41,7 +41,7 @@ export function ComposureMeter({ running, maxDurationSec, bargeIns }: ComposureM
       </div>
       <div className="relative mt-2 h-px w-full bg-border">
         <div
-          className="absolute inset-y-0 left-0 bg-[var(--clay)] transition-all duration-1000"
+          className="absolute inset-y-0 left-0 bg-[var(--primary)] transition-all duration-1000"
           style={{ width: `${pct}%` }}
         />
       </div>

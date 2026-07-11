@@ -68,7 +68,7 @@ export function KeyStatusBadge({
   if (!onOwnKey) {
     return (
       <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
-        <span aria-hidden className="size-1.5 rounded-full" style={{ backgroundColor: "var(--clay)" }} />
+        <span aria-hidden className="size-1.5 rounded-full" style={{ backgroundColor: "var(--primary)" }} />
         <span>
           Trial mode —{" "}
           <Link href="/settings" className="underline underline-offset-2 hover:text-foreground">

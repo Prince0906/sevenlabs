@@ -32,7 +32,7 @@ export function StatCard({
         {label}
       </p>
       {value !== undefined && (
-        <p className="mt-3 font-display text-3xl font-semibold tracking-tight tabular-nums">
+        <p className="mt-3 font-mono text-3xl font-semibold tracking-tight tabular-nums">
           {value}
         </p>
       )}

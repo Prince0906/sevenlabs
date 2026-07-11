@@ -3,20 +3,20 @@ import type { MatchedLP, SignalLevel } from "@sevenlabs/shared-types";
 import { SIGNAL_LABEL } from "@/lib/signal";
 import { BRAND } from "@/lib/brand";
 
-// Dark-optimized signal colors so they stay vivid on the card's ink background,
-// independent of the app's light/dark theme. Explicit oklch (not CSS vars) so
-// html-to-image exports them faithfully.
+// Deliberately dark: this card is exported as a social image (html-to-image),
+// so it keeps an ink ground regardless of the app's light theme. Colors are
+// explicit hexes (not CSS vars) so the export renders faithfully — the values
+// are the Chalk & Cobalt identity: ink ground, cobalt brand dot, signal trio.
+// Flat fills only; the level bar is three hard-stop segments, never a blend.
 const SIGNAL_COLOR: Record<SignalLevel, string> = {
-  NEW_GRAD: "oklch(0.78 0.14 68)",
-  SDE_II: "oklch(0.72 0.13 248)",
-  SENIOR: "oklch(0.74 0.14 162)",
+  NEW_GRAD: "#ED7A1E",
+  SDE_II: "#3AA4EC",
+  SENIOR: "#199D5C",
 };
 
-const SIGNAL_POS: Record<SignalLevel, string> = {
-  NEW_GRAD: "16.67%",
-  SDE_II: "50%",
-  SENIOR: "83.33%",
-};
+const INK = "#15181E";
+const COBALT = "#2B50F0";
+const SEGMENTS: SignalLevel[] = ["NEW_GRAD", "SDE_II", "SENIOR"];
 
 interface ShareableSignalCardProps {
   signal: SignalLevel;
@@ -33,16 +33,13 @@ export const ShareableSignalCard = forwardRef<
   return (
     <div
       ref={ref}
-      className="w-full max-w-md overflow-hidden rounded-2xl border border-white/10 p-7"
-      style={{
-        backgroundColor: "oklch(0.19 0.012 60)",
-        backgroundImage: `radial-gradient(120% 80% at 85% -10%, color-mix(in oklch, ${color} 26%, transparent), transparent 60%)`,
-      }}
+      className="w-full max-w-md overflow-hidden rounded-2xl border-2 p-7"
+      style={{ backgroundColor: INK, borderColor: "rgba(255,255,255,0.14)" }}
     >
       <div className="flex items-center justify-between">
         <span className="font-display text-base font-semibold tracking-tight text-white">
           {BRAND.name}
-          <span style={{ color }}>.</span>
+          <span style={{ color: COBALT }}>.</span>
         </span>
         <span className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/40">
           Leadership signal
@@ -67,16 +64,23 @@ export const ShareableSignalCard = forwardRef<
           <span>SDE II</span>
           <span>Senior</span>
         </div>
-        <div
-          className="relative mt-2 h-1.5 rounded-full"
-          style={{
-            backgroundImage:
-              "linear-gradient(to right, oklch(0.78 0.14 68), oklch(0.72 0.13 248), oklch(0.74 0.14 162))",
-          }}
-        >
+        <div className="relative mt-2 flex h-1.5 gap-1">
+          {SEGMENTS.map((level) => (
+            <span
+              key={level}
+              className="h-full flex-1 rounded-full"
+              style={{
+                backgroundColor: SIGNAL_COLOR[level],
+                opacity: level === signal ? 1 : 0.32,
+              }}
+            />
+          ))}
           <span
             className="absolute top-1/2 size-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white"
-            style={{ left: SIGNAL_POS[signal], backgroundColor: color }}
+            style={{
+              left: `${(SEGMENTS.indexOf(signal) * 2 + 1) * (100 / 6)}%`,
+              backgroundColor: color,
+            }}
           />
         </div>
       </div>
@@ -91,7 +95,7 @@ export const ShareableSignalCard = forwardRef<
       )}
 
       {weakestArea && (
-        <div className="mt-5 rounded-lg bg-white/[0.04] px-3 py-2.5">
+        <div className="mt-5 rounded-lg bg-white/[0.06] px-3 py-2.5">
           <p className="text-[10px] uppercase tracking-[0.1em] text-white/40">
             Level up next
           </p>

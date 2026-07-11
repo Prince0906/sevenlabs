@@ -8,7 +8,7 @@ const COLORS = [
   "var(--signal-newgrad)",
   "var(--signal-sde2)",
   "var(--signal-senior)",
-  "var(--clay-strong)",
+  "var(--primary)",
 ];
 const COUNT = 16;
 

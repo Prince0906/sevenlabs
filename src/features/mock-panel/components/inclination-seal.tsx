@@ -49,7 +49,7 @@ export function InclinationSeal({ overallSignal, inclination, barRaiserVeto, sum
               "inline-block -rotate-2 rounded-md border-2 px-2.5 py-1 font-display text-sm font-semibold uppercase tracking-[0.06em]",
               barRaiserVeto
                 ? "border-border text-muted-foreground line-through"
-                : "border-[var(--clay)] text-[var(--clay-strong)]"
+                : "border-[var(--primary)] text-[var(--primary)]"
             )}
           >
             {INCLINATION_LABEL[inclination]}

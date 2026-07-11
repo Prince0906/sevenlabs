@@ -8,7 +8,7 @@
     --color-background: var(--background);
     --color-foreground: var(--foreground);
     --font-sans: var(--font-hanken);
-    --font-display: var(--font-fraunces);
+    --font-display: var(--font-bricolage);
     --font-mono: var(--font-geist-mono);
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
@@ -27,6 +27,7 @@
     --color-signal-sde2: var(--signal-sde2);
     --color-signal-senior: var(--signal-senior);
     --color-success: var(--success);
+    --color-live: var(--live);
     --color-ring: var(--ring);
     --color-input: var(--input);
     --color-border: var(--border);
@@ -53,127 +54,77 @@
 }
 
 /*
- * Editorial premium — warm paper + warm ink, color reserved for meaning.
- * The Signal scale (amber → blue → emerald) is the one place saturated color
- * appears, so color always signifies level/status, never decoration.
+ * CHALK & COBALT — the single app theme. A light, game-piece world:
+ * paper ground, ink text + 2px ink edges + hard offset shadows, one brand
+ * accent (cobalt), and red reserved for exactly one meaning — the mic is
+ * live. The Signal trio (orange → sky → green) appears ONLY where it means
+ * level/status. Flat fills everywhere: no gradients, no glows, no grain.
  */
 :root {
-    --radius: 0.75rem;
-    --background: oklch(0.988 0.004 80);
-    --foreground: oklch(0.215 0.012 60);
-    --card: oklch(0.998 0.002 80);
-    --card-foreground: oklch(0.215 0.012 60);
-    --popover: oklch(0.998 0.002 80);
-    --popover-foreground: oklch(0.215 0.012 60);
-    --primary: oklch(0.235 0.012 60);
-    --primary-foreground: oklch(0.99 0.004 80);
-    --secondary: oklch(0.945 0.006 75);
-    --secondary-foreground: oklch(0.235 0.012 60);
-    --muted: oklch(0.957 0.005 75);
-    --muted-foreground: oklch(0.505 0.012 60);
-    --accent: oklch(0.952 0.008 75);
-    --accent-foreground: oklch(0.235 0.012 60);
-    --destructive: oklch(0.552 0.18 27);
-    --border: oklch(0.905 0.006 75);
-    --input: oklch(0.905 0.006 75);
-    --ring: oklch(0.55 0.08 248);
-
-    --signal-newgrad: oklch(0.605 0.13 58);
-    --signal-sde2: oklch(0.535 0.145 248);
-    --signal-senior: oklch(0.555 0.14 160);
-    --success: oklch(0.555 0.14 160);
-
-    --chart-1: oklch(0.555 0.14 160);
-    --chart-2: oklch(0.535 0.145 248);
-    --chart-3: oklch(0.605 0.13 58);
-    --chart-4: oklch(0.62 0.12 300);
-    --chart-5: oklch(0.7 0.13 30);
-
-    --sidebar: oklch(0.978 0.005 80);
-    --sidebar-foreground: oklch(0.46 0.012 60);
-    --sidebar-primary: oklch(0.235 0.012 60);
-    --sidebar-primary-foreground: oklch(0.99 0.004 80);
-    --sidebar-accent: oklch(0.952 0.008 75);
-    --sidebar-accent-foreground: oklch(0.235 0.012 60);
-    --sidebar-border: oklch(0.9 0.006 75);
-    --sidebar-ring: oklch(0.55 0.08 248);
-}
-
-/*
- * Warm CINEMATIC DARK — the single app theme (forced on via next-themes, so all
- * shadcn `dark:` variants activate). Warm near-black, cream ink, a glowing clay
- * accent, and a luminous Signal trio. Every page inherits this; the Bar-Raiser
- * panel layers extra room atmosphere on top via .panel-stage.
- */
-.dark {
     --radius: 0.625rem;
 
-    --background: oklch(0.205 0.013 52);      /* warm near-black */
-    --foreground: oklch(0.925 0.012 84);      /* warm cream */
-    --card: oklch(0.255 0.013 52);            /* lifted warm-dark surface */
-    --card-foreground: oklch(0.925 0.012 84);
-    --popover: oklch(0.255 0.013 52);
-    --popover-foreground: oklch(0.925 0.012 84);
-    --primary: oklch(0.685 0.13 48);          /* glowing clay — dark text passes AA */
-    --primary-foreground: oklch(0.205 0.013 50);
-    --secondary: oklch(0.305 0.013 52);
-    --secondary-foreground: oklch(0.925 0.012 84);
-    --muted: oklch(0.30 0.012 52);
-    --muted-foreground: oklch(0.745 0.013 74); /* dim warm cream, kept readable on dark */
-    --accent: oklch(0.325 0.014 52);
-    --accent-foreground: oklch(0.925 0.012 84);
-    --destructive: oklch(0.70 0.19 25);
-    --border: oklch(0.40 0.012 58);           /* warm low-contrast line */
-    --input: oklch(0.40 0.012 58);
-    --ring: oklch(0.685 0.13 48);
+    --background: #f7f8fb;      /* paper */
+    --foreground: #15181e;      /* ink */
+    --card: #ffffff;
+    --card-foreground: #15181e;
+    --popover: #ffffff;
+    --popover-foreground: #15181e;
+    --primary: #2b50f0;         /* cobalt — THE brand accent */
+    --primary-foreground: #ffffff;
+    --secondary: #edeff4;       /* pressed paper */
+    --secondary-foreground: #15181e;
+    --muted: #eff1f5;
+    --muted-foreground: #5c6673; /* slate */
+    --accent: #eef1fd;          /* faint cobalt wash for hover surfaces */
+    --accent-foreground: #15181e;
+    --destructive: #e5484d;
+    --border: #d9dde6;          /* hairline — quiet 1px lines; loud edges are 2px ink */
+    --input: #d9dde6;
+    --ring: #2b50f0;
 
-    --clay: oklch(0.66 0.13 47);              /* clay glow — NON-TEXT accent */
-    --clay-strong: oklch(0.76 0.11 53);       /* light clay for accent TEXT */
+    /* On-air red. Same hue as destructive on purpose: red has ONE meaning. */
+    --live: #e5484d;
 
-    --signal-newgrad: oklch(0.78 0.13 68);
-    --signal-sde2: oklch(0.72 0.13 248);
-    --signal-senior: oklch(0.74 0.14 162);
-    --success: oklch(0.74 0.14 162);
+    --signal-newgrad: #ed7a1e;  /* orange */
+    --signal-sde2: #3aa4ec;     /* sky */
+    --signal-senior: #199d5c;   /* green */
+    --success: #199d5c;
 
-    --chart-1: oklch(0.74 0.14 162);
-    --chart-2: oklch(0.72 0.13 248);
-    --chart-3: oklch(0.78 0.13 68);
-    --chart-4: oklch(0.72 0.13 300);
-    --chart-5: oklch(0.78 0.13 30);
+    --chart-1: #199d5c;
+    --chart-2: #3aa4ec;
+    --chart-3: #ed7a1e;
+    --chart-4: #2b50f0;
+    --chart-5: #5c6673;
 
-    --sidebar: oklch(0.185 0.013 52);          /* a touch darker than the room */
-    --sidebar-foreground: oklch(0.745 0.013 74);
-    --sidebar-primary: oklch(0.685 0.13 48);
-    --sidebar-primary-foreground: oklch(0.205 0.013 50);
-    --sidebar-accent: oklch(0.305 0.013 52);
-    --sidebar-accent-foreground: oklch(0.925 0.012 84);
-    --sidebar-border: oklch(0.38 0.012 58);
-    --sidebar-ring: oklch(0.685 0.13 48);
+    --sidebar: #f2f4f8;         /* a step deeper than the paper */
+    --sidebar-foreground: #3f4753;
+    --sidebar-primary: #2b50f0;
+    --sidebar-primary-foreground: #ffffff;
+    --sidebar-accent: #e9edf7;
+    --sidebar-accent-foreground: #15181e;
+    --sidebar-border: #d9dde6;
+    --sidebar-ring: #2b50f0;
 }
 
 /*
- * The Bar-Raiser panel layers extra ROOM atmosphere over the global dark theme:
- * a warm light source from the top + a vignette pooling the room inward. Tokens
- * are inherited from the global .dark theme (no redefinition needed).
+ * Game-piece physicality — the identity's signature. A piece is a surface
+ * with a 2px ink edge and a hard offset shadow; pressing it travels into
+ * its own shadow. Use for cards/controls that should read as tactile.
  */
-.panel-stage {
-    position: relative;
-    isolation: isolate;
-    background-image:
-        radial-gradient(115% 75% at 50% -8%, color-mix(in oklch, var(--clay) 16%, transparent), transparent 58%),
-        radial-gradient(150% 130% at 50% 42%, transparent 52%, oklch(0.12 0.012 50 / 0.55));
-}
-
-/* Filmic grain — lightens midtones over the dark room, below all content. */
-.panel-stage::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: -1;
-    pointer-events: none;
-    opacity: 0.06;
-    mix-blend-mode: overlay;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+@layer components {
+    .piece {
+        background: var(--card);
+        border: 2px solid var(--foreground);
+        border-radius: calc(var(--radius) + 4px);
+        box-shadow: 4px 4px 0 0 var(--foreground);
+    }
+    .piece-press {
+        transition: translate 80ms ease, box-shadow 80ms ease;
+    }
+    .piece-press:active {
+        translate: 2px 2px;
+        box-shadow: 2px 2px 0 0 var(--foreground);
+    }
 }
 
 /* The speaking presence breathes; a soft, slow swell. */
@@ -198,12 +149,8 @@
     }
     body {
         @apply bg-background text-foreground font-sans;
-        /* A faint warm light from the top, fixed to the viewport, so the whole
-         * app shares the room's atmosphere — not just the Bar-Raiser panel. */
-        background-image: radial-gradient(120% 80% at 50% -10%, color-mix(in oklch, var(--clay) 7%, transparent), transparent 62%);
-        background-attachment: fixed;
     }
-    /* Editorial display face: optical sizing on, tighter tracking for headlines */
+    /* Display face: chunky grotesk, tight tracking for headlines */
     .font-display {
         font-optical-sizing: auto;
         letter-spacing: -0.01em;
