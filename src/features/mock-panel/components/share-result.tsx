@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { toPng } from "html-to-image";
 import type { MockReport } from "@sevenlabs/shared-types";
 import { Button } from "@/components/ui/button";
-import { ShareableSignalCard } from "@/features/speaking-coach/components/shareable-signal-card";
+import { ShareableSignalCard } from "@/components/shareable-signal-card";
 
 /**
  * The share surface for a panel verdict — the report is the emotional peak and

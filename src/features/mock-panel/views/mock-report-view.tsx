@@ -222,9 +222,6 @@ export function ReportBody({ report }: { report: MockReport }) {
           <p className="text-[10px] uppercase tracking-[0.16em] text-[var(--clay-strong)]">Drill this next</p>
           <p className="mt-1.5 font-display text-lg font-semibold tracking-tight">{report.oneRep.lp}</p>
           <p className="mt-1 text-[15px] leading-relaxed text-muted-foreground">{report.oneRep.text}</p>
-          <Button size="sm" className="mt-3.5" asChild>
-            <Link href="/practice?mode=interview">Drill this next</Link>
-          </Button>
         </motion.section>
       )}
 

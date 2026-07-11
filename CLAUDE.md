@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Guidance for Claude Code (and `AGENTS.md`, which is a **symlink to this file** — editing one edits both) when working in the **Aloud** repo. Aloud is a Next.js monorepo with **two products**: the ACTIVE one is the real-time **interview panel** (3-seat Bar-Raiser over the OpenAI Realtime API, BYOK, resume-grounded, off-band judge); the PARKED one is the legacy synchronous **speaking coach**.
+Guidance for Claude Code (and `AGENTS.md`, which is a **symlink to this file** — editing one edits both) when working in the **Aloud** repo. Aloud is a Next.js monorepo with **one product**: the real-time **interview panel** (3-seat Bar-Raiser over the OpenAI Realtime API, BYOK, resume-grounded, off-band judge). The legacy synchronous speaking coach was REMOVED; recover from git history if ever needed.
 
 ## Commands
 
@@ -20,7 +20,7 @@ npm test                            # one-shot (vitest run)
 npm run test:watch
 npm run test:ci                     # junit → test-reports/junit.xml (SKIP_ENV_VALIDATION=true)
 npm run test:coverage
-npx vitest run src/__tests__/unit/practice-session.test.ts   # single file
+npx vitest run src/__tests__/unit/panel-orchestrator.test.ts # single file
 npx vitest run -t "name of test"                              # by name
 
 npm run lint                        # eslint
@@ -38,7 +38,7 @@ npm run lint                        # eslint
 
 ## Architecture
 
-**Monorepo via npm workspaces** (`packages/*`). Next.js app at repo root (`src/`). Single-process at :3000 — interview panel, coach, and dashboard share one web container. The two products share a pure-logic core and provider clients but **must not be merged** (different transports). Full system design: `ENGINEERING.md`.
+**Monorepo via npm workspaces** (`packages/*`). Next.js app at repo root (`src/`). Single-process at :3000 — interview panel and dashboard share one web container. Full system design: `ENGINEERING.md`.
 
 ### Interview panel (Bar-Raiser, real-time) — the ACTIVE product
 
@@ -56,18 +56,14 @@ A live 3-interviewer voice session over the **OpenAI Realtime API (WebRTC)**. Th
 
 Highest-stakes invariants: every mock query is **userId-scoped**; the **judge stays on the house key** (pinned `gpt-4o-mini`); BYOK keys are **never echoed back**; **`turn_detection` stays `null`** (push-to-talk); `MockTurn` is **single-writer seq-ordered**.
 
-### Speaking coach — PARKED (legacy, kept not invested)
-
-Synchronous delivery coach. BFF routes under `src/app/api/coach/*` call `src/lib/coach/turn-orchestrator.ts`, which runs the full pipeline in-process: Whisper → speech analysis (`packages/coach-core/speech-analysis.ts`) → GPT reply → TTS → S3 → Prisma. Frontend uses `@ricky0123/vad-web` (Silero VAD) for browser-side speech start/end, handing a WAV blob to `usePracticeSession`. No separate coach service.
-
 ## Workspace packages
 
-- `packages/coach-core` — **pure logic, no I/O** (Vitest aliases `@sevenlabs/coach-core` → source). **Naming caveat**: despite the name, most of its 13 source files (one is the `index.ts` barrel) are interview-PANEL logic, not coach logic. `speech-analysis.ts` (coach: WPM/filler/pause), `coach-prompt.ts` (legacy coach prompts), `disfluency.ts` (vendor-agnostic disfluency engine over a verbatim word stream), `rubric-definitions.ts` (Amazon LP + React/JS rubrics, ~21KB), `question-bank.ts` (STAR drill pools), `panel-composition.ts` (Bar-Raiser veto + verdict math: `finalizeVerdict`, `computeComposure`, `aggregateFluency`), `panel-context.ts` (`buildPanelContextDigest` cross-seat digest), `seat-openers.ts` (deterministic question variety), `interviewer-guardrails.ts` (prompt-injection hardening + turn-control), `resume.ts` (grounding), `realtime-cost.ts` (display-only BYOK spend estimate), `redaction.ts` (`redact()` masks `sk-`/`sk-ant-`/`AIza`/`ek_`/`Bearer` to non-reversible fingerprints).
-- `packages/shared-types` — Zod contracts (no I/O): `schemas.ts` (coach contracts), `mock-schemas.ts` (panel: mint/turn/report/verdict/dimension/confidence + `interviewOutcomeSchema`, `SIGNAL_TO_SCORE`), `realtime-config.ts` (`REALTIME_INPUT_CONFIG`).
+- `packages/coach-core` — **pure logic, no I/O** (Vitest aliases `@sevenlabs/coach-core` → source). **Naming caveat**: despite the legacy name, this is interview-PANEL logic. `speech-analysis.ts` (WPM/filler/pause over word timestamps), `disfluency.ts` (vendor-agnostic disfluency engine over a verbatim word stream), `rubric-definitions.ts` (Amazon LP + React/JS rubrics, ~21KB), `question-bank.ts` (STAR drill pools), `panel-composition.ts` (Bar-Raiser veto + verdict math: `finalizeVerdict`, `computeComposure`, `aggregateFluency`), `panel-context.ts` (`buildPanelContextDigest` cross-seat digest), `seat-openers.ts` (deterministic question variety), `interviewer-guardrails.ts` (prompt-injection hardening + turn-control), `resume.ts` (grounding), `realtime-cost.ts` (display-only BYOK spend estimate), `redaction.ts` (`redact()` masks `sk-`/`sk-ant-`/`AIza`/`ek_`/`Bearer` to non-reversible fingerprints).
+- `packages/shared-types` — Zod contracts (no I/O): `schemas.ts` (speech-metrics contracts), `mock-schemas.ts` (panel: mint/turn/report/verdict/dimension/confidence + `interviewOutcomeSchema`, `SIGNAL_TO_SCORE`), `realtime-config.ts` (`REALTIME_INPUT_CONFIG`).
 
-`src/lib/coach/openai.ts` is the **shared provider client** for both products (raw `fetch` against `api.openai.com/v1`, not the SDK): `transcribeAudio` (whisper-1), `generateCoachText`/`scoreAgainstRubric` (gpt-4o-mini), `extractResumeJson` (PINNED gpt-4o-mini), `synthesizeCoachSpeech` (tts-1/nova), `mintRealtimeEphemeral` (BYOK-or-house: `params.apiKey ?? env.OPENAI_API_KEY`, model `env.OPENAI_REALTIME_MODEL`, default `gpt-realtime`), `judgeCommittee` (house key, pinned). Other `src/lib` modules: `byok.ts`, `crypto.ts`, `resume.ts`, `log.ts` (single stdout chokepoint — every line is redacted JSON; all provider secrets MUST flow through `redaction.ts` before any log line or Error), `mock/` (orchestrator, queue, spend, resume-digest), `s3.ts`, `signal.ts`, `brand.ts`, `db.ts` (Prisma via `PrismaPg` adapter), `env.ts`.
+`src/lib/coach/openai.ts` is the **provider client** (raw `fetch` against `api.openai.com/v1`, not the SDK): `transcribeAudio` (whisper-1), `scoreAgainstRubric` (pinned judge model), `extractResumeJson` (PINNED gpt-4o-mini), `mintRealtimeEphemeral` (BYOK-or-house: `params.apiKey ?? env.OPENAI_API_KEY`, model `env.OPENAI_REALTIME_MODEL`, default `gpt-realtime`), `judgeCommittee` (house key, pinned). Other `src/lib` modules: `byok.ts`, `crypto.ts`, `resume.ts`, `log.ts` (single stdout chokepoint — every line is redacted JSON; all provider secrets MUST flow through `redaction.ts` before any log line or Error), `mock/` (orchestrator, queue, spend, resume-digest), `coach/deepgram.ts` (verbatim ASR), `signal.ts`, `brand.ts`, `db.ts` (Prisma via `PrismaPg` adapter), `env.ts`.
 
-**Pure-logic boundary**: `packages/coach-core` + `packages/shared-types` and `src/features/mock-panel/lib/{panel-machine,realtime-events,turn-queue}` are pure (no I/O / no React) and unit-tested. All Prisma/S3/OpenAI/fetch I/O lives in `src/lib`. Don't mix I/O into the pure packages — it breaks the test boundary.
+**Pure-logic boundary**: `packages/coach-core` + `packages/shared-types` and `src/features/mock-panel/lib/{panel-machine,realtime-events,turn-queue}` are pure (no I/O / no React) and unit-tested. All Prisma/OpenAI/fetch I/O lives in `src/lib`. Don't mix I/O into the pure packages — it breaks the test boundary.
 
 ## Auth & routing
 
@@ -79,15 +75,14 @@ Synchronous delivery coach. BFF routes under `src/app/api/coach/*` call `src/lib
 
 Prisma generator `provider = "prisma-client"` (new generator, not `prisma-client-js`), `output = "../src/generated/prisma"`, datasource `postgresql`. **Import the Prisma client via the `prisma` singleton in `src/lib/db.ts`** (the generated client itself lives at `@/generated/prisma/client`); never import `@prisma/client`. Prisma 7.5.x via `@prisma/adapter-pg`. The Dockerfile copies the generated client (`src/generated/prisma`) manually to the runner stage — keep that COPY in sync if the output path moves.
 
-**6 migrations** under `prisma/migrations/` (lock `provider = postgresql`); the latest, `20260612151833_byok_resume_outcome_catchup` (2026-06-12), adds the BYOK/resume/Outcome tables + their enums — those models ARE migrated.
+**9 migrations** under `prisma/migrations/` (lock `provider = postgresql`); the latest, `20260711094329_remove_speaking_coach`, drops the speaking-coach tables (`PracticeSession`/`PracticeTurn`) + the `PracticeSessionStatus` enum, keeping only `PracticeTurnRole` (`MockTurn.role` reuses it).
 
 Models by domain:
 - **Auth.js**: `User` (passwordHash nullable for Google-only users; also carries interview-prep fields `targetCompanies String[]`, `interviewDate?`, `targetLevel SignalLevel`), `Account`, `Session`, `VerificationToken`.
-- **Speaking coach (parked)**: `PracticeSession` (userId-scoped), `PracticeTurn` (`@@unique([sessionId, clientTurnId])`).
-- **Interview panel (active)**: `Scenario`, `PanelSeat` (`@@unique([scenarioId, seatOrder])`), `MockSession` (central run — `@@unique([userId, clientRequestId])` idempotency; `keySource`/`provider`/`apiKeyId`→ProviderKey/`spendCents`/`reportJson`; `MockStatus`), `MockTurn` (`@@unique([sessionId, seq])`, `clientTurnId`, `disfluencyJson`, `transcriptionMissing`), `DimensionScore`, `PanelVerdict` (`sessionId @unique`, `barRaiserVeto`), `ConfidenceMetric`, `DrillAssignment` (`@@unique([userId, questionId, sourceSessionId])`), `JudgmentJob` (PK=sessionId; lease queue, index `(status, leaseUntil)`).
+- **Interview panel**: `Scenario`, `PanelSeat` (`@@unique([scenarioId, seatOrder])`), `MockSession` (central run — `@@unique([userId, clientRequestId])` idempotency; `keySource`/`provider`/`apiKeyId`→ProviderKey/`spendCents`/`reportJson`; `MockStatus`), `MockTurn` (`@@unique([sessionId, seq])`, `clientTurnId`, `disfluencyJson`, `transcriptionMissing`), `DimensionScore`, `PanelVerdict` (`sessionId @unique`, `barRaiserVeto`), `ConfidenceMetric`, `DrillAssignment` (`@@unique([userId, questionId, sourceSessionId])`), `JudgmentJob` (PK=sessionId; lease queue, index `(status, leaseUntil)`).
 - **Moat / custody / infra**: `Outcome` (`sessionId @unique`; the one label a foundation model can't manufacture), `ProviderKey` (`@@unique([userId, provider])`; AES-256-GCM `ciphertextB64`/`ivB64`/`tagB64` under env KEK, `dekVersion`), `ResumeProfile` (`userId @unique`; validated `factsJson` + `sourceText`), `RateBucket` (PK `[key, windowStart]`), `GlobalSpend` (PK=day), `SpendReservation` (PK=sessionId; reserve-then-settle).
 
-**13 enums**: `PracticeSessionStatus`, `PracticeTurnRole`, `SignalLevel` (NEW_GRAD/SDE_II/SENIOR), `LlmProvider` (OPENAI/ANTHROPIC/GEMINI), `InterviewType`, `ScenarioDifficulty` (WARMUP/CALIBRATED/ADVERSARIAL), `MockStatus` (PENDING/LIVE/DEBRIEF/COMPLETED/ABANDONED/FAILED/INTERRUPTED), `ScoreDimension` (LP/STAR_STRUCTURE/TECHNICAL_DEPTH/COMMUNICATION/DELIVERY), `DrillStatus`, `JobStatus`, `InterviewOutcome` (ADVANCED/REJECTED/GHOSTED/OFFER/PENDING), `KeySource` (ALOUD/USER), `KeyStatus` (ACTIVE/INVALID/EXHAUSTED/REVOKED).
+**12 enums**: `PracticeTurnRole` (kept after the speaking-coach removal — `MockTurn.role` reuses it; `COACH` = interviewer seat), `SignalLevel` (NEW_GRAD/SDE_II/SENIOR), `LlmProvider` (OPENAI/ANTHROPIC/GEMINI), `InterviewType`, `ScenarioDifficulty` (WARMUP/CALIBRATED/ADVERSARIAL), `MockStatus` (PENDING/LIVE/DEBRIEF/COMPLETED/ABANDONED/FAILED/INTERRUPTED), `ScoreDimension` (LP/STAR_STRUCTURE/TECHNICAL_DEPTH/COMMUNICATION/DELIVERY), `DrillStatus`, `JobStatus`, `InterviewOutcome` (ADVANCED/REJECTED/GHOSTED/OFFER/PENDING), `KeySource` (ALOUD/USER), `KeyStatus` (ACTIVE/INVALID/EXHAUSTED/REVOKED).
 
 ## Deployment
 
