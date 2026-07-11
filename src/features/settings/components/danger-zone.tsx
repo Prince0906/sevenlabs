@@ -32,7 +32,7 @@ export function DangerZone() {
     <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4">
       <p className="text-sm font-medium text-foreground">Delete account</p>
       <p className="mt-1 text-sm text-muted-foreground">
-        Permanently deletes your account and everything tied to it — every panel, verdict,
+        Permanently deletes your account and everything tied to it: every panel, verdict,
         confidence score, drill, saved outcome, your resume, and any stored API key. This
         cannot be undone.
       </p>

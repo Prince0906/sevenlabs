@@ -58,7 +58,7 @@ export async function POST(request: Request) {
     const mimeType = file.type || "application/pdf";
     if (!isSupportedResumeType(mimeType)) {
       return NextResponse.json(
-        { error: "Unsupported file type — upload a PDF or text file" },
+        { error: "Unsupported file type. Upload a PDF or text file." },
         { status: 415 }
       );
     }
@@ -75,7 +75,7 @@ export async function POST(request: Request) {
     }
     if (parsed.text.length < MIN_RESUME_CHARS) {
       return NextResponse.json(
-        { error: "No readable text found — if this is a scanned PDF, paste the text instead" },
+        { error: "No readable text found. If this is a scanned PDF, paste the text instead." },
         { status: 422 }
       );
     }

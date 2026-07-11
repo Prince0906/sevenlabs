@@ -55,8 +55,8 @@ export function KeyStatusBadge({
       <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
         <span aria-hidden className="size-1.5 rounded-full" style={{ backgroundColor: "var(--signal-newgrad)" }} />
         <span>
-          Your saved key {status.status === "EXHAUSTED" ? "is out of quota" : "was rejected"} —
-          running in trial mode.{" "}
+          Your saved key {status.status === "EXHAUSTED" ? "is out of quota" : "was rejected"}.
+          Running in trial mode.{" "}
           <Link href="/settings" className="underline underline-offset-2 hover:text-foreground">
             Update it in Settings
           </Link>
@@ -70,7 +70,7 @@ export function KeyStatusBadge({
       <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
         <span aria-hidden className="size-1.5 rounded-full" style={{ backgroundColor: "var(--primary)" }} />
         <span>
-          Trial mode —{" "}
+          Trial mode ·{" "}
           <Link href="/settings" className="underline underline-offset-2 hover:text-foreground">
             add your key
           </Link>{" "}

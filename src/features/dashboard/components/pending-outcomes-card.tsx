@@ -34,7 +34,7 @@ export function PendingOutcomesCard({ sessions }: { sessions: PendingOutcome[] }
         How did your real interviews go?
       </h2>
       <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
-        The real result is the one thing your panel can&apos;t see — and the one thing that makes its
+        The real result is the one thing your panel can&apos;t see, and the one thing that makes its
         next call sharper. It stays private to you.
       </p>
       <ul className="mt-4 space-y-2">

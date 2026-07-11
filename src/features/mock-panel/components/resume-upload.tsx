@@ -48,12 +48,12 @@ export function ResumeUpload() {
       const res = await fetch("/api/resume", { method: "POST", body: fd });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(body?.error ?? "Could not read that resume — try a different file.");
+        setError(body?.error ?? "Could not read that resume. Try a different file.");
         return;
       }
       setProfile({ headline: body.headline ?? null, factCount: body.factCount ?? 0 });
     } catch {
-      setError("Upload failed — check your connection and try again.");
+      setError("Upload failed. Check your connection and try again.");
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = "";
@@ -110,7 +110,7 @@ export function ResumeUpload() {
       ) : (
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <p className="text-[15px] font-semibold">Add your resume — optional</p>
+            <p className="text-[15px] font-semibold">Add your resume (optional)</p>
             <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
               The panel will open by asking about your background and ground its questions in
               your real projects. PDF or text.

@@ -40,7 +40,7 @@ export function AuthShell({ children }: AuthShellProps) {
 
           <p className="text-sm leading-relaxed text-muted-foreground">
             Three interviewers, live, by voice. A committee verdict tells you
-            whether you read as New Grad, SDE II, or Senior — and the one gap
+            whether you read as New Grad, SDE II, or Senior, and the one gap
             to close next.
           </p>
         </motion.div>

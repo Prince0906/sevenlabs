@@ -17,7 +17,7 @@ type Cta = "retry" | "end" | "over";
 const CONFIG: Record<RecoveryKind, { title: string; body: string; tone: "warn" | "error"; cta: Cta }> = {
   "mic-denied": {
     title: "Microphone needed",
-    body: "Allow mic access to begin — your voice powers the live interview, and a recording of each answer is sent to score your delivery, then discarded.",
+    body: "Allow mic access to begin. Your voice powers the live interview, and a recording of each answer is sent to score your delivery, then discarded.",
     tone: "warn",
     cta: "retry",
   },
@@ -59,7 +59,7 @@ const CONFIG: Record<RecoveryKind, { title: string; body: string; tone: "warn" |
   },
   "judgment-timeout": {
     title: "Scoring timed out",
-    body: "We couldn't finish scoring in time — your transcript is saved. Try again shortly.",
+    body: "We couldn't finish scoring in time. Your transcript is saved. Try again shortly.",
     tone: "error",
     cta: "over",
   },

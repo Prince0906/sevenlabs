@@ -76,7 +76,7 @@ export function DashboardView({
                 Step into the room when you&apos;re ready.
               </h2>
               <p className="mx-auto mt-3 max-w-md text-[15px] leading-relaxed text-muted-foreground">
-                A live, three-interviewer panel scores you against the real bar — and
+                A live, three-interviewer panel scores you against the real bar, and
                 shows you exactly where you stand. About 15 minutes.
               </p>
               <Button size="xl" asChild className="mt-7">
@@ -140,7 +140,7 @@ export function DashboardView({
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium">
                           {titleCase(p.company)}
-                          {p.title ? ` — ${p.title}` : ""}
+                          {p.title ? ` · ${p.title}` : ""}
                         </p>
                         <p className="mt-0.5 text-[12px] text-muted-foreground">
                           {formatDate(p.endedAtIso)}

@@ -38,7 +38,7 @@ const ROUNDS: {
   {
     seat: 1,
     question:
-      "You said the migration was your call — walk me through the moment it almost wasn't.",
+      "You said the migration was your call. Walk me through the moment it almost wasn't.",
     level: 1,
     gap: "A Senior names the tradeoff they rejected.",
   },
@@ -50,7 +50,7 @@ const ROUNDS: {
   },
   {
     seat: 2,
-    question: "Your strongest claim — now defend it without the metric.",
+    question: "Your strongest claim: defend it without the metric.",
     level: 2,
     gap: "Held up under the follow-up. That's the bar.",
   },
@@ -225,7 +225,7 @@ export function RoomDemo() {
                 You · on the record
               </p>
               <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
-                Say your piece — the panel is listening.
+                Say your piece. The panel is listening.
               </p>
             </div>
             <Waveform still={reduced} />
@@ -292,7 +292,7 @@ export function RoomDemo() {
             {stage === "idle"
               ? "Start answering"
               : stage === "answering"
-                ? "Done — send to the panel"
+                ? "Send to the panel"
                 : "Scoring your answer…"}
           </Button>
         )}
@@ -333,7 +333,7 @@ export function RoomDemo() {
       </div>
 
       <p className="mt-4 text-center text-[11px] text-muted-foreground">
-        A scripted round — click through it. The real one talks back.
+        A scripted round. Click through it. The real one talks back.
       </p>
     </div>
   );

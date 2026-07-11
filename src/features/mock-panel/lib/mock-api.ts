@@ -66,7 +66,7 @@ export async function createSession(
       kind: "error",
       status: 402,
       message:
-        "Your OpenAI key was rejected or out of quota — update it in Settings, or run in trial mode.",
+        "Your OpenAI key was rejected or out of quota. Update it in Settings, or run in trial mode.",
     };
   }
   return { kind: "error", status: res.status, message: errMsg(body, "Failed to start") };

@@ -25,15 +25,15 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: `${BRAND.name} — ${BRAND.tagline}`,
+    default: `${BRAND.name} · ${BRAND.tagline}`,
     template: `%s · ${BRAND.name}`,
   },
   description:
-    "A live three-interviewer voice panel that scores you against the real bar — see whether you read as New Grad, SDE II, or Senior before it counts.",
+    "A live three-interviewer voice panel that scores you against the real bar. See whether you read as New Grad, SDE II, or Senior before it counts.",
   openGraph: {
-    title: `${BRAND.name} — ${BRAND.tagline}`,
+    title: `${BRAND.name} · ${BRAND.tagline}`,
     description:
-      "Get judged before it counts. A live three-interviewer panel tells you the level you read as — before a real one does.",
+      "Get judged before it counts. A live three-interviewer panel tells you the level you read as, before a real one does.",
     siteName: BRAND.name,
   },
 };

@@ -34,6 +34,7 @@ The few rules that keep Aloud's UI consistent. When in doubt, reuse what exists.
 - Calm, honest, second-person, anxiety-aware. ("Your turn." "Pauses are fine." "Read this verdict as directional.")
 - Say "Bar Raiser", "panel", "committee verdict" — sell the live interview, not a coach.
 - Show, don't tell: prefer a meter, a stamp, a chip over a paragraph.
+- **No em dashes (—) in user-facing copy** — they read as AI-written. Use periods, commas, or colons; split the sentence. Hyphens in compound words and `·` separators are fine. (Docs/comments may keep dashes.)
 
 ## Motion
 

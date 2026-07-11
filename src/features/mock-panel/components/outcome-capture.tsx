@@ -93,7 +93,7 @@ export function OutcomeCapture({ sessionId }: { sessionId: string }) {
         {company ? `Did you hear back from ${titleCase(company)}?` : "Did you hear back?"}
       </h3>
       <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
-        This is the one thing the panel can&apos;t see — how its call held up against what
+        This is the one thing the panel can&apos;t see: how its call held up against what
         actually happened. It stays private to you, and it&apos;s how the next prediction gets sharper.
       </p>
       <div className="mt-4 flex flex-wrap gap-2" aria-busy={saving}>

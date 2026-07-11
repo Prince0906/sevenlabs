@@ -54,7 +54,7 @@ export function ReportBody({ report }: { report: MockReport }) {
       {dimensions.length > 0 && (
         <motion.section variants={staggerItem} className="space-y-5">
           <h2 className="font-display text-xl font-semibold tracking-tight">
-            Where you scored — weakest first
+            Where you scored, weakest first
           </h2>
           <div className="space-y-5">
             {dimensions.map((d) => (
@@ -97,10 +97,10 @@ export function ReportBody({ report }: { report: MockReport }) {
         {report.resilience != null && (
           <p className="text-[13px] leading-relaxed text-muted-foreground">
             {report.resilience >= 55
-              ? "Your delivery composure held — even sharpened — as the questions got harder, measured against your own warm-up. That steadiness under pressure is what carries into the real room."
+              ? "Your delivery composure held, even sharpened, as the questions got harder, measured against your own warm-up. That steadiness under pressure is what carries into the real room."
               : report.resilience >= 45
-                ? "Your composure stayed level from your warm-up through the harder questions — no pressure wobble in your delivery."
-                : "Your delivery composure slipped under the harder questions, relative to your own warm-up. That gap is the most trainable part — it shrinks with reps, and it's measured only against you, never anyone else."}
+                ? "Your composure stayed level from your warm-up through the harder questions. No pressure wobble in your delivery."
+                : "Your delivery composure slipped under the harder questions, relative to your own warm-up. That gap is the most trainable part. It shrinks with reps, and it's measured only against you, never anyone else."}
           </p>
         )}
         {!hasConfidence && (
@@ -155,7 +155,7 @@ export function ReportBody({ report }: { report: MockReport }) {
 
               <p className="text-[11px] leading-relaxed text-muted-foreground/70">
                 Across {report.disfluency.answersScored} answer
-                {report.disfluency.answersScored === 1 ? "" : "s"} — counted from the words you
+                {report.disfluency.answersScored === 1 ? "" : "s"}, counted from the words you
                 actually said, fillers and repeats included, so you hear your real habits, not a
                 cleaned-up version.
               </p>
@@ -177,7 +177,7 @@ export function ReportBody({ report }: { report: MockReport }) {
                 />
               </div>
               <p className="text-[11px] leading-relaxed text-muted-foreground/70">
-                Filler counts here are a floor — quiet hesitations often register only as a pause.
+                Filler counts here are a floor. Quiet hesitations often register only as a pause.
               </p>
             </>
           ) : null}
@@ -385,7 +385,7 @@ export function FailedScreen({ reason }: { reason?: string }) {
       </p>
       <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
         {timedOut
-          ? "Your transcript is saved — try again shortly."
+          ? "Your transcript is saved. Try again shortly."
           : "There's nothing to score for this one."}
       </p>
       <Button variant="outline" size="sm" className="mt-2" asChild>

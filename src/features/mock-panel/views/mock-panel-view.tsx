@@ -137,14 +137,14 @@ function PttControl({ p }: { p: ReturnType<typeof useMockPanel> }) {
         variant={p.isCapturing ? "default" : "outline"}
         className="rounded-full px-10"
       >
-        {p.isCapturing ? "Done — send to the panel" : "Start answering"}
+        {p.isCapturing ? "Send to the panel" : "Start answering"}
       </Button>
       <p className="text-xs text-muted-foreground">
         {p.isCapturing
-          ? "Take your time — pauses are fine. Tap Done when you've finished."
+          ? "Take your time. Pauses are fine. Tap Send when you're done."
           : p.coachResponseInFlight
             ? "Listen to the interviewer…"
-            : "Tap to answer — you control when your turn ends."}
+            : "Tap to answer. You control when your turn ends."}
       </p>
     </div>
   );
@@ -204,8 +204,8 @@ export function Intro({
           Hear where you really stand.
         </h1>
         <p className="mx-auto max-w-prose text-base leading-relaxed text-muted-foreground">
-          Three interviewers — JavaScript fundamentals, React &amp; Next.js, and rendering
-          performance — one of them a Bar Raiser who drills your strongest area. Conceptual
+          Three interviewers: JavaScript fundamentals, React &amp; Next.js, and rendering
+          performance. One of them is a Bar Raiser who drills your strongest area. Conceptual
           questions with real follow-ups, then a committee verdict, not a number.
         </p>
       </motion.div>
@@ -262,7 +262,7 @@ function LiveShell({ p }: { p: ReturnType<typeof useMockPanel> }) {
       : p.phase === "creating"
         ? "Securing a private line…"
         : "Waking your interviewers…";
-  let hint = connecting ? "This can take a moment — hang tight" : "One moment";
+  let hint = connecting ? "This can take a moment. Hang tight" : "One moment";
   let dim = false;
   let reactive = false;
   let busy = false;
@@ -281,7 +281,7 @@ function LiveShell({ p }: { p: ReturnType<typeof useMockPanel> }) {
     // Push-to-talk: the candidate's mic is open. The orb reacts; nothing ends the
     // turn until they tap Done, so pauses to think are completely safe.
     label = "Listening…";
-    hint = "Take your time — tap Done when you've finished";
+    hint = "Take your time. Tap Send when you're done";
     reactive = true;
   } else if (p.phase === "live" && p.committedTurns === 0) {
     // Opening beat: the interviewer speaks first. Don't tell the candidate it's

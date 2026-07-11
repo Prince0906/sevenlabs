@@ -63,7 +63,7 @@ export function InclinationSeal({ overallSignal, inclination, barRaiserVeto, sum
             Bar Raiser veto
           </p>
           <p className="mt-1 text-[15px] leading-relaxed text-muted-foreground">
-            The Bar Raiser could not endorse at this level — a veto is decisive and
+            The Bar Raiser could not endorse at this level. A veto is decisive and
             overrides the committee inclination above.
           </p>
         </div>

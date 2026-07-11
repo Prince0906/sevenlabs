@@ -7,7 +7,7 @@ export function StoriesCard() {
     <StatCard
       label="Stories"
       value="0 / 7"
-      sub="Story bank — coming soon"
+      sub="Story bank · coming soon"
       muted
     />
   );

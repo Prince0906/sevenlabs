@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 
-export const alt = "Aloud — Interview prep, out loud";
+export const alt = "Aloud · Interview prep, out loud";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -68,7 +68,7 @@ export default function OpengraphImage() {
                 color: "#5C6673",
               }}
             >
-              A live three-interviewer panel — the level you read as, before
+              A live three-interviewer panel. The level you read as, before
               it&apos;s real.
             </div>
           </div>

@@ -18,7 +18,7 @@ const STEPS = [
   {
     color: "var(--signal-newgrad)",
     title: "Step into the room",
-    desc: "Three interviewers question you by voice — real follow-ups, in turn.",
+    desc: "Three interviewers question you by voice, with real follow-ups, in turn.",
   },
   {
     color: "var(--signal-sde2)",
@@ -28,7 +28,7 @@ const STEPS = [
   {
     color: "var(--signal-senior)",
     title: "Leave with a verdict",
-    desc: "The level you read as — and the one rep to run next. Not a number.",
+    desc: "The level you read as, and the one rep to run next. Not a number.",
   },
 ];
 
@@ -104,7 +104,7 @@ export function LandingView() {
             variants={staggerItem}
             className="max-w-md text-base leading-relaxed text-muted-foreground lg:text-lg"
           >
-            A live three-interviewer panel tells you the level you read as —
+            A live three-interviewer panel tells you the level you read as,
             before a real one does.
           </motion.p>
           <motion.div
@@ -249,7 +249,7 @@ export function LandingView() {
             </h2>
             <p className="max-w-md text-base leading-relaxed text-muted-foreground">
               Per-interviewer reads, the level you reached, and the exact gap a
-              Bar Raiser would flag — shareable if you&rsquo;re proud of it.
+              Bar Raiser would flag. Shareable if you&rsquo;re proud of it.
             </p>
             <LevelMeter at={2} />
           </div>
@@ -289,7 +289,7 @@ export function LandingView() {
           </Button>
         </div>
         <p className="text-xs text-muted-foreground">
-          Paid plans arrive after beta — there&rsquo;ll always be a free way to
+          Paid plans arrive after beta. There&rsquo;ll always be a free way to
           practice.
         </p>
       </section>
