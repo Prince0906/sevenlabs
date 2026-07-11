@@ -16,15 +16,15 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "border-foreground bg-primary text-primary-foreground shadow-[3px_3px_0_0_var(--foreground)] hover:bg-primary/90 active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0_0_var(--foreground)]",
+          "border-foreground bg-primary text-primary-foreground shadow-[3px_3px_0_0_var(--foreground)] hover:-translate-x-px hover:-translate-y-px hover:bg-primary/90 hover:shadow-[4px_4px_0_0_var(--foreground)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0_0_var(--foreground)]",
         outline:
-          "border-foreground bg-card text-foreground shadow-[2px_2px_0_0_var(--foreground)] hover:bg-accent aria-expanded:bg-accent active:translate-x-0.5 active:translate-y-0.5 active:shadow-none",
+          "border-foreground bg-card text-foreground shadow-[2px_2px_0_0_var(--foreground)] hover:-translate-x-px hover:-translate-y-px hover:bg-accent hover:shadow-[3px_3px_0_0_var(--foreground)] aria-expanded:bg-accent active:translate-x-0.5 active:translate-y-0.5 active:shadow-none",
         secondary:
           "bg-secondary text-secondary-foreground hover:bg-secondary/70 aria-expanded:bg-secondary aria-expanded:text-secondary-foreground active:translate-y-px",
         ghost:
           "hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground active:translate-y-px",
         destructive:
-          "border-foreground bg-destructive text-white shadow-[3px_3px_0_0_var(--foreground)] hover:bg-destructive/90 focus-visible:border-destructive focus-visible:ring-destructive/30 active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0_0_var(--foreground)]",
+          "border-foreground bg-destructive text-white shadow-[3px_3px_0_0_var(--foreground)] hover:-translate-x-px hover:-translate-y-px hover:bg-destructive/90 hover:shadow-[4px_4px_0_0_var(--foreground)] focus-visible:border-destructive focus-visible:ring-destructive/30 active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0_0_var(--foreground)]",
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {

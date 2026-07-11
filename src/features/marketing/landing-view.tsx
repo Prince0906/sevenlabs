@@ -6,6 +6,7 @@ import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/logo";
 import { ShareableSignalCard } from "@/components/shareable-signal-card";
+import { RoomDemo } from "./room-demo";
 import { fadeUp, staggerContainer, staggerItem } from "@/lib/motion";
 
 const EYEBROW =
@@ -66,73 +67,6 @@ function LevelMeter({ at }: { at: 0 | 1 | 2 }) {
   );
 }
 
-/** Static diorama of the live room — the product understood at a glance. */
-function RoomDiorama() {
-  return (
-    <div className="piece w-full max-w-sm -rotate-1 p-5">
-      <div className="flex items-center justify-between">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-          Live panel · React/JS
-        </p>
-        <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-live">
-          <span className="size-2 rounded-full bg-live" aria-hidden />
-          On air
-        </span>
-      </div>
-
-      <div className="mt-5 flex items-end justify-center gap-5" aria-hidden>
-        {[
-          { initials: "MA", role: "Builder" },
-          { initials: "EL", role: "Asking", active: true },
-          { initials: "RK", role: "Bar Raiser" },
-        ].map((seat) => (
-          <div key={seat.initials} className="flex flex-col items-center gap-1.5">
-            <span
-              className={
-                "flex size-12 items-center justify-center rounded-full border-2 border-foreground bg-secondary text-sm font-bold" +
-                (seat.active ? " ring-3 ring-primary ring-offset-2 ring-offset-card" : "")
-              }
-            >
-              {seat.initials}
-            </span>
-            <span
-              className={
-                "text-[10px] font-medium uppercase tracking-[0.08em] " +
-                (seat.active ? "text-primary" : "text-muted-foreground")
-              }
-            >
-              {seat.role}
-            </span>
-          </div>
-        ))}
-      </div>
-
-      <div className="mt-5 rounded-lg border border-border bg-background px-3.5 py-3">
-        <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground">
-          Elena · Engineering Manager
-        </p>
-        <p className="mt-1 text-[13px] leading-relaxed">
-          &ldquo;You said the migration was your call — walk me through the
-          moment it almost wasn&rsquo;t.&rdquo;
-          <span className="ml-0.5 inline-block animate-pulse text-primary" aria-hidden>
-            ▍
-          </span>
-        </p>
-      </div>
-
-      <div
-        className="mt-4 rounded-lg border-2 border-foreground bg-primary px-4 py-3 text-center text-[13px] font-bold tracking-wide text-primary-foreground shadow-[3px_3px_0_0_var(--foreground)]"
-        aria-hidden
-      >
-        Start answering
-      </div>
-
-      <div className="mt-5">
-        <LevelMeter at={1} />
-      </div>
-    </div>
-  );
-}
 
 export function LandingView() {
   return (
@@ -198,8 +132,28 @@ export function LandingView() {
           animate="animate"
           className="flex justify-center lg:justify-end"
         >
-          <RoomDiorama />
+          <RoomDemo />
         </motion.div>
+      </section>
+
+      {/* The whole product in three numbers */}
+      <section className="border-y bg-secondary/40">
+        <div className="mx-auto grid max-w-5xl grid-cols-3 divide-x divide-border px-6">
+          {[
+            ["3", "interviewers, live"],
+            ["15", "minutes in the room"],
+            ["1", "committee verdict"],
+          ].map(([n, label]) => (
+            <div key={label} className="flex flex-col items-center gap-1 py-8">
+              <span className="font-mono text-4xl font-bold tabular-nums sm:text-5xl">
+                {n}
+              </span>
+              <span className="text-center text-[11px] font-medium uppercase tracking-[0.1em] text-muted-foreground">
+                {label}
+              </span>
+            </div>
+          ))}
+        </div>
       </section>
 
       {/* The wedge — two quotes, no essay */}
@@ -242,9 +196,15 @@ export function LandingView() {
             Fifteen minutes. Three interviewers. One verdict.
           </h2>
         </div>
-        <div className="grid gap-6 md:grid-cols-3">
+        <motion.div
+          variants={staggerContainer}
+          initial="initial"
+          whileInView="animate"
+          viewport={{ once: true, margin: "-80px" }}
+          className="grid gap-6 md:grid-cols-3"
+        >
           {STEPS.map((step, i) => (
-            <div key={step.title} className="piece p-6">
+            <motion.div key={step.title} variants={staggerItem} className="piece p-6">
               <div className="flex items-center justify-between">
                 <span className="font-mono text-2xl font-bold tabular-nums">
                   0{i + 1}
@@ -261,9 +221,9 @@ export function LandingView() {
               <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
                 {step.desc}
               </p>
-            </div>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
 
         <div className="mt-14 flex flex-wrap items-center justify-center gap-3 text-sm">
           <span className="text-muted-foreground">Tuned for the bar at</span>
@@ -294,7 +254,7 @@ export function LandingView() {
             <LevelMeter at={2} />
           </div>
           <div className="flex justify-center lg:justify-end">
-            <div className="rotate-1">
+            <div className="rotate-1 transition-transform duration-200 hover:rotate-0">
               <ShareableSignalCard
                 signal="SENIOR"
                 topLP={{
