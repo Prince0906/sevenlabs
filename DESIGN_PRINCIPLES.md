@@ -4,7 +4,7 @@ The few rules that keep Aloud's UI consistent. When in doubt, reuse what exists.
 
 ## Theme — Chalk & Cobalt
 
-- **One theme: light.** `forcedTheme="light"`. The whole app lives in daylight — paper ground, ink text. No dark mode, no user toggle. (The one deliberate exception: `shareable-signal-card.tsx` stays an ink-ground export image.)
+- **One theme: light. No exceptions.** `forcedTheme="light"`. The whole app lives in daylight — paper ground, ink text. No dark mode, no user toggle. Even the social-export card (`shareable-signal-card.tsx`) is a paper piece; it uses explicit hexes (html-to-image needs them), including deepened trio tones for display text on white.
 - **Game-piece physicality is the identity.** Loud surfaces are *pieces*: `2px` ink border + hard offset shadow (`shadow-[4px_4px_0_0_var(--foreground)]`), pressing travels into the shadow. `Card` (default), `Dialog`, and the loud `Button` variants are pieces; quiet surfaces (dense lists, rows) use `Card size="sm"` / 1px `border-border` hairlines.
 - **Flat fills only. No gradients, no blur glows, no film grain, ever.** Bands of color meet at hard stops.
 
