@@ -55,12 +55,4 @@ describe("Application Integration", () => {
     });
   });
 
-  describe("Module Exports", () => {
-    it("should export S3 functions from s3 module", async () => {
-      const mod = await import("@/lib/s3");
-      expect(mod.uploadAudio).toBeDefined();
-      expect(mod.getSignedUrl).toBeDefined();
-      expect(mod.deleteObject).toBeDefined();
-    });
-  });
 });

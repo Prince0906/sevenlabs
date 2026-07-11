@@ -31,8 +31,6 @@ model User {
   accounts Account[]
   sessions Session[]
 
-  practiceSessions PracticeSession[]
-
   mockSessions      MockSession[]
   confidenceMetrics ConfidenceMetric[]
   drillAssignments  DrillAssignment[]
@@ -83,60 +81,15 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
-// ============================================================
-// Speaking Coach
-// ============================================================
-
-enum PracticeSessionStatus {
-  ACTIVE
-  COMPLETED
-}
-
+// Retained after the speaking-coach removal: MockTurn.role reuses this enum,
+// where role=COACH means "interviewer seat".
 enum PracticeTurnRole {
   USER
   COACH
 }
 
-model PracticeSession {
-  id     String @id @default(cuid())
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  mode   String                @default("delivery")
-  status PracticeSessionStatus @default(ACTIVE)
-
-  startedAt DateTime  @default(now())
-  endedAt   DateTime?
-
-  turns PracticeTurn[]
-
-  @@index([userId])
-  @@index([userId, status])
-}
-
-model PracticeTurn {
-  id        String          @id @default(cuid())
-  sessionId String
-  session   PracticeSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-
-  role             PracticeTurnRole
-  clientTurnId     String?
-  transcript       String?
-  metricsJson      Json?
-  rubricScoresJson Json?
-  audioKey         String?
-  coachText        String?
-
-  createdAt DateTime @default(now())
-
-  @@unique([sessionId, clientTurnId])
-  @@index([sessionId])
-}
-
 // ============================================================
-// Confidence Engine (real-time adversarial panel) — additive (P0)
-// Everything above is untouched.
-// MockTurn.role reuses PracticeTurnRole; role=COACH means "interviewer seat".
+// Confidence Engine (real-time adversarial panel)
 // ============================================================
 
 enum SignalLevel {

@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { Mic, BarChart3, TrendingUp, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/logo";
-import { ShareableSignalCard } from "@/features/speaking-coach/components/shareable-signal-card";
+import { ShareableSignalCard } from "@/components/shareable-signal-card";
 import { fadeUp, staggerContainer, staggerItem } from "@/lib/motion";
 
 const EYEBROW =

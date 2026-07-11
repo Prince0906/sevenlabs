@@ -69,41 +69,6 @@ export async function transcribeAudio(
   };
 }
 
-export async function generateCoachText(
-  systemPrompt: string,
-  userMessage: string
-): Promise<string> {
-  const res = await fetch(`${OPENAI_BASE}/chat/completions`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${env.OPENAI_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "gpt-4o-mini",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userMessage },
-      ],
-      max_tokens: 120,
-      temperature: 0.7,
-    }),
-  });
-
-  if (!res.ok) {
-    throw new ProviderError("coach_text_failed", res.status);
-  }
-
-  const data = (await res.json()) as {
-    choices?: Array<{ message?: { content?: string } }>;
-  };
-  const content = (data.choices?.[0]?.message?.content ?? "").trim();
-  if (!content) {
-    throw new Error("OpenAI returned empty coach text");
-  }
-  return content;
-}
-
 export async function scoreAgainstRubric(
   systemPrompt: string,
   userMessage: string,
@@ -191,28 +156,6 @@ export async function extractResumeJson(
   } catch {
     throw new ProviderError("invalid_json_from_model", 500);
   }
-}
-
-export async function synthesizeCoachSpeech(text: string): Promise<Buffer> {
-  const res = await fetch(`${OPENAI_BASE}/audio/speech`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${env.OPENAI_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "tts-1",
-      voice: "nova",
-      input: text,
-      response_format: "mp3",
-    }),
-  });
-
-  if (!res.ok) {
-    throw new ProviderError("tts_failed", res.status);
-  }
-
-  return Buffer.from(await res.arrayBuffer());
 }
 
 /**
