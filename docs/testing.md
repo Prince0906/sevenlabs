@@ -16,11 +16,11 @@ express it.
 
 | Layer | Where | What it tests | Mocks? |
 |---|---|---|---|
-| **L1 · Pure unit** | `packages/*/src/__tests__/`, `src/features/*/__tests__/` (pure FSM/queue) | Pure functions, reducers, schemas-as-logic. No I/O. The bulk of the suite. | **None** |
+| **L1 · Pure unit** | `packages/*/src/__tests__/`; app-side pure engines (FSM/queue/event-mapper) in `src/__tests__/unit/` | Pure functions, reducers, schemas-as-logic. No I/O. The bulk of the suite. | **None** |
 | **L2 · Handler-integration** | `src/__tests__/unit/*-route.test.ts` | API route handlers end-to-end against **mocked adapters** — status codes, guard rails (auth/CSRF/rate-limit/TLS), happy path, security invariants. | I/O boundary only |
 | **L3 · Contract** | colocated with L1 (e.g. `outcome-schema.test.ts`) | Zod schemas: parse-accepts the valid shape, parse-rejects the invalid one. The wire contract. | None |
 | **L4 · Build / typecheck** | `src/__tests__/integration/build.test.ts` | `tsc --noEmit` compiles — catches a HEAD that imports an untracked/broken file. | n/a |
-| **(L5 · Live/E2E)** | manual | A human completes a 3-seat panel; resume → intro → handoff → report. **Not automated.** See `ENGINEERING.md` A8. | — |
+| **(L5 · Live/E2E)** | manual | A human completes a 3-seat panel; resume → intro → handoff → report. **Not automated.** | — |
 
 > Naming note: the `__tests__/unit/*-route.test.ts` files are **L2 handler-integration**, not pure units — they mock Prisma/auth/OpenAI. The folder name is historical; the `-route` suffix is the real signal.
 
@@ -43,8 +43,9 @@ npx vitest run -t "name of the test"         # by name
 
 ## 3. Naming & location
 
-- One test file per unit/route, suffix **`.test.ts`**, colocated for packages
-  (`__tests__/` next to source) and centralized for routes (`src/__tests__/`).
+- One test file per unit/route, suffix **`.test.ts`**. **Two homes**: package
+  tests live in the package (`packages/*/src/__tests__/`); ALL app-side tests
+  live in `src/__tests__/{unit,integration}/` — never inside `src/features/`.
 - Route handler tests end in **`-route.test.ts`**.
 - `describe("<unit/route under test>")` → `it("does X when Y")`, behavior in the
   present tense. One behavior per `it`; table-driven repetition via `it.each`.
@@ -69,7 +70,6 @@ The boundary modules (and only these) get `vi.mock`'d in L2 tests:
 | `@/lib/log` | stdout |
 | `@/lib/providers/openai` | OpenAI HTTP |
 | `@/lib/providers/deepgram` | Deepgram HTTP |
-| `@/lib/s3` | S3 |
 | `@/lib/interview/spend` | the shared rate-limit/reservation surface, when not under test |
 | `@/lib/crypto`, `@/lib/byok` | when testing a *route* that uses them (their own logic is L1-tested) |
 
@@ -125,12 +125,11 @@ current so a *regression* fails CI while today stays green. Raise them as gaps
 close.
 
 - **Scope (what's measured):** `vitest.config.ts → coverage.include` — the
-  pure-logic packages, `src/lib`, and the active `mock`/`keys`/`resume` routes.
+  pure-logic packages, `src/lib`, and the active `interview`/`keys`/`resume` routes.
 - **Excluded (and why):** generated Prisma client; `*.d.ts` and barrels;
-  **pure I/O adapters / transport** (`coach/openai.ts`, `realtime-connection.ts`)
+  **pure I/O adapters / transport** (`providers/openai.ts`, `realtime-connection.ts`)
   exercised through mocked callers; **infra/framework glue** (`env`, `db`,
-  `auth`, `log`); presentational constants (`brand`/`signal`/`motion`/`utils`);
-  the **parked** speaking-coach product (`turn-orchestrator`, `aggregates`).
+  `auth`, `log`); presentational constants (`brand`/`signal`/`motion`/`utils`).
 - **Thresholds:** global ~76% lines / 66% branches; the pure-logic core
   (`packages/panel-core`) held to **92% lines / 84% branches**. Exact numbers in
   `vitest.config.ts`.
@@ -163,8 +162,8 @@ close.
   the BYOK spend-split, `keySource` recording, resume injection, idempotency,
   rate-limit, daily-cap, and `markKeyFromMintError`. Highest-value next test;
   closing it lets the §7 threshold ratchet up.
-- **No automated L5.** The founder live-test (`ENGINEERING.md` A8) is the manual
-  gate; it is the real exit, not a CI job.
+- **No automated L5.** The founder live-test is the manual
+  gate; it is the real exit, not a CI job. (Other tracked gaps: `docs/architecture.md` §9.)
 
 ---
 

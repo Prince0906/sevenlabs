@@ -13,7 +13,7 @@ export default defineConfig({
       provider: "v8",
       reporter: ["text", "lcov"],
       reportsDirectory: "./test-reports/coverage",
-      // Gate the layers we hold to the testing standard (TESTING.md). `include`
+      // Gate the layers we hold to the testing standard (docs/testing.md). `include`
       // counts EVERY matching file, so an untested-but-included module scores 0 —
       // intentional: a new untracked file shows up as a coverage drop.
       include: [
@@ -30,12 +30,12 @@ export default defineConfig({
         "**/index.ts", // barrels — no logic
         "**/*.d.ts",
         // Pure I/O adapters / transport — exercised through mocked callers, not
-        // unit-tested directly (TESTING.md §"Deliberately not unit-tested").
+        // unit-tested directly (docs/testing.md §"Deliberately not unit-tested").
         "src/lib/providers/openai.ts",
         "src/features/interview/lib/realtime-connection.ts",
         // Infra / framework glue / config — no unit-testable behavior. log.ts is a
         // thin stdout chokepoint; its redaction LOGIC is tested in panel-core and
-        // is a named entry in the invariant contract (TESTING.md).
+        // is a named entry in the invariant contract (docs/testing.md).
         "src/lib/env.ts",
         "src/lib/db.ts",
         "src/lib/auth.ts",

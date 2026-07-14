@@ -54,7 +54,7 @@ jobs:
     name: Tests + coverage gate
     runs-on: ubuntu-latest
     # Full Vitest suite with coverage. The per-layer thresholds in
-    # vitest.config.ts (TESTING.md) fail the build on a regression — a ratchet,
+    # vitest.config.ts (docs/testing.md) fail the build on a regression — a ratchet,
     # not a vanity number. This is the ONLY test job in the whole pipeline.
     env:
       SKIP_ENV_VALIDATION: "true"
