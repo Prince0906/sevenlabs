@@ -31,7 +31,7 @@ import {
   type CommitteeSeatInput,
   type DisfluencyReport,
 } from "@sevenlabs/coach-core";
-import { scoreAgainstRubric, judgeCommittee, JUDGE_MODEL } from "@/lib/coach/openai";
+import { scoreAgainstRubric, judgeCommittee, JUDGE_MODEL } from "@/lib/providers/openai";
 import { settleReservation } from "@/lib/mock/spend";
 import { log } from "@/lib/log";
 

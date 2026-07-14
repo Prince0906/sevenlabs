@@ -5,7 +5,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { env } from "@/lib/env";
 import { log } from "@/lib/log";
-import { mintRealtimeEphemeral, ProviderError } from "@/lib/coach/openai";
+import { mintRealtimeEphemeral, ProviderError } from "@/lib/providers/openai";
 import {
   checkRateLimit,
   reserveGlobalSpend,

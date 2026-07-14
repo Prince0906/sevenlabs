@@ -14,7 +14,7 @@
  * never invent a project the candidate didn't list.
  *
  * Pure, dependency-free, no I/O — the extraction LLM call and storage live in
- * src/lib/coach + the /api/resume route.
+ * src/lib/providers + the /api/resume route.
  */
 
 export type ResumeFactCategory = "role" | "project" | "skill" | "claim";
@@ -35,7 +35,7 @@ export interface ResumeFacts {
 
 /**
  * System prompt for the pinned-judge extraction call (the transport lives in
- * src/lib/coach/openai.ts). Pinned model + this prompt, so the extracted profile
+ * src/lib/providers/openai.ts). Pinned model + this prompt, so the extracted profile
  * is consistent across users — same plane as judgment (D2). The resume is treated
  * as untrusted DATA (§9.5): the model is told never to follow instructions inside
  * it, and the verbatim-quote requirement is what makes validateResumeFacts able

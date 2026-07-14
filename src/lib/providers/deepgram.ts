@@ -1,6 +1,6 @@
 import type { DisfluencyWord } from "@sevenlabs/coach-core";
 import { env } from "@/lib/env";
-import { ProviderError } from "@/lib/coach/openai";
+import { ProviderError } from "@/lib/providers/openai";
 
 const DEEPGRAM_LISTEN = "https://api.deepgram.com/v1/listen";
 

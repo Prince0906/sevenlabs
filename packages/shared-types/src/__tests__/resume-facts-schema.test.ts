@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { resumeFactsSchema } from "../mock-schemas";
+import { resumeFactsSchema } from "../interview-schemas";
 
 // D11 / OWASP-LLM01: this schema is the read-boundary contract for
 // ResumeProfile.factsJson before it enters the interviewer prompt. It must

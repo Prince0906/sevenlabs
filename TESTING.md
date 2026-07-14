@@ -67,8 +67,8 @@ The boundary modules (and only these) get `vi.mock`'d in L2 tests:
 | `@/lib/db` (Prisma) | the database |
 | `@/lib/auth` | the session |
 | `@/lib/log` | stdout |
-| `@/lib/coach/openai` | OpenAI HTTP |
-| `@/lib/coach/deepgram` | Deepgram HTTP |
+| `@/lib/providers/openai` | OpenAI HTTP |
+| `@/lib/providers/deepgram` | Deepgram HTTP |
 | `@/lib/s3` | S3 |
 | `@/lib/mock/spend` | the shared rate-limit/reservation surface, when not under test |
 | `@/lib/crypto`, `@/lib/byok` | when testing a *route* that uses them (their own logic is L1-tested) |

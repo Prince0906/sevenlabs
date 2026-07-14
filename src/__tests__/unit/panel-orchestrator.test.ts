@@ -24,7 +24,7 @@ const mockOpenai = vi.hoisted(() => ({
 const mockSpend = vi.hoisted(() => ({ settleReservation: vi.fn() }));
 
 vi.mock("@/lib/db", () => ({ prisma: mockPrisma }));
-vi.mock("@/lib/coach/openai", () => mockOpenai);
+vi.mock("@/lib/providers/openai", () => mockOpenai);
 vi.mock("@/lib/mock/spend", () => mockSpend);
 vi.mock("@/lib/log", () => ({ log: { error: vi.fn(), warn: vi.fn(), info: vi.fn() } }));
 // coach-core (pure composition) + shared-types (schemas) stay real.

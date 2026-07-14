@@ -9,7 +9,7 @@ const mockCrypto = vi.hoisted(() => ({
 }));
 vi.mock("@/lib/db", () => ({ prisma: mockPrisma }));
 vi.mock("@/lib/crypto", () => mockCrypto);
-vi.mock("@/lib/coach/openai", () => ({ mintRealtimeEphemeral: vi.fn() }));
+vi.mock("@/lib/providers/openai", () => ({ mintRealtimeEphemeral: vi.fn() }));
 
 import { resolveSessionKey, markKeyFromMintError } from "@/lib/byok";
 

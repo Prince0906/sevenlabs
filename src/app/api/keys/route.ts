@@ -5,7 +5,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { log } from "@/lib/log";
 import { redactUnknown } from "@sevenlabs/coach-core";
-import { ProviderError } from "@/lib/coach/openai";
+import { ProviderError } from "@/lib/providers/openai";
 import {
   isByokConfigured,
   encryptSecret,

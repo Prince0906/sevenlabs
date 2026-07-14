@@ -4,8 +4,8 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { log } from "@/lib/log";
 import { analyzeSpeech, analyzeDisfluency } from "@sevenlabs/coach-core";
-import { transcribeAudio, ProviderError } from "@/lib/coach/openai";
-import { isDeepgramConfigured, transcribeVerbatim } from "@/lib/coach/deepgram";
+import { transcribeAudio, ProviderError } from "@/lib/providers/openai";
+import { isDeepgramConfigured, transcribeVerbatim } from "@/lib/providers/deepgram";
 
 // Whisper's hard upload ceiling. A push-to-talk answer is opus/webm at a few
 // hundred KB/min, so this is only a guard against a pathological upload.

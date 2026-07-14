@@ -31,7 +31,7 @@ export default defineConfig({
         "**/*.d.ts",
         // Pure I/O adapters / transport — exercised through mocked callers, not
         // unit-tested directly (TESTING.md §"Deliberately not unit-tested").
-        "src/lib/coach/openai.ts",
+        "src/lib/providers/openai.ts",
         "src/features/mock-panel/lib/realtime-connection.ts",
         // Infra / framework glue / config — no unit-testable behavior. log.ts is a
         // thin stdout chokepoint; its redaction LOGIC is tested in coach-core and

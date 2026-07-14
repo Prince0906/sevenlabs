@@ -10,7 +10,7 @@ import {
   type ResumeFacts,
 } from "@sevenlabs/coach-core";
 import { resumeFactsSchema } from "@sevenlabs/shared-types";
-import { extractResumeJson, ProviderError } from "@/lib/coach/openai";
+import { extractResumeJson, ProviderError } from "@/lib/providers/openai";
 import {
   parseResumeFile,
   isSupportedResumeType,
