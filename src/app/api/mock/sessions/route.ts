@@ -12,8 +12,8 @@ import {
   createReservation,
   estimateSessionUsd,
   settleReservation,
-} from "@/lib/mock/spend";
-import { getResumeDigest } from "@/lib/mock/resume-digest";
+} from "@/lib/interview/spend";
+import { getResumeDigest } from "@/lib/interview/resume-digest";
 import { resolveSessionKey, markKeyFromMintError } from "@/lib/byok";
 
 const bodySchema = z.object({

@@ -9,7 +9,7 @@ import {
   turnEventsSchema,
   type SpeechMetrics,
 } from "@sevenlabs/shared-types";
-import { spendCentsForElapsed, isSessionOver } from "@/lib/mock/spend";
+import { spendCentsForElapsed, isSessionOver } from "@/lib/interview/spend";
 
 const bodySchema = z.object({
   seq: z.number().int().nonnegative(),

@@ -158,7 +158,7 @@ export const turnResponseSchema = z.object({
 });
 
 /** The persisted reportJson returned by GET /report when COMPLETED. Matches
- * src/lib/mock/panel-orchestrator.ts reportJson EXACTLY — do not let it drift.
+ * src/lib/interview/panel-orchestrator.ts reportJson EXACTLY — do not let it drift.
  * `confidence` is the single composure score (0-100); in live mode it can be 0
  * when no USER-turn delivery metrics survived (decision 5) — render gracefully. */
 export const mockReportDimensionSchema = z.object({
@@ -313,7 +313,7 @@ export type TurnEvents = z.infer<typeof turnEventsSchema>;
  * D11 / OWASP-LLM01: `factsJson` is candidate-influenced data that flows into a
  * live system prompt. `validateResumeFacts` guards it on WRITE; this schema is
  * the contract parsed on READ at the prompt boundary
- * (`src/lib/mock/resume-digest.ts`), so a manual DB edit or a future validator
+ * (`src/lib/interview/resume-digest.ts`), so a manual DB edit or a future validator
  * regression can never inject an unvalidated blob into a seat's instructions.
  * Shape-only (no length caps): it must accept any legitimately-stored profile
  * while rejecting structurally-wrong payloads.

@@ -6,7 +6,7 @@ const mockPrisma = vi.hoisted(() => ({
 vi.mock("@/lib/db", () => ({ prisma: mockPrisma }));
 // panel-core stays REAL so the real buildResumeDigest runs.
 
-import { getResumeDigest } from "@/lib/mock/resume-digest";
+import { getResumeDigest } from "@/lib/interview/resume-digest";
 
 describe("getResumeDigest", () => {
   beforeEach(() => vi.clearAllMocks());

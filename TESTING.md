@@ -70,7 +70,7 @@ The boundary modules (and only these) get `vi.mock`'d in L2 tests:
 | `@/lib/providers/openai` | OpenAI HTTP |
 | `@/lib/providers/deepgram` | Deepgram HTTP |
 | `@/lib/s3` | S3 |
-| `@/lib/mock/spend` | the shared rate-limit/reservation surface, when not under test |
+| `@/lib/interview/spend` | the shared rate-limit/reservation surface, when not under test |
 | `@/lib/crypto`, `@/lib/byok` | when testing a *route* that uses them (their own logic is L1-tested) |
 
 The canonical pattern (see `src/__tests__/unit/keys-route.test.ts`):
@@ -141,7 +141,7 @@ close.
 
 ## 8. Deliberately NOT unit-tested
 
-- **Presentational React components** (`*.tsx`: `mock-panel-view`,
+- **Presentational React components** (`*.tsx`: `interview-view`,
   `resume-upload`, `key-management`, `key-status-badge`, …). The runner env is
   `node` (no jsdom) and the include glob is `*.test.ts` — **by design**. These
   carry no branching logic worth a DOM harness; they're covered by `tsc`, the

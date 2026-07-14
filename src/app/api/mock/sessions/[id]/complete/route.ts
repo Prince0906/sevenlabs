@@ -3,7 +3,7 @@ import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { log } from "@/lib/log";
-import { drainJudgmentQueue } from "@/lib/mock/judgment-queue";
+import { drainJudgmentQueue } from "@/lib/interview/judgment-queue";
 
 const bodySchema = z.object({
   reason: z.string().optional(),

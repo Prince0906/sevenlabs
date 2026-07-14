@@ -1,7 +1,7 @@
 /**
  * The Realtime input-session config — the SINGLE source shared by both the
  * server mint body (src/lib/providers/openai.ts → session.audio.input) and the
- * client data-channel patch (mock-panel/lib/realtime-connection.ts →
+ * client data-channel patch (interview/lib/realtime-connection.ts →
  * INPUT_SESSION_PATCH). Previously these were copy-pasted with a "MUST stay
  * identical" comment; importing one const means they can't silently diverge.
  *

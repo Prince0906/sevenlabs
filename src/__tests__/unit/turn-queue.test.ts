@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
-import { createTurnQueue, type FinalizedTurn } from "@/features/mock-panel/lib/turn-queue";
-import type { TurnResult, TurnPostBody } from "@/features/mock-panel/lib/mock-api";
+import { createTurnQueue, type FinalizedTurn } from "@/features/interview/lib/turn-queue";
+import type { TurnResult, TurnPostBody } from "@/features/interview/lib/api-client";
 import type { TurnResponse } from "@sevenlabs/shared-types";
 
 function turn(over: Partial<FinalizedTurn> = {}): FinalizedTurn {

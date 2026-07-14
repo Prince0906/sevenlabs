@@ -8,10 +8,10 @@ import { pageTransition } from "@/lib/motion";
 import { ReportBody } from "../components/report-body";
 import { Deliberating, FailedScreen } from "../components/report-states";
 import { OutcomeCapture } from "../components/outcome-capture";
-import * as api from "../lib/mock-api";
+import * as api from "../lib/api-client";
 
 /** Standalone report route (/mock/[id]) — polls until COMPLETED or FAILED. */
-export function MockReportView({ sessionId }: { sessionId: string }) {
+export function ReportView({ sessionId }: { sessionId: string }) {
   const [view, setView] = useState<
     { kind: "loading" } | { kind: "debrief" } | { kind: "ready"; report: MockReport } | { kind: "failed"; reason?: string }
   >({ kind: "loading" });

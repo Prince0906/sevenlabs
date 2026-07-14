@@ -1,5 +1,5 @@
-import { MockPanelView } from "@/features/mock-panel/views/mock-panel-view";
+import { InterviewView } from "@/features/interview/views/interview-view";
 
 export default function MockPage() {
-  return <MockPanelView />;
+  return <InterviewView />;
 }

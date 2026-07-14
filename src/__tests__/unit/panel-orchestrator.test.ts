@@ -25,11 +25,11 @@ const mockSpend = vi.hoisted(() => ({ settleReservation: vi.fn() }));
 
 vi.mock("@/lib/db", () => ({ prisma: mockPrisma }));
 vi.mock("@/lib/providers/openai", () => mockOpenai);
-vi.mock("@/lib/mock/spend", () => mockSpend);
+vi.mock("@/lib/interview/spend", () => mockSpend);
 vi.mock("@/lib/log", () => ({ log: { error: vi.fn(), warn: vi.fn(), info: vi.fn() } }));
 // panel-core (pure composition) + shared-types (schemas) stay real.
 
-import { runJudgment } from "@/lib/mock/panel-orchestrator";
+import { runJudgment } from "@/lib/interview/panel-orchestrator";
 
 const EVIDENCE = "owned the outage end to end";
 

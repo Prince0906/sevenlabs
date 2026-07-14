@@ -1,4 +1,4 @@
-import { MockReportView } from "@/features/mock-panel/views/mock-report-view";
+import { ReportView } from "@/features/interview/views/report-view";
 
 export default async function MockSessionPage({
   params,
@@ -6,5 +6,5 @@ export default async function MockSessionPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  return <MockReportView sessionId={id} />;
+  return <ReportView sessionId={id} />;
 }

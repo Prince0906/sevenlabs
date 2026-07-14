@@ -10,7 +10,7 @@ const mockQueue = vi.hoisted(() => ({ drainJudgmentQueue: vi.fn() }));
 vi.mock("@/lib/db", () => ({ prisma: mockPrisma }));
 vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
 vi.mock("@/lib/log", () => ({ log: { error: vi.fn(), warn: vi.fn(), info: vi.fn() } }));
-vi.mock("@/lib/mock/judgment-queue", () => mockQueue);
+vi.mock("@/lib/interview/judgment-queue", () => mockQueue);
 vi.mock("next/server", async (importOriginal) => {
   const actual = await importOriginal<typeof import("next/server")>();
   // Run the after() callback inline so the queue-kick is observable in the test.

@@ -16,7 +16,7 @@ import {
   isSupportedResumeType,
   MAX_RESUME_BYTES,
 } from "@/lib/resume";
-import { checkRateLimit } from "@/lib/mock/spend";
+import { checkRateLimit } from "@/lib/interview/spend";
 
 // Below this, the parsed text is noise (an image-only / scanned PDF with no
 // embedded text) and extraction would hallucinate — refuse instead.

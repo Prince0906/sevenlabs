@@ -31,7 +31,7 @@ vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
 vi.mock("@/lib/log", () => ({ log: { error: vi.fn(), warn: vi.fn(), info: vi.fn() } }));
 vi.mock("@/lib/providers/openai", () => mockOpenai);
 vi.mock("@/lib/resume", () => mockResumeLib);
-vi.mock("@/lib/mock/spend", () => mockSpend);
+vi.mock("@/lib/interview/spend", () => mockSpend);
 // panel-core stays REAL — the real validateResumeFacts runs through the route.
 
 import { auth } from "@/lib/auth";

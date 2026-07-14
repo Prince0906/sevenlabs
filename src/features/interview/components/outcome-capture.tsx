@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import * as api from "../lib/mock-api";
-import type { OutcomeResult } from "../lib/mock-api";
+import * as api from "../lib/api-client";
+import type { OutcomeResult } from "../lib/api-client";
 
 const OPTIONS: { result: OutcomeResult; label: string; tone: "good" | "bad" | "neutral" }[] = [
   { result: "OFFER", label: "Got the offer", tone: "good" },

@@ -9,7 +9,7 @@
 /packages/panel-core/src/redaction.ts      @Prince0906
 
 # Spend / rate-limit safety — a bypass means uncapped cost.
-/src/lib/mock/spend.ts                      @Prince0906
+/src/lib/interview/spend.ts                      @Prince0906
 
 # Auth & route protection.
 /src/auth.config.ts                         @Prince0906

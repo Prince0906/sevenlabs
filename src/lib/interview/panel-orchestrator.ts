@@ -32,7 +32,7 @@ import {
   type DisfluencyReport,
 } from "@sevenlabs/panel-core";
 import { scoreAgainstRubric, judgeCommittee, JUDGE_MODEL } from "@/lib/providers/openai";
-import { settleReservation } from "@/lib/mock/spend";
+import { settleReservation } from "@/lib/interview/spend";
 import { log } from "@/lib/log";
 
 const CALL_TIMEOUT_MS = 30_000;

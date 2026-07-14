@@ -16,11 +16,11 @@ const mockPrisma = vi.hoisted(() => ({
 const mockOrch = vi.hoisted(() => ({ runJudgment: vi.fn() }));
 
 vi.mock("@/lib/db", () => ({ prisma: mockPrisma }));
-vi.mock("@/lib/mock/panel-orchestrator", () => mockOrch);
+vi.mock("@/lib/interview/panel-orchestrator", () => mockOrch);
 vi.mock("@/lib/log", () => ({ log: { error: vi.fn(), warn: vi.fn(), info: vi.fn() } }));
 vi.mock("@sevenlabs/panel-core", () => ({ redact: (s: string) => s }));
 
-import { drainJudgmentQueue } from "@/lib/mock/judgment-queue";
+import { drainJudgmentQueue } from "@/lib/interview/judgment-queue";
 
 /** claimNext returns these rows in order; an empty array ends the drain loop. */
 function claimSequence(...rounds: Array<Array<{ sessionId: string; attempts: number }>>) {

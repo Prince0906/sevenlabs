@@ -4,7 +4,7 @@ import {
   panelReducer,
   initialPanelState,
   type PanelState,
-} from "@/features/mock-panel/lib/panel-machine";
+} from "@/features/interview/lib/panel-machine";
 
 function seats(): PanelSeatPublic[] {
   return [

@@ -15,7 +15,7 @@ vi.mock("@/lib/db", () => ({ prisma: mockPrisma }));
 vi.mock("@/lib/log", () => ({ log: mockLog }));
 vi.mock("@/lib/env", () => ({ env: { DAILY_CAP_USD: 50 } }));
 
-import { reserveGlobalSpend, checkRateLimit, reapRateBuckets } from "@/lib/mock/spend";
+import { reserveGlobalSpend, checkRateLimit, reapRateBuckets } from "@/lib/interview/spend";
 
 beforeEach(() => {
   vi.clearAllMocks();

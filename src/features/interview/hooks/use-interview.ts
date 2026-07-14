@@ -17,7 +17,7 @@ import {
   turnCostUsd,
   type RealtimeUsage,
 } from "@sevenlabs/panel-core";
-import * as api from "../lib/mock-api";
+import * as api from "../lib/api-client";
 
 const TTL_GUARD_MS = 20_000; // re-mint this long before the ephemeral expires
 const CONFERRING_BEAT_MS = 1500; // "panel is conferring" handoff beat — deliberate, so seat swaps don't feel rushed
@@ -51,7 +51,7 @@ function pickRecorderMime(): string | undefined {
  * lives in panel-machine.ts (unit-tested); this hook performs the side effects
  * on phase entry and dispatches the results back.
  */
-export function useMockPanel() {
+export function useInterview() {
   const [state, dispatch] = useReducer(panelReducer, undefined, initialPanelState);
   // Live transcript + streaming coach text are render-visible state (not refs).
   const [liveTranscript, setLiveTranscript] = useState<

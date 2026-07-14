@@ -28,9 +28,9 @@ vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
 vi.mock("@/lib/log", () => ({ log: { error: vi.fn(), warn: vi.fn(), info: vi.fn() } }));
 vi.mock("@/lib/env", () => ({ env: { AUTH_SECRET: "test-secret", MAX_SESSION_SEC: 3600 } }));
 vi.mock("@/lib/providers/openai", () => mockOpenai);
-vi.mock("@/lib/mock/spend", () => mockSpend);
+vi.mock("@/lib/interview/spend", () => mockSpend);
 vi.mock("@/lib/byok", () => mockByok);
-vi.mock("@/lib/mock/resume-digest", () => mockResume);
+vi.mock("@/lib/interview/resume-digest", () => mockResume);
 // @sevenlabs/panel-core stays real — pure instruction/opener/digest builders.
 
 import { auth } from "@/lib/auth";

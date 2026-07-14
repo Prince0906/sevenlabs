@@ -12,8 +12,8 @@ import {
   openerInstruction,
   buildPanelContextDigest,
 } from "@sevenlabs/panel-core";
-import { spendCentsForElapsed, isSessionOver } from "@/lib/mock/spend";
-import { getResumeDigest } from "@/lib/mock/resume-digest";
+import { spendCentsForElapsed, isSessionOver } from "@/lib/interview/spend";
+import { getResumeDigest } from "@/lib/interview/resume-digest";
 import { resolveSessionKey, markKeyFromMintError } from "@/lib/byok";
 
 const bodySchema = z.object({

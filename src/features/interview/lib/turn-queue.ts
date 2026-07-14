@@ -1,5 +1,5 @@
 import type { WordTimestamp, TurnEvents } from "@sevenlabs/shared-types";
-import type { TurnResult, TurnPostBody } from "./mock-api";
+import type { TurnResult, TurnPostBody } from "./api-client";
 
 /**
  * The single-writer, in-order async commit queue that owns seq assignment and

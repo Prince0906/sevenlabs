@@ -13,7 +13,7 @@ import {
   last4,
 } from "@/lib/crypto";
 import { validateKeyViaMint } from "@/lib/byok";
-import { checkRateLimit } from "@/lib/mock/spend";
+import { checkRateLimit } from "@/lib/interview/spend";
 
 // v1 BYOK is OpenAI-only (D3): only OpenAI offers GA realtime with browser-safe
 // ephemerals. Other providers are rejected until the turn-based path exists.

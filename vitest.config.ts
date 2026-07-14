@@ -22,7 +22,7 @@ export default defineConfig({
         "src/app/api/mock/**/*.ts",
         "src/app/api/keys/**/*.ts",
         "src/app/api/resume/**/*.ts",
-        "src/features/mock-panel/lib/**/*.ts",
+        "src/features/interview/lib/**/*.ts",
       ],
       exclude: [
         "**/__tests__/**",
@@ -32,7 +32,7 @@ export default defineConfig({
         // Pure I/O adapters / transport — exercised through mocked callers, not
         // unit-tested directly (TESTING.md §"Deliberately not unit-tested").
         "src/lib/providers/openai.ts",
-        "src/features/mock-panel/lib/realtime-connection.ts",
+        "src/features/interview/lib/realtime-connection.ts",
         // Infra / framework glue / config — no unit-testable behavior. log.ts is a
         // thin stdout chokepoint; its redaction LOGIC is tested in panel-core and
         // is a named entry in the invariant contract (TESTING.md).

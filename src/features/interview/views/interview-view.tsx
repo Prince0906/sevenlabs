@@ -8,7 +8,7 @@ import { PageHeader } from "@/components/page-header";
 import { SIGNAL_THEME } from "@/lib/signal";
 import { pageTransition, staggerContainer, staggerItem } from "@/lib/motion";
 import { cn } from "@/lib/utils";
-import { useMockPanel } from "../hooks/use-mock-panel";
+import { useInterview } from "../hooks/use-interview";
 import { PanelPresences } from "../components/panel-presences";
 import { PanelOrb } from "../components/panel-orb";
 import { ComposureMeter } from "../components/composure-meter";
@@ -32,8 +32,8 @@ const LIVE_SHELL_PHASES = new Set([
   "reconnecting",
 ]);
 
-export function MockPanelView({ scenarioId = SCENARIO_ID }: { scenarioId?: string }) {
-  const p = useMockPanel();
+export function InterviewView({ scenarioId = SCENARIO_ID }: { scenarioId?: string }) {
+  const p = useInterview();
 
   const rightAction =
     p.reachedLive && LIVE_SHELL_PHASES.has(p.phase) ? (
@@ -127,7 +127,7 @@ export function MockPanelView({ scenarioId = SCENARIO_ID }: { scenarioId?: strin
 
 /** The push-to-talk control. The candidate owns end-of-turn; disabled while the
  * interviewer is speaking — you answer after they finish, as in a real interview. */
-function PttControl({ p }: { p: ReturnType<typeof useMockPanel> }) {
+function PttControl({ p }: { p: ReturnType<typeof useInterview> }) {
   return (
     <div className="flex flex-col items-center gap-2">
       <Button
@@ -243,7 +243,7 @@ export function Intro({
   );
 }
 
-function LiveShell({ p }: { p: ReturnType<typeof useMockPanel> }) {
+function LiveShell({ p }: { p: ReturnType<typeof useInterview> }) {
   const seat = p.seats[p.activeSeatIndex];
   const persona = seat ? splitPersona(seat.personaName) : { name: "", role: "" };
   const tint = SIGNAL_CSS_VAR[seatLevel(p.activeSeatIndex)];
