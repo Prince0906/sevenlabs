@@ -15,7 +15,8 @@ import { ComposureMeter } from "../components/composure-meter";
 import { RecoveryBanner } from "../components/recovery-banner";
 import { ResumeUpload } from "../components/resume-upload";
 import { KeyStatusBadge } from "../components/key-status-badge";
-import { ReportBody, Deliberating, FailedScreen } from "./mock-report-view";
+import { ReportBody } from "../components/report-body";
+import { Deliberating, FailedScreen } from "../components/report-states";
 import { seatLevel, splitPersona, SIGNAL_CSS_VAR } from "../lib/seat-theme";
 
 const SCENARIO_ID = "react-js-panel-p0";

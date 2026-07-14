@@ -6,7 +6,7 @@ import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/logo";
 import { ShareableSignalCard } from "@/components/shareable-signal-card";
-import { RoomDemo } from "./room-demo";
+import { RoomDemo } from "../components/room-demo";
 import { fadeUp, staggerContainer, staggerItem } from "@/lib/motion";
 
 const EYEBROW =

@@ -7,11 +7,11 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/page-header";
 import { pageTransition } from "@/lib/motion";
 import { SIGNAL_LABEL } from "@/lib/signal";
-import { CockpitGreeting } from "@/features/dashboard/components/cockpit-greeting";
+import { CockpitGreeting } from "../components/cockpit-greeting";
 import {
   PendingOutcomesCard,
   type PendingOutcome,
-} from "@/features/dashboard/components/pending-outcomes-card";
+} from "../components/pending-outcomes-card";
 
 export interface RecentPanel {
   id: string;

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { mapRealtimeEvent } from "../lib/realtime-events";
+import { mapRealtimeEvent } from "@/features/mock-panel/lib/realtime-events";
 
 /** Helper: events arrive as JSON strings over the data channel. */
 const ev = (obj: unknown) => mapRealtimeEvent(JSON.stringify(obj));

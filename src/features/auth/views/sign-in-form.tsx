@@ -9,7 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
-import { AuthShell } from "./auth-shell";
+import { AuthShell } from "../components/auth-shell";
 
 interface Props {
   searchParamsPromise: Promise<{ callbackUrl?: string; error?: string }>;
