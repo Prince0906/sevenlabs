@@ -16,7 +16,7 @@ import {
   CONTINUATION_NUDGE,
   turnCostUsd,
   type RealtimeUsage,
-} from "@sevenlabs/coach-core";
+} from "@sevenlabs/panel-core";
 import * as api from "../lib/mock-api";
 
 const TTL_GUARD_MS = 20_000; // re-mint this long before the ephemeral expires

@@ -4,7 +4,7 @@ const mockPrisma = vi.hoisted(() => ({
   resumeProfile: { findUnique: vi.fn() },
 }));
 vi.mock("@/lib/db", () => ({ prisma: mockPrisma }));
-// coach-core stays REAL so the real buildResumeDigest runs.
+// panel-core stays REAL so the real buildResumeDigest runs.
 
 import { getResumeDigest } from "@/lib/mock/resume-digest";
 

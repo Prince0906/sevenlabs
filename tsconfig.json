@@ -20,7 +20,7 @@
     ],
     "paths": {
       "@/*": ["./src/*"],
-      "@sevenlabs/coach-core": ["./packages/coach-core/src/index.ts"],
+      "@sevenlabs/panel-core": ["./packages/panel-core/src/index.ts"],
       "@sevenlabs/shared-types": ["./packages/shared-types/src/index.ts"]
     }
   },

@@ -3,7 +3,7 @@ import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { log } from "@/lib/log";
-import { analyzeSpeech } from "@sevenlabs/coach-core";
+import { analyzeSpeech } from "@sevenlabs/panel-core";
 import {
   wordTimestampSchema,
   turnEventsSchema,

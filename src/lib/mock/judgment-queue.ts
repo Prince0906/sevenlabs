@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { redact } from "@sevenlabs/coach-core";
+import { redact } from "@sevenlabs/panel-core";
 import { runJudgment } from "./panel-orchestrator";
 import { reapRateBuckets } from "./spend";
 import { log } from "@/lib/log";

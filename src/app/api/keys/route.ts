@@ -4,7 +4,7 @@ import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { log } from "@/lib/log";
-import { redactUnknown } from "@sevenlabs/coach-core";
+import { redactUnknown } from "@sevenlabs/panel-core";
 import { ProviderError } from "@/lib/providers/openai";
 import {
   isByokConfigured,

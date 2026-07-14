@@ -171,7 +171,7 @@ export const mockReportDimensionSchema = z.object({
 });
 
 /** End-report fluency / delivery rollup, derived from per-answer Whisper word
- * timings (coach-core analyzeSpeech). OPTIONAL on the report: historical sessions
+ * timings (panel-core analyzeSpeech). OPTIONAL on the report: historical sessions
  * (and any run where no answer audio was analyzed) won't have it — render a
  * graceful fallback. Mirrors panel-orchestrator.ts reportJson.fluency EXACTLY. */
 export const fluencySchema = z.object({
@@ -307,8 +307,8 @@ export type TurnEvents = z.infer<typeof turnEventsSchema>;
 
 /**
  * Resume grounding facts — the shape persisted in `ResumeProfile.factsJson` and
- * rendered into the interviewer prompt by coach-core's `buildResumeDigest`.
- * Mirrors coach-core's `ResumeFacts` interface.
+ * rendered into the interviewer prompt by panel-core's `buildResumeDigest`.
+ * Mirrors panel-core's `ResumeFacts` interface.
  *
  * D11 / OWASP-LLM01: `factsJson` is candidate-influenced data that flows into a
  * live system prompt. `validateResumeFacts` guards it on WRITE; this schema is

@@ -30,7 +30,7 @@ import {
   type TurnLite,
   type CommitteeSeatInput,
   type DisfluencyReport,
-} from "@sevenlabs/coach-core";
+} from "@sevenlabs/panel-core";
 import { scoreAgainstRubric, judgeCommittee, JUDGE_MODEL } from "@/lib/providers/openai";
 import { settleReservation } from "@/lib/mock/spend";
 import { log } from "@/lib/log";

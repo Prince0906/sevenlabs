@@ -25,7 +25,7 @@ vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
 vi.mock("@/lib/log", () => ({ log: { error: vi.fn(), warn: vi.fn(), info: vi.fn() } }));
 vi.mock("@/lib/providers/openai", () => mockOpenai);
 vi.mock("@/lib/providers/deepgram", () => mockDeepgram);
-vi.mock("@sevenlabs/coach-core", () => ({
+vi.mock("@sevenlabs/panel-core", () => ({
   analyzeSpeech: vi.fn().mockReturnValue({ wpm: 120, fillerCount: 1 }),
   analyzeDisfluency: vi.fn().mockReturnValue({ fillers: { total: 2 }, repetitions: { total: 1 } }),
 }));

@@ -11,7 +11,7 @@ import {
   pickSeatOpener,
   openerInstruction,
   buildPanelContextDigest,
-} from "@sevenlabs/coach-core";
+} from "@sevenlabs/panel-core";
 import { spendCentsForElapsed, isSessionOver } from "@/lib/mock/spend";
 import { getResumeDigest } from "@/lib/mock/resume-digest";
 import { resolveSessionKey, markKeyFromMintError } from "@/lib/byok";

@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { buildResumeDigest } from "@sevenlabs/coach-core";
+import { buildResumeDigest } from "@sevenlabs/panel-core";
 import { resumeFactsSchema } from "@sevenlabs/shared-types";
 import { log } from "@/lib/log";
 

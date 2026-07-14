@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// Mocks for the mint route's I/O collaborators. coach-core stays real (pure
+// Mocks for the mint route's I/O collaborators. panel-core stays real (pure
 // instruction-building); env is mocked to pin MAX_SESSION_SEC for the ceiling tests.
 const mockPrisma = vi.hoisted(() => ({
   mockSession: { findFirst: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
@@ -31,7 +31,7 @@ vi.mock("@/lib/providers/openai", () => mockOpenai);
 vi.mock("@/lib/mock/spend", () => mockSpend);
 vi.mock("@/lib/byok", () => mockByok);
 vi.mock("@/lib/mock/resume-digest", () => mockResume);
-// @sevenlabs/coach-core stays real — pure instruction/opener/digest builders.
+// @sevenlabs/panel-core stays real — pure instruction/opener/digest builders.
 
 import { auth } from "@/lib/auth";
 import { POST } from "@/app/api/mock/sessions/[id]/mint/route";

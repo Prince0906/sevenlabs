@@ -28,7 +28,7 @@ vi.mock("@/lib/crypto", () => mockCrypto);
 vi.mock("@/lib/byok", () => mockByok);
 vi.mock("@/lib/providers/openai", () => mockOpenai);
 vi.mock("@/lib/mock/spend", () => mockSpend);
-// coach-core (redactUnknown) stays real.
+// panel-core (redactUnknown) stays real.
 
 import { auth } from "@/lib/auth";
 import { POST, GET, DELETE } from "@/app/api/keys/route";

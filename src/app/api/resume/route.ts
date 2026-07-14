@@ -8,7 +8,7 @@ import {
   buildResumeExtractionMessage,
   validateResumeFacts,
   type ResumeFacts,
-} from "@sevenlabs/coach-core";
+} from "@sevenlabs/panel-core";
 import { resumeFactsSchema } from "@sevenlabs/shared-types";
 import { extractResumeJson, ProviderError } from "@/lib/providers/openai";
 import {

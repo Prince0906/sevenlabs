@@ -3,7 +3,7 @@ import { mockReportSchema } from "@sevenlabs/shared-types";
 
 // runJudgment is the off-band judge: score each seat, run the committee, assemble
 // the report, persist it. The I/O boundary (prisma + the OpenAI calls + spend) is
-// mocked; the pure coach-core composition runs for real, so this locks in the
+// mocked; the pure panel-core composition runs for real, so this locks in the
 // invariants that flow THROUGH the orchestrator: idempotent skip, the REQUIRED Bar
 // Raiser veto, the D4 provenance stamp, the D15 report-schema gate, the B2
 // resilience population.
@@ -27,7 +27,7 @@ vi.mock("@/lib/db", () => ({ prisma: mockPrisma }));
 vi.mock("@/lib/providers/openai", () => mockOpenai);
 vi.mock("@/lib/mock/spend", () => mockSpend);
 vi.mock("@/lib/log", () => ({ log: { error: vi.fn(), warn: vi.fn(), info: vi.fn() } }));
-// coach-core (pure composition) + shared-types (schemas) stay real.
+// panel-core (pure composition) + shared-types (schemas) stay real.
 
 import { runJudgment } from "@/lib/mock/panel-orchestrator";
 

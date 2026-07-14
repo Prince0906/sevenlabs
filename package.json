@@ -29,7 +29,7 @@
     "@prisma/adapter-pg": "^7.5.0",
     "@prisma/client": "^7.5.0",
     "@ricky0123/vad-web": "^0.0.30",
-    "@sevenlabs/coach-core": "*",
+    "@sevenlabs/panel-core": "*",
     "@sevenlabs/shared-types": "*",
     "@t3-oss/env-nextjs": "^0.13.10",
     "bcryptjs": "^3.0.3",

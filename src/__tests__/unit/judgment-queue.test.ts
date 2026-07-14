@@ -18,7 +18,7 @@ const mockOrch = vi.hoisted(() => ({ runJudgment: vi.fn() }));
 vi.mock("@/lib/db", () => ({ prisma: mockPrisma }));
 vi.mock("@/lib/mock/panel-orchestrator", () => mockOrch);
 vi.mock("@/lib/log", () => ({ log: { error: vi.fn(), warn: vi.fn(), info: vi.fn() } }));
-vi.mock("@sevenlabs/coach-core", () => ({ redact: (s: string) => s }));
+vi.mock("@sevenlabs/panel-core", () => ({ redact: (s: string) => s }));
 
 import { drainJudgmentQueue } from "@/lib/mock/judgment-queue";
 

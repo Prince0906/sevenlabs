@@ -55,7 +55,7 @@ rolls the app on our single EC2 box. It uses maintainer-only secrets and
 
 - **Surgical changes.** Don't refactor adjacent code, reformat, or add features the task didn't ask for. Match the surrounding style.
 - **No speculative abstractions.** No config knobs, no error handling for impossible cases, no generalizing single-use code.
-- **Workspace split.** Pure, testable logic (speech analysis, prompts, rubric shapes) goes in `packages/coach-core` (**no I/O**) and gets unit tests; I/O-bound pipelines (Prisma / S3 / OpenAI) stay in `src/lib/`. Shared Zod schemas live in `packages/shared-types`.
+- **Workspace split.** Pure, testable logic (speech analysis, prompts, rubric shapes) goes in `packages/panel-core` (**no I/O**) and gets unit tests; I/O-bound pipelines (Prisma / S3 / OpenAI) stay in `src/lib/`. Shared Zod schemas live in `packages/shared-types`.
 - **Prisma.** Import the client from `@/generated/prisma` (or `src/lib/db.ts`), **never** `@prisma/client`. Every query that touches user data is **userId-scoped**. Schema changes are additive; review migrations as CREATE-only.
 - **Security.** Never commit `.env*` or `.claude/`. Provider secrets are use-once/ephemeral — only `mintRealtimeEphemeral` ever sees an `sk-` key, and **all logging goes through `redact()` via `src/lib/log.ts`** (`console.*` is blocked by ESLint). Spend is metered on the server clock, never client-reported time.
 - **Design system.** Use semantic Tailwind tokens (`bg-card`, `text-foreground`, `border`, …) so the forced-dark theme adapts automatically. Saturated color is reserved for the **Signal** levels (amber/blue/emerald = New Grad/SDE II/Senior) — color always means *level*, never decoration.
@@ -63,7 +63,7 @@ rolls the app on our single EC2 box. It uses maintainer-only secrets and
 
 ## Tests
 
-Vitest. Tests live next to the logic they cover (`packages/coach-core/src/__tests__/`, `src/**/__tests__/`, `src/__tests__/`). Add or extend tests for any new pure logic — scoring, the panel state machine, the turn queue, composure.
+Vitest. Tests live next to the logic they cover (`packages/panel-core/src/__tests__/`, `src/**/__tests__/`, `src/__tests__/`). Add or extend tests for any new pure logic — scoring, the panel state machine, the turn queue, composure.
 
 ## Docs
 

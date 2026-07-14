@@ -79,7 +79,7 @@ Validated by `src/lib/env.ts`. Copy `.env.example` → `.env` and fill in:
 
 ```
 src/                   Next.js app (App Router), API routes, features, lib
-packages/coach-core    pure analysis/prompt logic (no I/O, unit-tested)
+packages/panel-core    pure analysis/prompt logic (no I/O, unit-tested)
 packages/shared-types  Zod schemas shared by the API layer
 prisma/                schema + seed
 terraform/             single-EC2 deploy infrastructure

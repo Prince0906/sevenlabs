@@ -17,7 +17,7 @@ export default defineConfig({
       // counts EVERY matching file, so an untested-but-included module scores 0 —
       // intentional: a new untracked file shows up as a coverage drop.
       include: [
-        "packages/coach-core/src/**/*.ts",
+        "packages/panel-core/src/**/*.ts",
         "src/lib/**/*.ts",
         "src/app/api/mock/**/*.ts",
         "src/app/api/keys/**/*.ts",
@@ -34,7 +34,7 @@ export default defineConfig({
         "src/lib/providers/openai.ts",
         "src/features/mock-panel/lib/realtime-connection.ts",
         // Infra / framework glue / config — no unit-testable behavior. log.ts is a
-        // thin stdout chokepoint; its redaction LOGIC is tested in coach-core and
+        // thin stdout chokepoint; its redaction LOGIC is tested in panel-core and
         // is a named entry in the invariant contract (TESTING.md).
         "src/lib/env.ts",
         "src/lib/db.ts",
@@ -47,13 +47,13 @@ export default defineConfig({
       ],
       // Ratchet: set a few points BELOW current so a regression fails CI but
       // today is green. Raise these as gaps close (e.g. the create-route test).
-      // The pure-logic core (coach-core) is held to a markedly higher bar.
+      // The pure-logic core (panel-core) is held to a markedly higher bar.
       thresholds: {
         statements: 75,
         branches: 66,
         functions: 77,
         lines: 76,
-        "packages/coach-core/src/**/*.ts": {
+        "packages/panel-core/src/**/*.ts": {
           statements: 91,
           branches: 84,
           functions: 92,
@@ -66,9 +66,9 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-      "@sevenlabs/coach-core": path.resolve(
+      "@sevenlabs/panel-core": path.resolve(
         __dirname,
-        "./packages/coach-core/src/index.ts"
+        "./packages/panel-core/src/index.ts"
       ),
       "@sevenlabs/shared-types": path.resolve(
         __dirname,

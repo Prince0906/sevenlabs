@@ -56,8 +56,8 @@ npx vitest run -t "name of the test"         # by name
 ## 4. Mocking policy — boundary only
 
 **Mock at the I/O boundary; never mock the thing under test, and never mock pure
-logic.** A route test that mocks `@sevenlabs/coach-core` is testing the mock, not
-the validation — keep coach-core **real** so route tests exercise the real
+logic.** A route test that mocks `@sevenlabs/panel-core` is testing the mock, not
+the validation — keep panel-core **real** so route tests exercise the real
 anti-hallucination filter, redaction, spend math, etc.
 
 The boundary modules (and only these) get `vi.mock`'d in L2 tests:
@@ -79,7 +79,7 @@ The canonical pattern (see `src/__tests__/unit/keys-route.test.ts`):
 const mockPrisma = vi.hoisted(() => ({ providerKey: { upsert: vi.fn() /* … */ } }));
 vi.mock("@/lib/db", () => ({ prisma: mockPrisma }));
 vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
-// coach-core stays REAL — the real validateResumeFacts / redact runs.
+// panel-core stays REAL — the real validateResumeFacts / redact runs.
 import { POST } from "@/app/api/keys/route";
 ```
 
@@ -106,7 +106,7 @@ without a replacement is a review-blocking change.
 | Invariant | Owning test(s) |
 |---|---|
 | Every user-data query is `userId`-scoped (no IDOR) | the `*-route` tests (each asserts the `where` includes `userId`) |
-| Secrets redacted from logs/errors over a realistic Error/stack | `packages/coach-core/.../redaction.test.ts` |
+| Secrets redacted from logs/errors over a realistic Error/stack | `packages/panel-core/.../redaction.test.ts` |
 | Judge model is **pinned** (never config-driven) | `panel-orchestrator.test.ts` / committee tests |
 | `turn_detection: null` at mint (push-to-talk) | `mint-route.test.ts` + the shared `REALTIME_INPUT_CONFIG` |
 | `MockTurn` is single-writer, `seq`-ordered | `turn-queue.test.ts`, `turns-route.test.ts` |
@@ -132,7 +132,7 @@ close.
   `auth`, `log`); presentational constants (`brand`/`signal`/`motion`/`utils`);
   the **parked** speaking-coach product (`turn-orchestrator`, `aggregates`).
 - **Thresholds:** global ~76% lines / 66% branches; the pure-logic core
-  (`packages/coach-core`) held to **92% lines / 84% branches**. Exact numbers in
+  (`packages/panel-core`) held to **92% lines / 84% branches**. Exact numbers in
   `vitest.config.ts`.
 - A new module under an included path with no test scores **0** and drops the
   number — that's the point: untracked code surfaces as a coverage drop.
@@ -173,7 +173,7 @@ close.
 1. **Find the lowest layer.** New pure logic → L1 next to the source. New route
    behavior → an L2 `-route` test.
 2. **L1:** import the real function, assert input→output. No mocks.
-3. **L2:** `vi.hoisted` the boundary mocks (§4), keep coach-core real, drive the
+3. **L2:** `vi.hoisted` the boundary mocks (§4), keep panel-core real, drive the
    handler, assert the status + the security invariant it touches (§6).
 4. **Determinism (§5),** one behavior per `it`, table-drive with `it.each`.
 5. `npm run test:coverage` green locally before pushing — the same gate CI runs.

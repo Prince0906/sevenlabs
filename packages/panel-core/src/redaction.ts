@@ -1,6 +1,6 @@
 /**
  * Redact provider secrets from any string before it is logged or surfaced in an
- * error. Pure (no I/O) so it lives in coach-core and can be unit-tested in
+ * error. Pure (no I/O) so it lives in panel-core and can be unit-tested in
  * isolation. Masks each secret to a non-reversible fingerprint that keeps only
  * the prefix + last 4 chars, e.g. `sk-…a1b2`.
  *

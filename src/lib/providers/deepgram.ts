@@ -1,4 +1,4 @@
-import type { DisfluencyWord } from "@sevenlabs/coach-core";
+import type { DisfluencyWord } from "@sevenlabs/panel-core";
 import { env } from "@/lib/env";
 import { ProviderError } from "@/lib/providers/openai";
 

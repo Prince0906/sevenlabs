@@ -3,7 +3,7 @@ import type { Prisma } from "@/generated/prisma/client";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { log } from "@/lib/log";
-import { analyzeSpeech, analyzeDisfluency } from "@sevenlabs/coach-core";
+import { analyzeSpeech, analyzeDisfluency } from "@sevenlabs/panel-core";
 import { transcribeAudio, ProviderError } from "@/lib/providers/openai";
 import { isDeepgramConfigured, transcribeVerbatim } from "@/lib/providers/deepgram";
 
@@ -26,7 +26,7 @@ export function audioExt(mime: string): string {
  * 2026-06-02). The realtime transcript path (gpt-4o-transcribe) strips fillers
  * and has no word timings, so it cannot drive delivery scoring. Here the browser
  * uploads the answer's audio; we transcribe it with Whisper (verbose_json, word
- * timings), run the existing coach-core analyzer, and attach the metrics to the
+ * timings), run the existing panel-core analyzer, and attach the metrics to the
  * matching USER turn — joined on the client-generated clientTurnId, since the
  * turn's seq is assigned asynchronously at the queue's dequeue.
  *

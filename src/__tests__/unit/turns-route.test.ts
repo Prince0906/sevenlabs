@@ -13,7 +13,7 @@ vi.mock("@/lib/db", () => ({ prisma: mockPrisma }));
 vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
 vi.mock("@/lib/log", () => ({ log: { error: vi.fn(), warn: vi.fn(), info: vi.fn() } }));
 vi.mock("@/lib/mock/spend", () => mockSpend);
-// @sevenlabs/coach-core (analyzeSpeech) + shared-types schemas stay real.
+// @sevenlabs/panel-core (analyzeSpeech) + shared-types schemas stay real.
 
 import { auth } from "@/lib/auth";
 import { POST } from "@/app/api/mock/sessions/[id]/turns/route";

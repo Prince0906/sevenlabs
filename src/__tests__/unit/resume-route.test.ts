@@ -32,7 +32,7 @@ vi.mock("@/lib/log", () => ({ log: { error: vi.fn(), warn: vi.fn(), info: vi.fn(
 vi.mock("@/lib/providers/openai", () => mockOpenai);
 vi.mock("@/lib/resume", () => mockResumeLib);
 vi.mock("@/lib/mock/spend", () => mockSpend);
-// coach-core stays REAL — the real validateResumeFacts runs through the route.
+// panel-core stays REAL — the real validateResumeFacts runs through the route.
 
 import { auth } from "@/lib/auth";
 import { POST, GET, DELETE } from "@/app/api/resume/route";
