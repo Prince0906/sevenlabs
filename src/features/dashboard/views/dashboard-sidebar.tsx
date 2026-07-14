@@ -156,7 +156,7 @@ export function DashboardSidebar() {
 
     const mainMenuItems: MenuItem[] = [
         { title: "Dashboard", url: "/dashboard", icon: Home },
-        { title: "Bar-Raiser panel", url: "/mock", icon: Users },
+        { title: "Bar-Raiser panel", url: "/interview", icon: Users },
     ];
 
     const othersMenuItems: MenuItem[] = [

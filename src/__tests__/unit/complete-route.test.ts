@@ -18,11 +18,11 @@ vi.mock("next/server", async (importOriginal) => {
 });
 
 import { auth } from "@/lib/auth";
-import { POST } from "@/app/api/mock/sessions/[id]/complete/route";
+import { POST } from "@/app/api/interview/sessions/[id]/complete/route";
 
 const ctx = { params: Promise.resolve({ id: "m1" }) };
 function req(body?: unknown): Request {
-  return new Request("http://localhost/api/mock/sessions/m1/complete", {
+  return new Request("http://localhost/api/interview/sessions/m1/complete", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: body === undefined ? undefined : JSON.stringify(body),
@@ -41,7 +41,7 @@ beforeEach(() => {
   mockPrisma.$transaction.mockResolvedValue([{ count: 1 }, {}]);
 });
 
-describe("POST /api/mock/sessions/:id/complete — guards", () => {
+describe("POST /api/interview/sessions/:id/complete — guards", () => {
   it("401 when unauthenticated", async () => {
     vi.mocked(auth).mockResolvedValue(null as never);
     expect((await call()).status).toBe(401);
@@ -70,7 +70,7 @@ describe("POST /api/mock/sessions/:id/complete — guards", () => {
   });
 });
 
-describe("POST /api/mock/sessions/:id/complete — transition + D6 persistence", () => {
+describe("POST /api/interview/sessions/:id/complete — transition + D6 persistence", () => {
   it("CAS LIVE→DEBRIEF, enqueues the job, and kicks the queue", async () => {
     const res = await call();
     expect(res.status).toBe(202);

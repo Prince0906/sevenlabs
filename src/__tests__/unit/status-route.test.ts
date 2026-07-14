@@ -11,7 +11,7 @@ vi.mock("@/lib/log", () => ({ log: { error: vi.fn(), warn: vi.fn(), info: vi.fn(
 vi.mock("@/lib/env", () => ({ env: { MAX_SESSION_SEC: 3600 } }));
 
 import { auth } from "@/lib/auth";
-import { GET, PATCH } from "@/app/api/mock/sessions/[id]/route";
+import { GET, PATCH } from "@/app/api/interview/sessions/[id]/route";
 
 const ctx = { params: Promise.resolve({ id: "m1" }) };
 
@@ -29,9 +29,9 @@ beforeEach(() => {
 });
 
 // ── GET (D5 rehydrate snapshot) ──────────────────────────────────────────────
-describe("GET /api/mock/sessions/:id — rehydrate snapshot (D5)", () => {
+describe("GET /api/interview/sessions/:id — rehydrate snapshot (D5)", () => {
   function getReq() {
-    return new Request("http://localhost/api/mock/sessions/m1");
+    return new Request("http://localhost/api/interview/sessions/m1");
   }
   const get = () => GET(getReq(), ctx);
 
@@ -86,9 +86,9 @@ describe("GET /api/mock/sessions/:id — rehydrate snapshot (D5)", () => {
 });
 
 // ── PATCH (live / interrupt) ─────────────────────────────────────────────────
-describe("PATCH /api/mock/sessions/:id — transitions", () => {
+describe("PATCH /api/interview/sessions/:id — transitions", () => {
   function patchReq(body: unknown) {
-    return new Request("http://localhost/api/mock/sessions/m1", {
+    return new Request("http://localhost/api/interview/sessions/m1", {
       method: "PATCH",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(body),

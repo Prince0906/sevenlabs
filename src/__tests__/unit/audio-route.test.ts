@@ -31,7 +31,7 @@ vi.mock("@sevenlabs/panel-core", () => ({
 }));
 
 import { auth } from "@/lib/auth";
-import { POST, audioExt } from "@/app/api/mock/sessions/[id]/turns/audio/route";
+import { POST, audioExt } from "@/app/api/interview/sessions/[id]/turns/audio/route";
 
 const params = (id: string) => ({ params: Promise.resolve({ id }) });
 
@@ -39,7 +39,7 @@ function audioReq(opts: { clientTurnId?: string; audio?: Blob }): Request {
   const fd = new FormData();
   if (opts.clientTurnId !== undefined) fd.set("clientTurnId", opts.clientTurnId);
   if (opts.audio !== undefined) fd.set("audio", opts.audio);
-  return new Request("http://localhost/api/mock/sessions/s1/turns/audio", {
+  return new Request("http://localhost/api/interview/sessions/s1/turns/audio", {
     method: "POST",
     body: fd,
   });
@@ -63,7 +63,7 @@ describe("audioExt (mime → codec extension)", () => {
   });
 });
 
-describe("POST /api/mock/sessions/:id/turns/audio", () => {
+describe("POST /api/interview/sessions/:id/turns/audio", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockDeepgram.isDeepgramConfigured.mockReturnValue(false); // default: Whisper path

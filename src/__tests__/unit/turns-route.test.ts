@@ -16,13 +16,13 @@ vi.mock("@/lib/interview/spend", () => mockSpend);
 // @sevenlabs/panel-core (analyzeSpeech) + shared-types schemas stay real.
 
 import { auth } from "@/lib/auth";
-import { POST } from "@/app/api/mock/sessions/[id]/turns/route";
+import { POST } from "@/app/api/interview/sessions/[id]/turns/route";
 
 function liveSession(over: Record<string, unknown> = {}) {
   return { status: "LIVE", startedAt: new Date(Date.now() - 10_000), keySource: "ALOUD", ...over };
 }
 function req(body: unknown): Request {
-  return new Request("http://localhost/api/mock/sessions/m1/turns", {
+  return new Request("http://localhost/api/interview/sessions/m1/turns", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body),
@@ -43,7 +43,7 @@ beforeEach(() => {
   mockSpend.isSessionOver.mockReturnValue(false);
 });
 
-describe("POST /api/mock/sessions/:id/turns — auth & guards", () => {
+describe("POST /api/interview/sessions/:id/turns — auth & guards", () => {
   it("401 when unauthenticated", async () => {
     vi.mocked(auth).mockResolvedValue(null as never);
     expect((await call(COACH_TURN)).status).toBe(401);

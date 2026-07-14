@@ -44,7 +44,7 @@ export async function PATCH(
     });
     return NextResponse.json({ status: r.count > 0 ? "INTERRUPTED" : mock.status });
   } catch (err) {
-    log.error("[PATCH /api/mock/sessions/:id]", err);
+    log.error("[PATCH /api/interview/sessions/:id]", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
@@ -109,7 +109,7 @@ export async function GET(
       })),
     });
   } catch (err) {
-    log.error("[GET /api/mock/sessions/:id]", err);
+    log.error("[GET /api/interview/sessions/:id]", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

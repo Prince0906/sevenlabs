@@ -19,7 +19,7 @@ export default defineConfig({
       include: [
         "packages/panel-core/src/**/*.ts",
         "src/lib/**/*.ts",
-        "src/app/api/mock/**/*.ts",
+        "src/app/api/interview/**/*.ts",
         "src/app/api/keys/**/*.ts",
         "src/app/api/resume/**/*.ts",
         "src/features/interview/lib/**/*.ts",

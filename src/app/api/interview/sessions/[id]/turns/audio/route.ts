@@ -135,7 +135,7 @@ export async function POST(
 
     return NextResponse.json({ ok: true });
   } catch (err) {
-    log.error("[POST /api/mock/sessions/:id/turns/audio]", err);
+    log.error("[POST /api/interview/sessions/:id/turns/audio]", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

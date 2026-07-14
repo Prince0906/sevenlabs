@@ -187,7 +187,7 @@ export async function POST(
       return NextResponse.json({ error: "Voice unavailable" }, { status: 502 });
     }
   } catch (err) {
-    log.error("[POST /api/mock/sessions/:id/mint]", err);
+    log.error("[POST /api/interview/sessions/:id/mint]", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

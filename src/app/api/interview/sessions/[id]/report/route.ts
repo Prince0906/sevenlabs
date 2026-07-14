@@ -66,7 +66,7 @@ export async function GET(
 
     return NextResponse.json({ status: mock.status });
   } catch (err) {
-    log.error("[GET /api/mock/sessions/:id/report]", err);
+    log.error("[GET /api/interview/sessions/:id/report]", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

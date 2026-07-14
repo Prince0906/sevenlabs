@@ -10,11 +10,11 @@ vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
 vi.mock("@/lib/log", () => ({ log: { error: vi.fn(), warn: vi.fn(), info: vi.fn() } }));
 
 import { auth } from "@/lib/auth";
-import { POST, GET } from "@/app/api/mock/sessions/[id]/outcome/route";
+import { POST, GET } from "@/app/api/interview/sessions/[id]/outcome/route";
 
 const params = (id: string) => ({ params: Promise.resolve({ id }) });
 const post = (body: unknown) =>
-  new Request("http://localhost/api/mock/sessions/s1/outcome", {
+  new Request("http://localhost/api/interview/sessions/s1/outcome", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -25,7 +25,7 @@ beforeEach(() => {
   vi.mocked(auth).mockResolvedValue({ user: { id: "u1" } } as never);
 });
 
-describe("POST /api/mock/sessions/:id/outcome (A1 capture)", () => {
+describe("POST /api/interview/sessions/:id/outcome (A1 capture)", () => {
   it("401 when unauthenticated", async () => {
     vi.mocked(auth).mockResolvedValueOnce(null as never);
     const res = await POST(post({ result: "ADVANCED" }), params("s1"));
@@ -110,7 +110,7 @@ describe("POST /api/mock/sessions/:id/outcome (A1 capture)", () => {
   });
 });
 
-describe("GET /api/mock/sessions/:id/outcome", () => {
+describe("GET /api/interview/sessions/:id/outcome", () => {
   it("401 when unauthenticated", async () => {
     vi.mocked(auth).mockResolvedValueOnce(null as never);
     const res = await GET(new Request("http://localhost/x"), params("s1"));

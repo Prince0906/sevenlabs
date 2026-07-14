@@ -191,7 +191,7 @@ Rules:
 - weakestArea must be specific and actionable, not generic ("speak with more confidence" is bad; "Name the specific decision you made and the alternative you rejected" is good).
 - Output ONLY the JSON object. No prose, no markdown, no preamble.`;
 
-// --- React / JavaScript competency rubric (the /mock confidence-engine panel) ---
+// --- React / JavaScript competency rubric (the /interview confidence-engine panel) ---
 // Same shape as a LeadershipPrinciple, but each entry is a technical competency.
 // `juniorSignal` = NEW_GRAD-level depth, `seniorSignal` = SENIOR-level depth; the
 // scorer interpolates SDE_II between them. Seat ownership (prisma/seed.ts) must use

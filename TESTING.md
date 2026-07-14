@@ -159,7 +159,7 @@ close.
 
 ## 9. Known gaps (tracked, not hidden)
 
-- **`POST /api/mock/sessions` (the create route) has no handler test.** It owns
+- **`POST /api/interview/sessions` (the create route) has no handler test.** It owns
   the BYOK spend-split, `keySource` recording, resume injection, idempotency,
   rate-limit, daily-cap, and `markKeyFromMintError`. Highest-value next test;
   closing it lets the §7 threshold ratchet up.

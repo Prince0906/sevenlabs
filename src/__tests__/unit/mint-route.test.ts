@@ -34,7 +34,7 @@ vi.mock("@/lib/interview/resume-digest", () => mockResume);
 // @sevenlabs/panel-core stays real — pure instruction/opener/digest builders.
 
 import { auth } from "@/lib/auth";
-import { POST } from "@/app/api/mock/sessions/[id]/mint/route";
+import { POST } from "@/app/api/interview/sessions/[id]/mint/route";
 
 const EPHEMERAL = { value: "eph_secret", expiresAt: 1_000, model: "gpt-realtime", realtimeUrl: "https://x/calls" };
 
@@ -52,7 +52,7 @@ function liveSession(over: Record<string, unknown> = {}) {
 }
 
 function req(opts: { body?: unknown; headers?: Record<string, string> } = {}): Request {
-  return new Request("http://localhost/api/mock/sessions/m1/mint", {
+  return new Request("http://localhost/api/interview/sessions/m1/mint", {
     method: "POST",
     headers: { "content-type": "application/json", ...(opts.headers ?? {}) },
     body: JSON.stringify(opts.body ?? {}),
@@ -75,7 +75,7 @@ beforeEach(() => {
   mockResume.getResumeDigest.mockResolvedValue("");
 });
 
-describe("POST /api/mock/sessions/:id/mint — auth & guards", () => {
+describe("POST /api/interview/sessions/:id/mint — auth & guards", () => {
   it("401 when unauthenticated", async () => {
     vi.mocked(auth).mockResolvedValue(null as never);
     expect((await call()).status).toBe(401);

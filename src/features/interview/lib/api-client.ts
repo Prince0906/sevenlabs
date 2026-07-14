@@ -10,7 +10,7 @@ import type {
 } from "@sevenlabs/shared-types";
 
 /**
- * Typed bare-fetch wrappers for the 6 /api/mock routes. Each returns a result
+ * Typed bare-fetch wrappers for the 6 /api/interview routes. Each returns a result
  * DISCRIMINATED over both status code AND body shape, so the state machine can
  * branch without re-parsing. Matches the existing res.ok + res.json().catch
  * convention.
@@ -38,7 +38,7 @@ export async function createSession(
   scenarioId: string,
   clientRequestId: string
 ): Promise<CreateResult> {
-  const res = await fetch("/api/mock/sessions", {
+  const res = await fetch("/api/interview/sessions", {
     method: "POST",
     headers: JSON_HEADERS,
     body: JSON.stringify({ scenarioId, clientRequestId }),
@@ -78,7 +78,7 @@ export type StatusResult =
   | { kind: "error"; status: number; message: string };
 
 export async function getStatus(id: string): Promise<StatusResult> {
-  const res = await fetch(`/api/mock/sessions/${id}`);
+  const res = await fetch(`/api/interview/sessions/${id}`);
   if (res.ok) return { kind: "ok", data: (await res.json()) as StatusResponse };
   return {
     kind: "error",
@@ -96,7 +96,7 @@ export async function patchEvent(
   id: string,
   event: "live" | "interrupt"
 ): Promise<PatchResult> {
-  const res = await fetch(`/api/mock/sessions/${id}`, {
+  const res = await fetch(`/api/interview/sessions/${id}`, {
     method: "PATCH",
     headers: JSON_HEADERS,
     body: JSON.stringify({ event }),
@@ -119,7 +119,7 @@ export async function mint(
   id: string,
   opts: { seatIndex?: number; reason?: "ttl_expiry" | "resume_interrupted" | "seat_handoff" }
 ): Promise<MintResult> {
-  const res = await fetch(`/api/mock/sessions/${id}/mint`, {
+  const res = await fetch(`/api/interview/sessions/${id}/mint`, {
     method: "POST",
     headers: JSON_HEADERS,
     body: JSON.stringify({ seatIndex: opts.seatIndex ?? 0, reason: opts.reason ?? "ttl_expiry" }),
@@ -153,7 +153,7 @@ export type TurnResult =
   | { kind: "error"; status: number; message: string };
 
 export async function postTurn(id: string, body: TurnPostBody): Promise<TurnResult> {
-  const res = await fetch(`/api/mock/sessions/${id}/turns`, {
+  const res = await fetch(`/api/interview/sessions/${id}/turns`, {
     method: "POST",
     headers: JSON_HEADERS,
     body: JSON.stringify(body),
@@ -182,7 +182,7 @@ export async function uploadTurnAudio(
   for (let attempt = 0; attempt < 4; attempt++) {
     let res: Response;
     try {
-      res = await fetch(`/api/mock/sessions/${id}/turns/audio`, {
+      res = await fetch(`/api/interview/sessions/${id}/turns/audio`, {
         method: "POST",
         body: form,
       });
@@ -204,7 +204,7 @@ export async function complete(
   id: string,
   opts?: { reason?: string; degradedDelivery?: boolean }
 ): Promise<CompleteResult> {
-  const res = await fetch(`/api/mock/sessions/${id}/complete`, {
+  const res = await fetch(`/api/interview/sessions/${id}/complete`, {
     method: "POST",
     headers: JSON_HEADERS,
     body: JSON.stringify({
@@ -245,7 +245,7 @@ export interface CapturedOutcome {
 export async function getOutcome(
   id: string
 ): Promise<{ outcome: CapturedOutcome | null; company: string | null }> {
-  const res = await fetch(`/api/mock/sessions/${id}/outcome`);
+  const res = await fetch(`/api/interview/sessions/${id}/outcome`);
   if (!res.ok) return { outcome: null, company: null };
   const body = await readJson(res);
   return {
@@ -255,7 +255,7 @@ export async function getOutcome(
 }
 
 export async function submitOutcome(id: string, result: OutcomeResult): Promise<boolean> {
-  const res = await fetch(`/api/mock/sessions/${id}/outcome`, {
+  const res = await fetch(`/api/interview/sessions/${id}/outcome`, {
     method: "POST",
     headers: JSON_HEADERS,
     body: JSON.stringify({ result }),
@@ -264,7 +264,7 @@ export async function submitOutcome(id: string, result: OutcomeResult): Promise<
 }
 
 export async function getReport(id: string, etag?: string | null): Promise<ReportResult> {
-  const res = await fetch(`/api/mock/sessions/${id}/report`, {
+  const res = await fetch(`/api/interview/sessions/${id}/report`, {
     // If-None-Match must echo the server's ETag byte-for-byte (quotes included).
     headers: etag ? { "If-None-Match": etag } : undefined,
   });

@@ -84,7 +84,7 @@ export async function POST(
       capturedAt: outcome.capturedAt.toISOString(),
     });
   } catch (err) {
-    log.error("[POST /api/mock/sessions/:id/outcome]", err);
+    log.error("[POST /api/interview/sessions/:id/outcome]", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
@@ -137,7 +137,7 @@ export async function GET(
         : null,
     });
   } catch (err) {
-    log.error("[GET /api/mock/sessions/:id/outcome]", err);
+    log.error("[GET /api/interview/sessions/:id/outcome]", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

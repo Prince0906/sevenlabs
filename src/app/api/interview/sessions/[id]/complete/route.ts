@@ -71,7 +71,7 @@ export async function POST(
       { status: 202 }
     );
   } catch (err) {
-    log.error("[POST /api/mock/sessions/:id/complete]", err);
+    log.error("[POST /api/interview/sessions/:id/complete]", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

@@ -114,7 +114,7 @@ export async function POST(
       sessionExpired,
     });
   } catch (err) {
-    log.error("[POST /api/mock/sessions/:id/turns]", err);
+    log.error("[POST /api/interview/sessions/:id/turns]", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

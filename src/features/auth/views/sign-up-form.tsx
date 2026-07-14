@@ -16,7 +16,7 @@ interface Props {
 }
 
 export function SignUpForm({ searchParamsPromise }: Props) {
-  const { callbackUrl = "/mock" } = use(searchParamsPromise);
+  const { callbackUrl = "/interview" } = use(searchParamsPromise);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

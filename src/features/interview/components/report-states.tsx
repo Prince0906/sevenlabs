@@ -32,7 +32,7 @@ export function FailedScreen({ reason }: { reason?: string }) {
           : "There's nothing to score for this one."}
       </p>
       <Button variant="outline" size="sm" className="mt-2" asChild>
-        <Link href="/mock">Back to panels</Link>
+        <Link href="/interview">Back to panels</Link>
       </Button>
     </div>
   );

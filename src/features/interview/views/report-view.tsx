@@ -10,7 +10,7 @@ import { Deliberating, FailedScreen } from "../components/report-states";
 import { OutcomeCapture } from "../components/outcome-capture";
 import * as api from "../lib/api-client";
 
-/** Standalone report route (/mock/[id]) — polls until COMPLETED or FAILED. */
+/** Standalone report route (/interview/[id]) — polls until COMPLETED or FAILED. */
 export function ReportView({ sessionId }: { sessionId: string }) {
   const [view, setView] = useState<
     { kind: "loading" } | { kind: "debrief" } | { kind: "ready"; report: MockReport } | { kind: "failed"; reason?: string }

@@ -90,7 +90,7 @@ export const turnEventsSchema = z.object({
   realtimeMsConsumed: z.number().nonnegative().optional(),
 });
 
-// ── Client-facing request/response contracts for /api/mock/* ────────────────
+// ── Client-facing request/response contracts for /api/interview/* ────────────────
 // These let the browser client import typed contracts. Response schemas mirror
 // what the routes actually return; keep them in lockstep with the routes.
 
