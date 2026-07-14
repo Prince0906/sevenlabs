@@ -14,7 +14,7 @@
 # Auth & route protection.
 /src/auth.config.ts                         @Prince0906
 /src/lib/auth.ts                            @Prince0906
-/src/middleware.ts                          @Prince0906
+/src/proxy.ts                               @Prince0906
 
 # CI/CD, secrets handling, deploy topology.
 /.github/                                   @Prince0906

@@ -17,7 +17,6 @@ Two surfaces:
 - A **PostgreSQL** database
 - An **OpenAI API key** — with Realtime access (and a GA realtime model) for the panel
 - **Google OAuth** credentials (for Google sign-in; email/password sign-up also works)
-- *(Optional)* An **AWS S3** bucket + credentials — only the parked **Speaking Coach** stores audio in S3; the **interview panel needs no AWS at all**
 
 ## Quick start
 
@@ -71,8 +70,6 @@ Validated by `src/lib/env.ts`. Copy `.env.example` → `.env` and fill in:
 
 | Variable | Default |
 |---|---|
-| `AWS_ACCESS_KEY_ID` · `AWS_SECRET_ACCESS_KEY` · `S3_BUCKET_NAME` | **coach-only** audio storage — leave unset to run the panel with no AWS |
-| `AWS_REGION` | `us-east-1` |
 | `OPENAI_REALTIME_MODEL` | `gpt-realtime` *(use a GA id, not a `*-preview` one)* |
 | `OPENAI_REALTIME_MINT_URL` | `…/v1/realtime/client_secrets` |
 | `OPENAI_REALTIME_URL` | `…/v1/realtime/calls` |

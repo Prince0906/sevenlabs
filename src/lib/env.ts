@@ -6,17 +6,8 @@ export const env = createEnv({
     // Database
     DATABASE_URL: z.string().min(1),
 
-    // AWS S3 — OPTIONAL. Only the PARKED Speaking Coach stores audio in S3; the
-    // interview panel derives its metrics in-memory and never writes to S3. Leave
-    // unset to run the panel with no AWS account at all (s3.ts throws a clear
-    // error only if a coach path actually tries to use S3 while unconfigured).
-    AWS_ACCESS_KEY_ID: z.string().optional(),
-    AWS_SECRET_ACCESS_KEY: z.string().optional(),
-    AWS_SESSION_TOKEN: z.string().optional(),
-    AWS_REGION: z.string().default("us-east-1"),
-    S3_BUCKET_NAME: z.string().optional(),
-
-    // OpenAI (Speaking Coach — Whisper, GPT, TTS)
+    // OpenAI house key: realtime mint fallback, judge, Whisper fallback,
+    // resume extraction.
     OPENAI_API_KEY: z.string().min(1),
 
     // BYOK key-encryption secret (the env KEK). Optional so the app boots without

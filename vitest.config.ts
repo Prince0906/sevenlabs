@@ -44,11 +44,6 @@ export default defineConfig({
         "src/lib/signal.ts",
         "src/lib/motion.ts",
         "src/lib/utils.ts",
-        // PARKED speaking-coach product — not the active investment.
-        "src/lib/coach/turn-orchestrator.ts",
-        "src/lib/coach/aggregates.ts",
-        "src/lib/coach/aggregate-types.ts",
-        "src/lib/coach/coach-prompt.ts",
       ],
       // Ratchet: set a few points BELOW current so a regression fails CI but
       // today is green. Raise these as gaps close (e.g. the create-route test).
