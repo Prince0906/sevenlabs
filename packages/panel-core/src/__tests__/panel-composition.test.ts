@@ -76,7 +76,12 @@ describe("seatScoresToDimensionRows", () => {
   it("maps signal→score (40/70/90) and keeps a verbatim quote intact", () => {
     const parsed: SeatRubricOutput = {
       matchedLPs: [
-        { name: "Ownership", signalLevel: "SENIOR", evidence: "I owned the migration" },
+        {
+          name: "Ownership",
+          signalLevel: "SENIOR",
+          evidence: "I owned the migration",
+          gap: "Quantify the latency win in customer terms.",
+        },
       ],
       overallSignal: "SDE_II",
       weakestArea: "Name the specific tradeoff you rejected.",
@@ -91,15 +96,17 @@ describe("seatScoresToDimensionRows", () => {
       signalLevel: "SENIOR",
       score: 90,
       evidence: "I owned the migration",
-      gap: "Name the specific tradeoff you rejected.",
+      // The gap is THIS LP's coaching step — not the seat-wide weakestArea (1b).
+      gap: "Quantify the latency win in customer terms.",
       seatId: "seat1",
     });
+    expect(rows[0].gap).not.toBe(parsed.weakestArea);
   });
 
   it("KEEPS a paraphrased-evidence row (scoring survives) but blanks the quote", () => {
     const parsed: SeatRubricOutput = {
       matchedLPs: [
-        { name: "Deliver Results", signalLevel: "NEW_GRAD", evidence: "QUOTE NOT IN TRANSCRIPT" },
+        { name: "Deliver Results", signalLevel: "NEW_GRAD", evidence: "QUOTE NOT IN TRANSCRIPT", gap: "g" },
       ],
       overallSignal: "NEW_GRAD",
       weakestArea: "w",
@@ -117,7 +124,7 @@ describe("seatScoresToDimensionRows", () => {
     const parsed: SeatRubricOutput = {
       matchedLPs: [
         // ASR wrote "cut p99 by 40%."; the judge normalizes punctuation + case.
-        { name: "Ownership", signalLevel: "SDE_II", evidence: "Cut P99 by 40%" },
+        { name: "Ownership", signalLevel: "SDE_II", evidence: "Cut P99 by 40%", gap: "g" },
       ],
       overallSignal: "SDE_II",
       weakestArea: "w",
@@ -132,8 +139,8 @@ describe("seatScoresToDimensionRows", () => {
   it("drops a row scoring a competency the seat does not own and reports the key", () => {
     const parsed: SeatRubricOutput = {
       matchedLPs: [
-        { name: "Ownership", signalLevel: "SENIOR", evidence: "I owned the migration" },
-        { name: "Invented Competency", signalLevel: "SENIOR", evidence: "I owned the migration" },
+        { name: "Ownership", signalLevel: "SENIOR", evidence: "I owned the migration", gap: "g" },
+        { name: "Invented Competency", signalLevel: "SENIOR", evidence: "I owned the migration", gap: "g" },
       ],
       overallSignal: "SDE_II",
       weakestArea: "w",
@@ -161,7 +168,7 @@ describe("barRaiserDrillDepth", () => {
 
 describe("evaluateDrill (the deterministic veto)", () => {
   const collapsed: SeatRubricOutput = {
-    matchedLPs: [{ name: "Ownership", signalLevel: "NEW_GRAD", evidence: "x" }],
+    matchedLPs: [{ name: "Ownership", signalLevel: "NEW_GRAD", evidence: "x", gap: "g" }],
     overallSignal: "NEW_GRAD",
     weakestArea: "y",
   };
@@ -181,7 +188,7 @@ describe("evaluateDrill (the deterministic veto)", () => {
   });
   it("does NOT veto when a non-NEW_GRAD signal surfaced", () => {
     const ok: SeatRubricOutput = {
-      matchedLPs: [{ name: "Ownership", signalLevel: "SDE_II", evidence: "x" }],
+      matchedLPs: [{ name: "Ownership", signalLevel: "SDE_II", evidence: "x", gap: "g" }],
       overallSignal: "SDE_II",
       weakestArea: "y",
     };

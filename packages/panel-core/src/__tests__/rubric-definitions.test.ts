@@ -2,7 +2,9 @@ import { describe, it, expect } from "vitest";
 import { rubricScoresSchema } from "@sevenlabs/shared-types";
 import {
   AMAZON_LEADERSHIP_PRINCIPLES,
+  AMAZON_OUTPUT_SPEC,
   REACT_JS_COMPETENCIES,
+  REACT_JS_OUTPUT_SPEC,
   buildRubricUserMessage,
   getRubricForCompany,
 } from "../rubric-definitions";
@@ -114,11 +116,13 @@ describe("rubricScoresSchema (output validation)", () => {
           name: "Ownership",
           signalLevel: "SDE_II",
           evidence: "I took the on-call rotation when the team was short-staffed.",
+          gap: "Say what you changed so the rotation gap couldn't recur.",
         },
         {
           name: "Deliver Results",
           signalLevel: "SENIOR",
           evidence: "Reduced p99 latency by 40% within one quarter.",
+          gap: "Tie the latency win to a customer or revenue outcome.",
         },
       ],
       overallSignal: "SDE_II",
@@ -152,6 +156,7 @@ describe("rubricScoresSchema (output validation)", () => {
         name: "Ownership",
         signalLevel: "SDE_II" as const,
         evidence: "...",
+        gap: "...",
       })),
       overallSignal: "SDE_II",
       weakestArea: "...",
@@ -165,5 +170,21 @@ describe("rubricScoresSchema (output validation)", () => {
       overallSignal: "NEW_GRAD",
     };
     expect(() => rubricScoresSchema.parse(sample)).toThrow();
+  });
+
+  it("rejects a matchedLP missing its per-LP gap (1b contract)", () => {
+    const sample = {
+      matchedLPs: [
+        { name: "Ownership", signalLevel: "SDE_II", evidence: "..." },
+      ],
+      overallSignal: "SDE_II",
+      weakestArea: "...",
+    };
+    expect(() => rubricScoresSchema.parse(sample)).toThrow();
+  });
+
+  it("both output specs instruct the judge to emit a per-LP gap", () => {
+    expect(AMAZON_OUTPUT_SPEC).toContain('"gap"');
+    expect(REACT_JS_OUTPUT_SPEC).toContain('"gap"');
   });
 });

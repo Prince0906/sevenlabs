@@ -7,7 +7,7 @@
  * Code is the source of truth; the matching DB column default is only a one-time
  * backfill for rows written before provenance existed.
  */
-export const RUBRIC_VERSION = "2026.06.0";
+export const RUBRIC_VERSION = "2026.07.0";
 
 export interface LeadershipPrinciple {
   name: string;
@@ -178,7 +178,7 @@ export const AMAZON_SIGNAL_GUIDE = `Signal-level calibration for SDE candidates:
 export const AMAZON_OUTPUT_SPEC = `Output a single JSON object with this exact shape:
 {
   "matchedLPs": [
-    { "name": "<one of the Amazon LPs above>", "signalLevel": "NEW_GRAD" | "SDE_II" | "SENIOR", "evidence": "<short quote or paraphrase from the transcript>" }
+    { "name": "<one of the Amazon LPs above>", "signalLevel": "NEW_GRAD" | "SDE_II" | "SENIOR", "evidence": "<short quote or paraphrase from the transcript>", "gap": "<one sentence: the specific, actionable next step to level up on THIS LP>" }
   ],
   "overallSignal": "NEW_GRAD" | "SDE_II" | "SENIOR",
   "weakestArea": "<one sentence describing the single highest-leverage thing the candidate should add to level up their next attempt>"
@@ -188,6 +188,7 @@ Rules:
 - Include AT MOST 3 matchedLPs — only the LPs that are clearly demonstrated in the transcript. Do NOT hallucinate signals that are not in the transcript.
 - If the transcript is too short or generic to score any LP, return matchedLPs: [], overallSignal based on what you observe, and a weakestArea pointing the candidate at a concrete next step.
 - overallSignal reflects the candidate's overall behavior in the transcript, not the highest individual LP.
+- Each matchedLP's gap must be about THAT LP only — the concrete thing missing from this answer on that principle, even when the signal is strong (what would make it stronger).
 - weakestArea must be specific and actionable, not generic ("speak with more confidence" is bad; "Name the specific decision you made and the alternative you rejected" is good).
 - Output ONLY the JSON object. No prose, no markdown, no preamble.`;
 
@@ -373,7 +374,7 @@ export const REACT_JS_SIGNAL_GUIDE = `Signal-level calibration for a React/JavaS
 export const REACT_JS_OUTPUT_SPEC = `Output a single JSON object with this exact shape:
 {
   "matchedLPs": [
-    { "name": "<one of the competencies above>", "signalLevel": "NEW_GRAD" | "SDE_II" | "SENIOR", "evidence": "<short quote or paraphrase from the transcript>" }
+    { "name": "<one of the competencies above>", "signalLevel": "NEW_GRAD" | "SDE_II" | "SENIOR", "evidence": "<short quote or paraphrase from the transcript>", "gap": "<one sentence: the specific, actionable next step to deepen THIS competency>" }
   ],
   "overallSignal": "NEW_GRAD" | "SDE_II" | "SENIOR",
   "weakestArea": "<one sentence describing the single highest-leverage thing the candidate should deepen to level up their next attempt>"
@@ -383,6 +384,7 @@ Rules:
 - Include AT MOST 3 matchedLPs — only competencies clearly demonstrated in the transcript. Do NOT hallucinate signals that are not in the transcript.
 - If the transcript is too short or generic to score any competency, return matchedLPs: [], overallSignal based on what you observe, and a weakestArea pointing the candidate at a concrete next step.
 - overallSignal reflects the candidate's overall technical depth in the transcript, not the highest individual competency.
+- Each matchedLP's gap must be about THAT competency only — the concrete thing missing from this answer on it, even when the signal is strong (what would deepen it).
 - weakestArea must be specific and actionable ("Explain WHY conditional hooks break, not just the rule" is good; "study React more" is bad).
 - Output ONLY the JSON object. No prose, no markdown, no preamble.`;
 

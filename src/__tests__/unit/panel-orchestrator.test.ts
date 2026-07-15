@@ -87,7 +87,14 @@ function debriefSession(over: Record<string, unknown> = {}) {
 }
 
 const validRubric = {
-  matchedLPs: [{ name: "Ownership", signalLevel: "SDE_II", evidence: EVIDENCE }],
+  matchedLPs: [
+    {
+      name: "Ownership",
+      signalLevel: "SDE_II",
+      evidence: EVIDENCE,
+      gap: "Name the alternative you rejected and why.",
+    },
+  ],
   overallSignal: "SDE_II",
   weakestArea: "Dive Deep",
 };
@@ -147,7 +154,9 @@ describe("runJudgment — persisted artifacts", () => {
   it("stamps rubricVersion + judgeModel on the verdict (D4)", async () => {
     await runJudgment("s1");
     const verdictArg = mockPrisma.panelVerdict.create.mock.calls[0]![0];
-    expect(verdictArg.data.rubricVersion).toBe("2026.06.0");
+    // Deliberately hardcoded (not RUBRIC_VERSION): an accidental bump — or a
+    // judge-contract change WITHOUT a bump — must fail this test consciously.
+    expect(verdictArg.data.rubricVersion).toBe("2026.07.0");
     expect(verdictArg.data.judgeModel).toBe("gpt-4o-mini");
   });
 

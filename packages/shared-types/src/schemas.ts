@@ -22,6 +22,9 @@ export const matchedLPSchema = z.object({
   name: z.string(),
   signalLevel: signalLevelSchema,
   evidence: z.string(),
+  // Per-LP coaching gap: the actionable next step for THIS competency alone
+  // (the seat-wide weakestArea is a separate, committee-facing field).
+  gap: z.string(),
 });
 
 export const rubricScoresSchema = z.object({

@@ -20,9 +20,14 @@ const variance = (a: number[]) => {
   return mean(a.map((x) => (x - m) ** 2));
 };
 
-/** What scoreAgainstRubric returns per seat (unchanged; validated by rubricScoresSchema). */
+/** What scoreAgainstRubric returns per seat (validated by rubricScoresSchema). */
 export interface SeatRubricOutput {
-  matchedLPs: Array<{ name: string; signalLevel: SignalLevel; evidence: string }>;
+  matchedLPs: Array<{
+    name: string;
+    signalLevel: SignalLevel;
+    evidence: string;
+    gap: string;
+  }>;
   overallSignal: SignalLevel;
   weakestArea: string;
 }
@@ -142,7 +147,7 @@ export function seatScoresToDimensionRows(
       signalLevel: lp.signalLevel,
       score: SIGNAL_TO_SCORE[lp.signalLevel],
       evidence: verified ? lp.evidence : "",
-      gap: parsed.weakestArea,
+      gap: lp.gap,
     });
   }
   return { rows, unknownKeys, blankedEvidence };
