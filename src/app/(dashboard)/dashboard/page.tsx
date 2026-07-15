@@ -23,14 +23,14 @@ export default async function DashboardPage() {
     }),
     // COMPLETED panels with no real-outcome label yet — the D13 capture funnel's
     // discovery surface. Bounded; the report page is where the label is entered.
-    prisma.mockSession.findMany({
+    prisma.interviewSession.findMany({
       where: { userId, status: "COMPLETED", outcome: { is: null } },
       select: { id: true, endedAt: true, scenario: { select: { company: true } } },
       orderBy: { endedAt: "desc" },
       take: 5,
     }),
     // Recent completed panels for the dashboard history strip.
-    prisma.mockSession.findMany({
+    prisma.interviewSession.findMany({
       where: { userId, status: "COMPLETED" },
       select: {
         id: true,
@@ -44,7 +44,7 @@ export default async function DashboardPage() {
     }),
     // Has this user ever run a panel? Drives the first-run zero-state — a
     // brand-new user gets one confident "start your first interview" hero.
-    prisma.mockSession.count({ where: { userId } }),
+    prisma.interviewSession.count({ where: { userId } }),
   ]);
 
   return (

@@ -14,7 +14,7 @@ import type { TurnResult, TurnPostBody } from "./api-client";
  * keeps the correct (old) seat.
  */
 export interface FinalizedTurn {
-  role: "USER" | "COACH";
+  role: "USER" | "INTERVIEWER";
   transcript: string;
   seatId: string | null;
   words: WordTimestamp[];

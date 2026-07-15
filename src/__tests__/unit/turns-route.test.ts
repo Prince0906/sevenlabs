@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const mockPrisma = vi.hoisted(() => ({
-  mockSession: { findFirst: vi.fn(), update: vi.fn() },
-  mockTurn: { findUnique: vi.fn(), create: vi.fn() },
+  interviewSession: { findFirst: vi.fn(), update: vi.fn() },
+  interviewTurn: { findUnique: vi.fn(), create: vi.fn() },
 }));
 const mockSpend = vi.hoisted(() => ({
   spendCentsForElapsed: vi.fn(() => 100),
@@ -30,15 +30,15 @@ function req(body: unknown): Request {
 }
 const ctx = { params: Promise.resolve({ id: "m1" }) };
 const call = (body: unknown) => POST(req(body), ctx);
-const COACH_TURN = { seq: 0, role: "COACH", transcript: "Tell me about a time." };
+const COACH_TURN = { seq: 0, role: "INTERVIEWER", transcript: "Tell me about a time." };
 
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(auth).mockResolvedValue({ user: { id: "u1" } } as never);
-  mockPrisma.mockSession.findFirst.mockResolvedValue(liveSession());
-  mockPrisma.mockSession.update.mockResolvedValue({});
-  mockPrisma.mockTurn.findUnique.mockResolvedValue(null);
-  mockPrisma.mockTurn.create.mockResolvedValue({ id: "t1" });
+  mockPrisma.interviewSession.findFirst.mockResolvedValue(liveSession());
+  mockPrisma.interviewSession.update.mockResolvedValue({});
+  mockPrisma.interviewTurn.findUnique.mockResolvedValue(null);
+  mockPrisma.interviewTurn.create.mockResolvedValue({ id: "t1" });
   mockSpend.spendCentsForElapsed.mockReturnValue(100);
   mockSpend.isSessionOver.mockReturnValue(false);
 });
@@ -49,17 +49,17 @@ describe("POST /api/interview/sessions/:id/turns — auth & guards", () => {
     expect((await call(COACH_TURN)).status).toBe(401);
   });
   it("400 on an invalid body (missing seq)", async () => {
-    expect((await call({ role: "COACH" })).status).toBe(400);
+    expect((await call({ role: "INTERVIEWER" })).status).toBe(400);
   });
   it("404 when the session isn't found (userId-scoped)", async () => {
-    mockPrisma.mockSession.findFirst.mockResolvedValue(null);
+    mockPrisma.interviewSession.findFirst.mockResolvedValue(null);
     expect((await call(COACH_TURN)).status).toBe(404);
-    expect(mockPrisma.mockSession.findFirst).toHaveBeenCalledWith(
+    expect(mockPrisma.interviewSession.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({ where: { id: "m1", userId: "u1" } })
     );
   });
   it("409 when the session isn't LIVE", async () => {
-    mockPrisma.mockSession.findFirst.mockResolvedValue(liveSession({ status: "DEBRIEF" }));
+    mockPrisma.interviewSession.findFirst.mockResolvedValue(liveSession({ status: "DEBRIEF" }));
     expect((await call(COACH_TURN)).status).toBe(409);
   });
 });
@@ -68,11 +68,11 @@ describe("POST .../turns — single-writer idempotency on (sessionId, seq)", () 
   it("commits a new COACH turn", async () => {
     const res = await call(COACH_TURN);
     expect(res.status).toBe(200);
-    expect(mockPrisma.mockTurn.create).toHaveBeenCalledTimes(1);
+    expect(mockPrisma.interviewTurn.create).toHaveBeenCalledTimes(1);
     expect(await res.json()).toMatchObject({ seq: 0, duplicate: false, turnId: "t1" });
   });
   it("returns duplicate:true on an identical replay (same seq + transcript)", async () => {
-    mockPrisma.mockTurn.findUnique.mockResolvedValue({
+    mockPrisma.interviewTurn.findUnique.mockResolvedValue({
       id: "t1",
       transcript: "Tell me about a time.",
       metricsJson: null,
@@ -80,10 +80,10 @@ describe("POST .../turns — single-writer idempotency on (sessionId, seq)", () 
     const res = await call(COACH_TURN);
     expect(res.status).toBe(200);
     expect(await res.json()).toMatchObject({ duplicate: true });
-    expect(mockPrisma.mockTurn.create).not.toHaveBeenCalled();
+    expect(mockPrisma.interviewTurn.create).not.toHaveBeenCalled();
   });
   it("409 SEQ_CONFLICT when the same seq carries a different transcript", async () => {
-    mockPrisma.mockTurn.findUnique.mockResolvedValue({ id: "t1", transcript: "a different answer" });
+    mockPrisma.interviewTurn.findUnique.mockResolvedValue({ id: "t1", transcript: "a different answer" });
     const res = await call(COACH_TURN);
     expect(res.status).toBe(409);
     expect(await res.json()).toMatchObject({ error: "SEQ_CONFLICT" });
@@ -92,7 +92,7 @@ describe("POST .../turns — single-writer idempotency on (sessionId, seq)", () 
 
 describe("POST .../turns — spend ceiling delegates to isSessionOver (D7)", () => {
   it("passes the session's keySource (USER) — BYOK is no longer force-stopped by the house $ ceiling", async () => {
-    mockPrisma.mockSession.findFirst.mockResolvedValue(liveSession({ keySource: "USER" }));
+    mockPrisma.interviewSession.findFirst.mockResolvedValue(liveSession({ keySource: "USER" }));
     await call(COACH_TURN);
     expect(mockSpend.isSessionOver).toHaveBeenCalledWith("USER", expect.any(Number), expect.any(Number));
   });

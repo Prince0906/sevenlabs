@@ -13,7 +13,7 @@ import { spendCentsForElapsed, isSessionOver } from "@/lib/interview/spend";
 
 const bodySchema = z.object({
   seq: z.number().int().nonnegative(),
-  role: z.enum(["USER", "COACH"]),
+  role: z.enum(["USER", "INTERVIEWER"]),
   seatId: z.string().nullish(),
   transcript: z.string().optional(),
   words: z.array(wordTimestampSchema).optional(),
@@ -41,14 +41,14 @@ export async function POST(
     }
     const b = parsed.data;
 
-    const mock = await prisma.mockSession.findFirst({
+    const interview = await prisma.interviewSession.findFirst({
       where: { id, userId },
       select: { status: true, startedAt: true, keySource: true },
     });
-    if (!mock) {
+    if (!interview) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
-    if (mock.status !== "LIVE") {
+    if (interview.status !== "LIVE") {
       return NextResponse.json({ error: "Session not live" }, { status: 409 });
     }
 
@@ -69,7 +69,7 @@ export async function POST(
     }
 
     // Idempotency on (sessionId, seq): identical replay → duplicate; different → 409.
-    const existing = await prisma.mockTurn.findUnique({
+    const existing = await prisma.interviewTurn.findUnique({
       where: { sessionId_seq: { sessionId: id, seq: b.seq } },
     });
     if (existing) {
@@ -84,7 +84,7 @@ export async function POST(
       return NextResponse.json({ error: "SEQ_CONFLICT" }, { status: 409 });
     }
 
-    const turn = await prisma.mockTurn.create({
+    const turn = await prisma.interviewTurn.create({
       data: {
         sessionId: id,
         seq: b.seq,
@@ -99,11 +99,11 @@ export async function POST(
     });
 
     let sessionExpired = false;
-    if (mock.startedAt) {
-      const elapsedSec = (Date.now() - mock.startedAt.getTime()) / 1000;
+    if (interview.startedAt) {
+      const elapsedSec = (Date.now() - interview.startedAt.getTime()) / 1000;
       const spendCents = spendCentsForElapsed(elapsedSec);
-      await prisma.mockSession.update({ where: { id }, data: { spendCents } });
-      sessionExpired = isSessionOver(mock.keySource, spendCents, elapsedSec);
+      await prisma.interviewSession.update({ where: { id }, data: { spendCents } });
+      sessionExpired = isSessionOver(interview.keySource, spendCents, elapsedSec);
     }
 
     return NextResponse.json({

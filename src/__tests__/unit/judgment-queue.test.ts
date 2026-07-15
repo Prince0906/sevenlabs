@@ -11,7 +11,7 @@ const mockPrisma = vi.hoisted(() => ({
   $queryRaw: vi.fn(),
   $transaction: vi.fn(),
   judgmentJob: { update: vi.fn() },
-  mockSession: { update: vi.fn() },
+  interviewSession: { update: vi.fn() },
 }));
 const mockOrch = vi.hoisted(() => ({ runJudgment: vi.fn() }));
 
@@ -33,7 +33,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mockPrisma.$transaction.mockResolvedValue([]);
   mockPrisma.judgmentJob.update.mockResolvedValue({});
-  mockPrisma.mockSession.update.mockResolvedValue({});
+  mockPrisma.interviewSession.update.mockResolvedValue({});
   mockOrch.runJudgment.mockResolvedValue(undefined);
 });
 
@@ -66,7 +66,7 @@ describe("drainJudgmentQueue", () => {
     });
     // a retry must NOT fail the session — the report isn't lost yet
     expect(mockPrisma.$transaction).not.toHaveBeenCalled();
-    expect(mockPrisma.mockSession.update).not.toHaveBeenCalled();
+    expect(mockPrisma.interviewSession.update).not.toHaveBeenCalled();
   });
 
   it("FAILs the job AND the session in one txn once retries are exhausted", async () => {
@@ -77,7 +77,7 @@ describe("drainJudgmentQueue", () => {
       where: { sessionId: "s1" },
       data: { status: "FAILED", lastError: "judge down" },
     });
-    expect(mockPrisma.mockSession.update).toHaveBeenCalledWith({
+    expect(mockPrisma.interviewSession.update).toHaveBeenCalledWith({
       where: { id: "s1" },
       data: { status: "FAILED" },
     });

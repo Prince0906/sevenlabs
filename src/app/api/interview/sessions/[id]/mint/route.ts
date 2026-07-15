@@ -60,7 +60,7 @@ export async function POST(
       await request.json().catch(() => ({}))
     );
 
-    const mock = await prisma.mockSession.findFirst({
+    const interview = await prisma.interviewSession.findFirst({
       where: { id, userId },
       select: {
         status: true,
@@ -71,22 +71,22 @@ export async function POST(
         },
       },
     });
-    if (!mock) {
+    if (!interview) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
     const renewable =
       reason === "resume_interrupted"
-        ? mock.status === "INTERRUPTED"
-        : mock.status === "LIVE";
+        ? interview.status === "INTERRUPTED"
+        : interview.status === "LIVE";
     if (!renewable) {
       return NextResponse.json(
-        { error: "Session not renewable", status: mock.status },
+        { error: "Session not renewable", status: interview.status },
         { status: 409 }
       );
     }
 
-    const seat = mock.scenario.panelSeats[seatIndex];
+    const seat = interview.scenario.panelSeats[seatIndex];
     if (!seat) {
       return NextResponse.json({ error: "Scenario unavailable" }, { status: 404 });
     }
@@ -96,7 +96,7 @@ export async function POST(
     // on Aloud's key, so the report is never hostage) rather than silently
     // shifting the realtime cost to the house. (§3.5/§3.6)
     let sessionApiKey: string | undefined = undefined;
-    if (mock.keySource === "USER") {
+    if (interview.keySource === "USER") {
       const resolved = await resolveSessionKey(userId);
       if (resolved.keySource !== "USER") {
         return NextResponse.json({ error: "SESSION_EXPIRED" }, { status: 410 });
@@ -109,22 +109,22 @@ export async function POST(
     // it's one write. Per-session guard on the server clock — never re-mint past
     // it. BYOK sessions have no dollar ceiling (the user's key pays); only the
     // MAX_SESSION_SEC hard stop applies. House sessions keep spend + time.
-    const elapsedSec = mock.startedAt
-      ? (Date.now() - mock.startedAt.getTime()) / 1000
+    const elapsedSec = interview.startedAt
+      ? (Date.now() - interview.startedAt.getTime()) / 1000
       : 0;
     const spendCents = spendCentsForElapsed(elapsedSec);
-    await prisma.mockSession.update({
+    await prisma.interviewSession.update({
       where: { id },
-      data: { activeSeatIndex: seatIndex, ...(mock.startedAt ? { spendCents } : {}) },
+      data: { activeSeatIndex: seatIndex, ...(interview.startedAt ? { spendCents } : {}) },
     });
-    if (mock.startedAt && isSessionOver(mock.keySource, spendCents, elapsedSec)) {
+    if (interview.startedAt && isSessionOver(interview.keySource, spendCents, elapsedSec)) {
       return NextResponse.json({ error: "SESSION_EXPIRED" }, { status: 410 });
     }
 
     // Variety: steer this seat to OPEN on a per-session sub-topic so the
     // interview differs each run (deterministic on (sessionId, seatOrder) → stable
     // across this seat's re-mints; the Bar Raiser has no opener — it adapts).
-    const opener = pickSeatOpener(mock.scenario.company, seat.seatOrder, id);
+    const opener = pickSeatOpener(interview.scenario.company, seat.seatOrder, id);
     let persona = opener
       ? `${seat.systemPrompt}\n\n${openerInstruction(opener)}`
       : seat.systemPrompt;
@@ -144,7 +144,7 @@ export async function POST(
     // of restarting the interview. Only on handoff — a same-seat re-mint resumes
     // via the client's (bounded) history replay.
     if (reason === "seat_handoff") {
-      const recent = await prisma.mockTurn.findMany({
+      const recent = await prisma.interviewTurn.findMany({
         where: { sessionId: id },
         orderBy: { seq: "desc" },
         take: 10,
@@ -171,7 +171,7 @@ export async function POST(
       });
       // Resume flips INTERRUPTED→LIVE only if it's still interrupted (CAS).
       if (reason === "resume_interrupted") {
-        await prisma.mockSession.updateMany({
+        await prisma.interviewSession.updateMany({
           where: { id, status: "INTERRUPTED" },
           data: { status: "LIVE" },
         });
@@ -182,7 +182,7 @@ export async function POST(
       // Failure taxonomy (§3.5): a USER-key re-mint that 401/403/429s condemns the
       // key (so it stops being retried and surfaces in settings). The session ends
       // gracefully — the off-band judge runs on Aloud's key, report is never hostage.
-      if (mock.keySource === "USER") await markKeyFromMintError(userId, status);
+      if (interview.keySource === "USER") await markKeyFromMintError(userId, status);
       log.error("re-mint failed", { sessionId: id, status });
       return NextResponse.json({ error: "Voice unavailable" }, { status: 502 });
     }

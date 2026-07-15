@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const mockPrisma = vi.hoisted(() => ({
-  mockSession: { findFirst: vi.fn(), updateMany: vi.fn() },
+  interviewSession: { findFirst: vi.fn(), updateMany: vi.fn() },
   judgmentJob: { upsert: vi.fn() },
   $transaction: vi.fn(),
 }));
@@ -33,7 +33,7 @@ const call = (body?: unknown) => POST(req(body), ctx);
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(auth).mockResolvedValue({ user: { id: "u1" } } as never);
-  mockPrisma.mockSession.findFirst.mockResolvedValue({
+  mockPrisma.interviewSession.findFirst.mockResolvedValue({
     status: "LIVE",
     startedAt: new Date(Date.now() - 60_000),
   });
@@ -48,15 +48,15 @@ describe("POST /api/interview/sessions/:id/complete — guards", () => {
   });
 
   it("404 when the session isn't found (userId-scoped)", async () => {
-    mockPrisma.mockSession.findFirst.mockResolvedValue(null);
+    mockPrisma.interviewSession.findFirst.mockResolvedValue(null);
     expect((await call()).status).toBe(404);
-    expect(mockPrisma.mockSession.findFirst).toHaveBeenCalledWith(
+    expect(mockPrisma.interviewSession.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({ where: { id: "m1", userId: "u1" } })
     );
   });
 
   it("202 (no re-transition) when already DEBRIEF", async () => {
-    mockPrisma.mockSession.findFirst.mockResolvedValue({ status: "DEBRIEF", startedAt: new Date() });
+    mockPrisma.interviewSession.findFirst.mockResolvedValue({ status: "DEBRIEF", startedAt: new Date() });
     const res = await call();
     expect(res.status).toBe(202);
     expect(await res.json()).toEqual({ status: "DEBRIEF", pollAfterMs: 2000 });
@@ -64,7 +64,7 @@ describe("POST /api/interview/sessions/:id/complete — guards", () => {
   });
 
   it("409 when the session can't be completed (PENDING)", async () => {
-    mockPrisma.mockSession.findFirst.mockResolvedValue({ status: "PENDING", startedAt: null });
+    mockPrisma.interviewSession.findFirst.mockResolvedValue({ status: "PENDING", startedAt: null });
     expect((await call()).status).toBe(409);
     expect(mockPrisma.$transaction).not.toHaveBeenCalled();
   });
@@ -76,7 +76,7 @@ describe("POST /api/interview/sessions/:id/complete — transition + D6 persiste
     expect(res.status).toBe(202);
     expect(await res.json()).toEqual({ status: "DEBRIEF", pollAfterMs: 2000 });
 
-    expect(mockPrisma.mockSession.updateMany).toHaveBeenCalledWith(
+    expect(mockPrisma.interviewSession.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: "m1", status: { in: ["LIVE", "INTERRUPTED"] } },
         data: expect.objectContaining({ status: "DEBRIEF" }),
@@ -90,7 +90,7 @@ describe("POST /api/interview/sessions/:id/complete — transition + D6 persiste
 
   it("persists degradedDelivery:true when the client reports a dropped turn (D6)", async () => {
     await call({ degradedDelivery: true });
-    const arg = mockPrisma.mockSession.updateMany.mock.calls[0]![0] as {
+    const arg = mockPrisma.interviewSession.updateMany.mock.calls[0]![0] as {
       data: { degradedDelivery: boolean };
     };
     expect(arg.data.degradedDelivery).toBe(true);
@@ -98,7 +98,7 @@ describe("POST /api/interview/sessions/:id/complete — transition + D6 persiste
 
   it("defaults degradedDelivery to false when the body omits it", async () => {
     await call({ reason: "ceiling" });
-    const arg = mockPrisma.mockSession.updateMany.mock.calls[0]![0] as {
+    const arg = mockPrisma.interviewSession.updateMany.mock.calls[0]![0] as {
       data: { degradedDelivery: boolean };
     };
     expect(arg.data.degradedDelivery).toBe(false);

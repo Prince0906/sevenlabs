@@ -47,14 +47,14 @@ export async function POST(
     }
     const { id } = await params;
 
-    const mock = await prisma.mockSession.findFirst({
+    const interview = await prisma.interviewSession.findFirst({
       where: { id, userId },
       select: { status: true },
     });
-    if (!mock) {
+    if (!interview) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
-    if (mock.status !== "LIVE") {
+    if (interview.status !== "LIVE") {
       return NextResponse.json({ error: "Session not live" }, { status: 409 });
     }
 
@@ -116,7 +116,7 @@ export async function POST(
     // text turn hasn't been written yet (the upload raced ahead); the client
     // retries on 202. (clientTurnId is only ever set on USER turns.)
     try {
-      await prisma.mockTurn.update({
+      await prisma.interviewTurn.update({
         where: { sessionId_clientTurnId: { sessionId: id, clientTurnId } },
         data: {
           metricsJson: metrics,

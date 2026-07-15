@@ -7,7 +7,7 @@ import { outcomeRequestSchema } from "@sevenlabs/shared-types";
 /**
  * A1 — Real-Outcome Capture (the keystone).
  *
- * Records the real-world result of the interview this mock prepared for, bound to
+ * Records the real-world result of the interview this interview prepared for, bound to
  * the session's prior prediction. The (prediction → outcome) pair is the one
  * calibration label a foundation model cannot manufacture. predicted* are
  * snapshotted once, at first capture, so the labeled row survives rubric/model
@@ -34,7 +34,7 @@ export async function POST(
     const b = parsed.data;
 
     // userId-scoped; snapshot the prediction (verdict signal + weakest dimension).
-    const mock = await prisma.mockSession.findFirst({
+    const interview = await prisma.interviewSession.findFirst({
       where: { id, userId },
       select: {
         id: true,
@@ -46,15 +46,15 @@ export async function POST(
         },
       },
     });
-    if (!mock) {
+    if (!interview) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
-    const predictedSignal = mock.verdict?.overallSignal ?? null;
-    const predictedWeakest = mock.dimensionScores[0]?.key ?? null;
+    const predictedSignal = interview.verdict?.overallSignal ?? null;
+    const predictedWeakest = interview.dimensionScores[0]?.key ?? null;
     // Pin the prediction to the rubric that produced it, so calibration cohorts
     // survive a later RUBRIC_VERSION bump (D4). Snapshotted once, at first capture.
-    const rubricVersion = mock.verdict?.rubricVersion ?? null;
+    const rubricVersion = interview.verdict?.rubricVersion ?? null;
 
     const outcome = await prisma.outcome.upsert({
       where: { sessionId: id },
@@ -104,8 +104,8 @@ export async function GET(
 
     // The capture card needs the company name (for the prompt copy) whether or not
     // an outcome exists yet, so fetch the session alongside the outcome. (D13)
-    const [mock, outcome] = await Promise.all([
-      prisma.mockSession.findFirst({
+    const [interview, outcome] = await Promise.all([
+      prisma.interviewSession.findFirst({
         where: { id, userId },
         select: { scenario: { select: { company: true } } },
       }),
@@ -120,12 +120,12 @@ export async function GET(
         },
       }),
     ]);
-    if (!mock) {
+    if (!interview) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
     return NextResponse.json({
-      company: mock.scenario.company,
+      company: interview.scenario.company,
       outcome: outcome
         ? {
             sessionId: outcome.sessionId,

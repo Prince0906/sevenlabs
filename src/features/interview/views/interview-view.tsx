@@ -94,7 +94,7 @@ export function InterviewView({ scenarioId = SCENARIO_ID }: { scenarioId?: strin
               seats={p.seats}
               activeSeatIndex={p.activeSeatIndex}
               activeSpeaker={
-                p.coachResponseInFlight ? "COACH" : p.phase === "live" ? "USER" : null
+                p.coachResponseInFlight ? "INTERVIEWER" : p.phase === "live" ? "USER" : null
               }
               completedSeatIndexes={p.completedSeatIndexes}
             />
@@ -247,7 +247,7 @@ function LiveShell({ p }: { p: ReturnType<typeof useInterview> }) {
   const seat = p.seats[p.activeSeatIndex];
   const persona = seat ? splitPersona(seat.personaName) : { name: "", role: "" };
   const tint = SIGNAL_CSS_VAR[seatLevel(p.activeSeatIndex)];
-  const activeSpeaker = p.coachResponseInFlight ? "COACH" : p.phase === "live" ? "USER" : null;
+  const activeSpeaker = p.coachResponseInFlight ? "INTERVIEWER" : p.phase === "live" ? "USER" : null;
 
   // Pre-live connect phases. Stage the copy so the wait reads like the room
   // waking up (never a frozen "One moment"), and offer a quiet escape back to
@@ -274,7 +274,7 @@ function LiveShell({ p }: { p: ReturnType<typeof useInterview> }) {
   } else if (p.phase === "reconnecting" || p.phase === "reminting") {
     label = "Re-establishing the line…";
     hint = "Hold tight";
-  } else if (p.phase === "live" && activeSpeaker === "COACH") {
+  } else if (p.phase === "live" && activeSpeaker === "INTERVIEWER") {
     label = `${persona.name} is speaking`;
     hint = persona.role || "Interviewer";
     busy = true;
@@ -347,7 +347,7 @@ function LiveShell({ p }: { p: ReturnType<typeof useInterview> }) {
               ))}
               {p.coachStreaming && (
                 <TranscriptLine
-                  role="COACH"
+                  role="INTERVIEWER"
                   seatId={seat?.id ?? null}
                   text={p.coachStreaming}
                   seatById={seatById}
@@ -397,7 +397,7 @@ export function TranscriptLine({
   seatById,
   streaming,
 }: {
-  role: "USER" | "COACH";
+  role: "USER" | "INTERVIEWER";
   seatId: string | null;
   text: string;
   seatById: Map<string, { i: number; name: string }>;

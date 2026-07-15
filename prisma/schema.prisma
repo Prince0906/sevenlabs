@@ -24,14 +24,13 @@ model User {
   image         String?
   passwordHash  String?
 
-  targetCompanies String[]    @default(["amazon"])
+  targetCompanies String[]  @default(["amazon"])
   interviewDate   DateTime?
-  targetLevel     SignalLevel @default(NEW_GRAD)
 
   accounts Account[]
   sessions Session[]
 
-  mockSessions      MockSession[]
+  interviewSessions      InterviewSession[]
   confidenceMetrics ConfidenceMetric[]
   drillAssignments  DrillAssignment[]
   outcomes          Outcome[]
@@ -81,11 +80,10 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
-// Retained after the speaking-coach removal: MockTurn.role reuses this enum,
-// where role=COACH means "interviewer seat".
-enum PracticeTurnRole {
+// Who spoke in a turn: the candidate (USER) or an AI panel seat (INTERVIEWER).
+enum TurnRole {
   USER
-  COACH
+  INTERVIEWER
 }
 
 // ============================================================
@@ -118,7 +116,7 @@ enum ScenarioDifficulty {
   ADVERSARIAL
 }
 
-enum MockStatus {
+enum InterviewStatus {
   PENDING
   LIVE
   DEBRIEF
@@ -149,7 +147,7 @@ enum JobStatus {
   FAILED
 }
 
-// Real-world result of the interview this mock prepared for. The single label a
+// Real-world result of the interview this session prepared for. The single label a
 // foundation model cannot manufacture — captured against our prior prediction so
 // the (prediction → outcome) pair is the calibration corpus. A1.
 enum InterviewOutcome {
@@ -173,7 +171,7 @@ model Scenario {
   isActive    Boolean            @default(true)
 
   panelSeats   PanelSeat[]
-  mockSessions MockSession[]
+  interviewSessions InterviewSession[]
   createdAt    DateTime      @default(now())
 
   @@index([company, type, targetLevel, difficulty])
@@ -195,7 +193,7 @@ model PanelSeat {
   @@index([scenarioId])
 }
 
-model MockSession {
+model InterviewSession {
   id               String       @id @default(cuid())
   userId           String
   user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -207,7 +205,7 @@ model MockSession {
   keySource        KeySource    @default(ALOUD)
   provider         LlmProvider  @default(OPENAI)
   modelUsed        String
-  status           MockStatus   @default(PENDING)
+  status           InterviewStatus   @default(PENDING)
   targetLevel      SignalLevel
   startedAt        DateTime?
   endedAt          DateTime?
@@ -219,15 +217,12 @@ model MockSession {
   // A turn was dropped after exhausting client retries — the report is partial,
   // not silently scored as complete (D6).
   degradedDelivery Boolean      @default(false)
-  transcriptKey    String?
-  audioOptIn       Boolean      @default(false)
-  audioKey         String?
   overallSignal    SignalLevel?
   confidence       Int?
   passed           Boolean?
   reportJson       Json?
 
-  turns            MockTurn[]
+  turns            InterviewTurn[]
   dimensionScores  DimensionScore[]
   verdict          PanelVerdict?
   drills           DrillAssignment[]  @relation("SourceSession")
@@ -243,12 +238,12 @@ model MockSession {
   @@index([scenarioId])
 }
 
-model MockTurn {
+model InterviewTurn {
   id                   String           @id @default(cuid())
   sessionId            String
-  session              MockSession      @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  session              InterviewSession      @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   seatId               String?
-  role                 PracticeTurnRole
+  role                 TurnRole
   seq                  Int
   // Client-generated id stable BEFORE seq is assigned at dequeue; the parallel
   // best-effort fluency audio upload joins on it to attach delivery metrics to
@@ -276,7 +271,7 @@ model MockTurn {
 model DimensionScore {
   id          String         @id @default(cuid())
   sessionId   String
-  session     MockSession    @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  session     InterviewSession    @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   userId      String
   seatId      String?
   dimension   ScoreDimension @default(LP)
@@ -294,7 +289,7 @@ model DimensionScore {
 model PanelVerdict {
   id            String      @id @default(cuid())
   sessionId     String      @unique
-  session       MockSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  session       InterviewSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   overallSignal SignalLevel
   inclination   String
   barRaiserVeto Boolean     @default(false)
@@ -316,7 +311,7 @@ model ConfidenceMetric {
   userId            String
   user              User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   sessionId         String?
-  session           MockSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  session           InterviewSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
   score             Int
   composure         Int
   resilience        Int?
@@ -332,7 +327,7 @@ model DrillAssignment {
   userId          String
   user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   sourceSessionId String?
-  sourceSession   MockSession? @relation("SourceSession", fields: [sourceSessionId], references: [id], onDelete: SetNull)
+  sourceSession   InterviewSession? @relation("SourceSession", fields: [sourceSessionId], references: [id], onDelete: SetNull)
   questionId      String
   targetLP        String
   reason          String       @db.Text
@@ -347,7 +342,7 @@ model DrillAssignment {
 
 model JudgmentJob {
   sessionId  String      @id
-  session    MockSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  session    InterviewSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   status     JobStatus   @default(PENDING)
   attempts   Int         @default(0)
   leaseUntil DateTime?
@@ -358,7 +353,7 @@ model JudgmentJob {
   @@index([status, leaseUntil])
 }
 
-// One real-interview outcome per mock session. predicted* are snapshotted at
+// One real-interview outcome per interview session. predicted* are snapshotted at
 // capture time so the labeled pair survives rubric/model churn (A1; the
 // keystone the confidence calibration and the whole moat read from).
 model Outcome {
@@ -366,7 +361,7 @@ model Outcome {
   userId    String
   user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   sessionId String      @unique
-  session   MockSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  session   InterviewSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   result     InterviewOutcome @default(PENDING)
   offerLevel SignalLevel? // only meaningful when result = OFFER
@@ -421,7 +416,7 @@ model ProviderKey {
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 
-  mockSessions MockSession[]
+  interviewSessions InterviewSession[]
 
   @@unique([userId, provider]) // one key per provider; rotation = overwrite
   @@index([userId])
@@ -439,7 +434,6 @@ model ResumeProfile {
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   factsJson   Json
   sourceText  String   @db.Text
-  rawS3Key    String?
   extractedAt DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -459,7 +453,7 @@ model GlobalSpend {
 
 model SpendReservation {
   sessionId   String      @id
-  session     MockSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  session     InterviewSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   reservedUsd Decimal
   settledUsd  Decimal?
   createdAt   DateTime    @default(now())

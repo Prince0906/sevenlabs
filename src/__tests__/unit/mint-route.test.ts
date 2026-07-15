@@ -3,8 +3,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 // Mocks for the mint route's I/O collaborators. panel-core stays real (pure
 // instruction-building); env is mocked to pin MAX_SESSION_SEC for the ceiling tests.
 const mockPrisma = vi.hoisted(() => ({
-  mockSession: { findFirst: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
-  mockTurn: { findMany: vi.fn() },
+  interviewSession: { findFirst: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
+  interviewTurn: { findMany: vi.fn() },
 }));
 const mockOpenai = vi.hoisted(() => ({
   mintRealtimeEphemeral: vi.fn(),
@@ -64,10 +64,10 @@ const call = (opts?: { body?: unknown; headers?: Record<string, string> }) => PO
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(auth).mockResolvedValue({ user: { id: "u1" } } as never);
-  mockPrisma.mockSession.findFirst.mockResolvedValue(liveSession());
-  mockPrisma.mockSession.update.mockResolvedValue({});
-  mockPrisma.mockSession.updateMany.mockResolvedValue({});
-  mockPrisma.mockTurn.findMany.mockResolvedValue([]);
+  mockPrisma.interviewSession.findFirst.mockResolvedValue(liveSession());
+  mockPrisma.interviewSession.update.mockResolvedValue({});
+  mockPrisma.interviewSession.updateMany.mockResolvedValue({});
+  mockPrisma.interviewTurn.findMany.mockResolvedValue([]);
   mockOpenai.mintRealtimeEphemeral.mockResolvedValue(EPHEMERAL);
   mockSpend.spendCentsForElapsed.mockReturnValue(100);
   mockSpend.isSessionOver.mockReturnValue(false);
@@ -86,9 +86,9 @@ describe("POST /api/interview/sessions/:id/mint — auth & guards", () => {
   });
 
   it("404 when the session isn't found (and is userId-scoped)", async () => {
-    mockPrisma.mockSession.findFirst.mockResolvedValue(null);
+    mockPrisma.interviewSession.findFirst.mockResolvedValue(null);
     expect((await call()).status).toBe(404);
-    expect(mockPrisma.mockSession.findFirst).toHaveBeenCalledWith(
+    expect(mockPrisma.interviewSession.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({ where: { id: "m1", userId: "u1" } })
     );
   });
@@ -96,7 +96,7 @@ describe("POST /api/interview/sessions/:id/mint — auth & guards", () => {
 
 describe("POST .../mint — renewability", () => {
   it("409 when a ttl re-mint targets a non-LIVE session", async () => {
-    mockPrisma.mockSession.findFirst.mockResolvedValue(liveSession({ status: "PENDING" }));
+    mockPrisma.interviewSession.findFirst.mockResolvedValue(liveSession({ status: "PENDING" }));
     const res = await call({ body: { reason: "ttl_expiry" } });
     expect(res.status).toBe(409);
   });
@@ -107,12 +107,12 @@ describe("POST .../mint — renewability", () => {
   });
 
   it("resume_interrupted flips INTERRUPTED -> LIVE and mints", async () => {
-    mockPrisma.mockSession.findFirst.mockResolvedValue(
+    mockPrisma.interviewSession.findFirst.mockResolvedValue(
       liveSession({ status: "INTERRUPTED", keySource: "ALOUD" })
     );
     const res = await call({ body: { reason: "resume_interrupted" } });
     expect(res.status).toBe(200);
-    expect(mockPrisma.mockSession.updateMany).toHaveBeenCalledWith(
+    expect(mockPrisma.interviewSession.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: { id: "m1", status: "INTERRUPTED" }, data: { status: "LIVE" } })
     );
   });
@@ -120,7 +120,7 @@ describe("POST .../mint — renewability", () => {
 
 describe("POST .../mint — BYOK custody (key removal)", () => {
   it("410 SESSION_EXPIRED when a USER-keyed session lost its key mid-session", async () => {
-    mockPrisma.mockSession.findFirst.mockResolvedValue(liveSession({ keySource: "USER" }));
+    mockPrisma.interviewSession.findFirst.mockResolvedValue(liveSession({ keySource: "USER" }));
     mockByok.resolveSessionKey.mockResolvedValue({ keySource: "ALOUD" }); // key gone -> falls back to house
     const res = await call();
     expect(res.status).toBe(410);
@@ -129,7 +129,7 @@ describe("POST .../mint — BYOK custody (key removal)", () => {
   });
 
   it("mints on the USER key (passes the resolved apiKey through)", async () => {
-    mockPrisma.mockSession.findFirst.mockResolvedValue(liveSession({ keySource: "USER" }));
+    mockPrisma.interviewSession.findFirst.mockResolvedValue(liveSession({ keySource: "USER" }));
     const res = await call();
     expect(res.status).toBe(200);
     expect(mockOpenai.mintRealtimeEphemeral).toHaveBeenCalledWith(
@@ -164,7 +164,7 @@ describe("POST .../mint — spend ceiling (delegates to the one isSessionOver pr
   });
 
   it("passes the session's keySource (USER) to isSessionOver", async () => {
-    mockPrisma.mockSession.findFirst.mockResolvedValue(liveSession({ keySource: "USER" }));
+    mockPrisma.interviewSession.findFirst.mockResolvedValue(liveSession({ keySource: "USER" }));
     await call();
     expect(mockSpend.isSessionOver).toHaveBeenCalledWith("USER", expect.any(Number), expect.any(Number));
   });
@@ -189,13 +189,13 @@ describe("POST .../mint — seat selection & provider failure", () => {
   });
 
   it("seat_handoff injects a bounded context digest from recent turns", async () => {
-    mockPrisma.mockTurn.findMany.mockResolvedValue([
+    mockPrisma.interviewTurn.findMany.mockResolvedValue([
       { role: "USER", transcript: "I led a migration." },
-      { role: "COACH", transcript: "Tell me about the rollback plan." },
+      { role: "INTERVIEWER", transcript: "Tell me about the rollback plan." },
     ]);
     const res = await call({ body: { reason: "seat_handoff" } });
     expect(res.status).toBe(200);
-    expect(mockPrisma.mockTurn.findMany).toHaveBeenCalledWith(
+    expect(mockPrisma.interviewTurn.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: { sessionId: "m1" } })
     );
   });

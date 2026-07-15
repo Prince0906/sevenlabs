@@ -8,7 +8,7 @@ import { seatLevel, splitPersona, SIGNAL_CSS_VAR } from "../lib/seat-theme";
 interface PanelPresencesProps {
   seats: PanelSeatPublic[];
   activeSeatIndex: number;
-  activeSpeaker: "USER" | "COACH" | null;
+  activeSpeaker: "USER" | "INTERVIEWER" | null;
   completedSeatIndexes: number[];
 }
 
@@ -27,7 +27,7 @@ export function PanelPresences({
         const tint = SIGNAL_CSS_VAR[seatLevel(i)];
         const isActive = i === activeSeatIndex;
         const isDone = completedSeatIndexes.includes(i);
-        const speaking = isActive && activeSpeaker === "COACH";
+        const speaking = isActive && activeSpeaker === "INTERVIEWER";
         const { name, role } = splitPersona(seat.personaName);
         const size = isActive ? 60 : 40;
 

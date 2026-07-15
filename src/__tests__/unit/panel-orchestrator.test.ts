@@ -9,7 +9,7 @@ import { mockReportSchema } from "@sevenlabs/shared-types";
 // resilience population.
 
 const mockPrisma = vi.hoisted(() => ({
-  mockSession: { findUnique: vi.fn(), update: vi.fn() },
+  interviewSession: { findUnique: vi.fn(), update: vi.fn() },
   dimensionScore: { createMany: vi.fn() },
   panelVerdict: { create: vi.fn() },
   confidenceMetric: { create: vi.fn() },
@@ -104,7 +104,7 @@ const validCommittee = {
 beforeEach(() => {
   vi.clearAllMocks();
   mockPrisma.$transaction.mockResolvedValue([]);
-  mockPrisma.mockSession.update.mockReturnValue({ _op: "session.update" });
+  mockPrisma.interviewSession.update.mockReturnValue({ _op: "session.update" });
   mockPrisma.panelVerdict.create.mockReturnValue({ _op: "verdict.create" });
   mockPrisma.confidenceMetric.create.mockReturnValue({ _op: "cm.create" });
   mockPrisma.dimensionScore.createMany.mockReturnValue({ _op: "dim.createMany" });
@@ -116,7 +116,7 @@ beforeEach(() => {
 
 describe("runJudgment — guards", () => {
   it("is idempotent: a non-DEBRIEF session does no scoring and no writes", async () => {
-    mockPrisma.mockSession.findUnique.mockResolvedValue(debriefSession({ status: "COMPLETED" }));
+    mockPrisma.interviewSession.findUnique.mockResolvedValue(debriefSession({ status: "COMPLETED" }));
     await runJudgment("s1");
     expect(mockOpenai.scoreAgainstRubric).not.toHaveBeenCalled();
     expect(mockOpenai.judgeCommittee).not.toHaveBeenCalled();
@@ -126,13 +126,13 @@ describe("runJudgment — guards", () => {
   it("throws when the scenario has no Bar Raiser seat (the veto can never be skipped)", async () => {
     const s = debriefSession();
     s.scenario.panelSeats = [seat({ id: "seat0", isBarRaiser: false })];
-    mockPrisma.mockSession.findUnique.mockResolvedValue(s);
+    mockPrisma.interviewSession.findUnique.mockResolvedValue(s);
     await expect(runJudgment("s1")).rejects.toThrow(/Bar Raiser/i);
     expect(mockPrisma.$transaction).not.toHaveBeenCalled();
   });
 
   it("throws when Bar Raiser scoring fails (verdict must never miss the veto)", async () => {
-    mockPrisma.mockSession.findUnique.mockResolvedValue(debriefSession());
+    mockPrisma.interviewSession.findUnique.mockResolvedValue(debriefSession());
     mockOpenai.scoreAgainstRubric.mockResolvedValue({ bad: "shape" }); // fails rubric parse
     await expect(runJudgment("s1")).rejects.toThrow();
     expect(mockPrisma.$transaction).not.toHaveBeenCalled();
@@ -141,7 +141,7 @@ describe("runJudgment — guards", () => {
 
 describe("runJudgment — persisted artifacts", () => {
   beforeEach(() => {
-    mockPrisma.mockSession.findUnique.mockResolvedValue(debriefSession());
+    mockPrisma.interviewSession.findUnique.mockResolvedValue(debriefSession());
   });
 
   it("stamps rubricVersion + judgeModel on the verdict (D4)", async () => {
@@ -153,7 +153,7 @@ describe("runJudgment — persisted artifacts", () => {
 
   it("persists a reportJson that satisfies mockReportSchema (D15)", async () => {
     await runJudgment("s1");
-    const sessionArg = mockPrisma.mockSession.update.mock.calls[0]![0];
+    const sessionArg = mockPrisma.interviewSession.update.mock.calls[0]![0];
     expect(sessionArg.data.status).toBe("COMPLETED");
     // The stored value is the schema-validated report; re-parsing must succeed.
     expect(() => mockReportSchema.parse(sessionArg.data.reportJson)).not.toThrow();
@@ -164,7 +164,7 @@ describe("runJudgment — persisted artifacts", () => {
     const cmArg = mockPrisma.confidenceMetric.create.mock.calls[0]![0];
     expect(typeof cmArg.data.resilience).toBe("number"); // 6 usable turns → non-null
     expect(cmArg.data.selfEfficacy).toBeNull();
-    const sessionArg = mockPrisma.mockSession.update.mock.calls[0]![0];
+    const sessionArg = mockPrisma.interviewSession.update.mock.calls[0]![0];
     expect(typeof sessionArg.data.reportJson.resilience).toBe("number");
   });
 

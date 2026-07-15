@@ -29,30 +29,30 @@ export async function POST(
     const parsed = bodySchema.safeParse(await request.json().catch(() => ({})));
     const degradedDelivery = parsed.success ? parsed.data.degradedDelivery ?? false : false;
 
-    const mock = await prisma.mockSession.findFirst({
+    const interview = await prisma.interviewSession.findFirst({
       where: { id, userId },
       select: { status: true, startedAt: true },
     });
-    if (!mock) {
+    if (!interview) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
-    if (mock.status === "DEBRIEF" || mock.status === "COMPLETED") {
+    if (interview.status === "DEBRIEF" || interview.status === "COMPLETED") {
       return NextResponse.json(
-        { status: mock.status, pollAfterMs: 2000 },
+        { status: interview.status, pollAfterMs: 2000 },
         { status: 202 }
       );
     }
-    if (mock.status !== "LIVE" && mock.status !== "INTERRUPTED") {
+    if (interview.status !== "LIVE" && interview.status !== "INTERRUPTED") {
       return NextResponse.json({ error: "Not completable" }, { status: 409 });
     }
 
     const endedAt = new Date();
-    const durationSec = mock.startedAt
-      ? Math.round((endedAt.getTime() - mock.startedAt.getTime()) / 1000)
+    const durationSec = interview.startedAt
+      ? Math.round((endedAt.getTime() - interview.startedAt.getTime()) / 1000)
       : 0;
 
     const [updated] = await prisma.$transaction([
-      prisma.mockSession.updateMany({
+      prisma.interviewSession.updateMany({
         where: { id, status: { in: ["LIVE", "INTERRUPTED"] } },
         data: { status: "DEBRIEF", endedAt, durationSec, degradedDelivery },
       }),

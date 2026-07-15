@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const mockPrisma = vi.hoisted(() => ({
-  mockSession: { findFirst: vi.fn() },
-  mockTurn: { update: vi.fn() },
+  interviewSession: { findFirst: vi.fn() },
+  interviewTurn: { update: vi.fn() },
 }));
 const mockOpenai = vi.hoisted(() => ({
   transcribeAudio: vi.fn(),
@@ -68,7 +68,7 @@ describe("POST /api/interview/sessions/:id/turns/audio", () => {
     vi.clearAllMocks();
     mockDeepgram.isDeepgramConfigured.mockReturnValue(false); // default: Whisper path
     vi.mocked(auth).mockResolvedValue({ user: { id: "u1" } } as never);
-    mockPrisma.mockSession.findFirst.mockResolvedValue({ status: "LIVE" });
+    mockPrisma.interviewSession.findFirst.mockResolvedValue({ status: "LIVE" });
     mockOpenai.transcribeAudio.mockResolvedValue({
       words: [
         { word: "a", start: 0, end: 0.5 },
@@ -76,7 +76,7 @@ describe("POST /api/interview/sessions/:id/turns/audio", () => {
       ],
       durationSec: 1,
     });
-    mockPrisma.mockTurn.update.mockResolvedValue({ id: "t1" });
+    mockPrisma.interviewTurn.update.mockResolvedValue({ id: "t1" });
   });
 
   it("401 when unauthenticated", async () => {
@@ -86,13 +86,13 @@ describe("POST /api/interview/sessions/:id/turns/audio", () => {
   });
 
   it("404 when session not owned", async () => {
-    mockPrisma.mockSession.findFirst.mockResolvedValueOnce(null);
+    mockPrisma.interviewSession.findFirst.mockResolvedValueOnce(null);
     const res = await POST(audioReq({ clientTurnId: "c1", audio: wav() }), params("s1"));
     expect(res.status).toBe(404);
   });
 
   it("409 when the session is not LIVE", async () => {
-    mockPrisma.mockSession.findFirst.mockResolvedValueOnce({ status: "COMPLETED" });
+    mockPrisma.interviewSession.findFirst.mockResolvedValueOnce({ status: "COMPLETED" });
     const res = await POST(audioReq({ clientTurnId: "c1", audio: wav() }), params("s1"));
     expect(res.status).toBe(409);
   });
@@ -112,11 +112,11 @@ describe("POST /api/interview/sessions/:id/turns/audio", () => {
     const res = await POST(audioReq({ clientTurnId: "c1", audio: wav() }), params("s1"));
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ ok: false, reason: "transcription_failed" });
-    expect(mockPrisma.mockTurn.update).not.toHaveBeenCalled();
+    expect(mockPrisma.interviewTurn.update).not.toHaveBeenCalled();
   });
 
   it("202 pending when the text turn row isn't written yet (P2025 → client retries)", async () => {
-    mockPrisma.mockTurn.update.mockRejectedValueOnce(
+    mockPrisma.interviewTurn.update.mockRejectedValueOnce(
       Object.assign(new Error("not found"), { code: "P2025" })
     );
     const res = await POST(audioReq({ clientTurnId: "c1", audio: wav() }), params("s1"));
@@ -128,7 +128,7 @@ describe("POST /api/interview/sessions/:id/turns/audio", () => {
     const res = await POST(audioReq({ clientTurnId: "c1", audio: wav() }), params("s1"));
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ ok: true });
-    expect(mockPrisma.mockTurn.update).toHaveBeenCalledWith(
+    expect(mockPrisma.interviewTurn.update).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { sessionId_clientTurnId: { sessionId: "s1", clientTurnId: "c1" } },
       })
@@ -151,7 +151,7 @@ describe("POST /api/interview/sessions/:id/turns/audio", () => {
     expect(res.status).toBe(200);
     expect(mockDeepgram.transcribeVerbatim).toHaveBeenCalled();
     expect(mockOpenai.transcribeAudio).not.toHaveBeenCalled(); // no Whisper fallback
-    const arg = mockPrisma.mockTurn.update.mock.calls[0]![0];
+    const arg = mockPrisma.interviewTurn.update.mock.calls[0]![0];
     expect(arg.data.disfluencyJson).toBeTruthy();
   });
 
@@ -161,7 +161,7 @@ describe("POST /api/interview/sessions/:id/turns/audio", () => {
     const res = await POST(audioReq({ clientTurnId: "c1", audio: wav() }), params("s1"));
     expect(res.status).toBe(200);
     expect(mockOpenai.transcribeAudio).toHaveBeenCalled(); // fell back
-    const arg = mockPrisma.mockTurn.update.mock.calls[0]![0];
+    const arg = mockPrisma.interviewTurn.update.mock.calls[0]![0];
     expect(arg.data.disfluencyJson).toBeUndefined();
   });
 });

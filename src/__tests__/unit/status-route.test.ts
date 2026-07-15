@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const mockPrisma = vi.hoisted(() => ({
-  mockSession: { findFirst: vi.fn(), updateMany: vi.fn() },
-  mockTurn: { aggregate: vi.fn() },
+  interviewSession: { findFirst: vi.fn(), updateMany: vi.fn() },
+  interviewTurn: { aggregate: vi.fn() },
 }));
 
 vi.mock("@/lib/db", () => ({ prisma: mockPrisma }));
@@ -41,22 +41,22 @@ describe("GET /api/interview/sessions/:id — rehydrate snapshot (D5)", () => {
   });
 
   it("404 when not found (userId-scoped)", async () => {
-    mockPrisma.mockSession.findFirst.mockResolvedValue(null);
+    mockPrisma.interviewSession.findFirst.mockResolvedValue(null);
     expect((await get()).status).toBe(404);
-    expect(mockPrisma.mockSession.findFirst).toHaveBeenCalledWith(
+    expect(mockPrisma.interviewSession.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({ where: { id: "m1", userId: "u1" } })
     );
   });
 
   it("returns the seat cursor + public roster + maxSeq for resume", async () => {
-    mockPrisma.mockSession.findFirst.mockResolvedValue({
+    mockPrisma.interviewSession.findFirst.mockResolvedValue({
       status: "LIVE",
       scenarioId: "sc1",
       keySource: "USER",
       activeSeatIndex: 2,
       scenario: { panelSeats: panelSeats() },
     });
-    mockPrisma.mockTurn.aggregate.mockResolvedValue({ _max: { seq: 7 } });
+    mockPrisma.interviewTurn.aggregate.mockResolvedValue({ _max: { seq: 7 } });
 
     const res = await get();
     expect(res.status).toBe(200);
@@ -72,14 +72,14 @@ describe("GET /api/interview/sessions/:id — rehydrate snapshot (D5)", () => {
   });
 
   it("maxSeq is -1 when no turns exist yet", async () => {
-    mockPrisma.mockSession.findFirst.mockResolvedValue({
+    mockPrisma.interviewSession.findFirst.mockResolvedValue({
       status: "LIVE",
       scenarioId: "sc1",
       keySource: "ALOUD",
       activeSeatIndex: 0,
       scenario: { panelSeats: panelSeats() },
     });
-    mockPrisma.mockTurn.aggregate.mockResolvedValue({ _max: { seq: null } });
+    mockPrisma.interviewTurn.aggregate.mockResolvedValue({ _max: { seq: null } });
     const body = await (await get()).json();
     expect(body.maxSeq).toBe(-1);
   });
@@ -97,20 +97,20 @@ describe("PATCH /api/interview/sessions/:id — transitions", () => {
   const patch = (body: unknown) => PATCH(patchReq(body), ctx);
 
   it("400 on an invalid event", async () => {
-    mockPrisma.mockSession.findFirst.mockResolvedValue({ status: "PENDING" });
+    mockPrisma.interviewSession.findFirst.mockResolvedValue({ status: "PENDING" });
     expect((await patch({ event: "nope" })).status).toBe(400);
   });
 
   it("404 when not found", async () => {
-    mockPrisma.mockSession.findFirst.mockResolvedValue(null);
+    mockPrisma.interviewSession.findFirst.mockResolvedValue(null);
     expect((await patch({ event: "live" })).status).toBe(404);
   });
 
   it("live flips PENDING→LIVE when the CAS wins", async () => {
-    mockPrisma.mockSession.findFirst.mockResolvedValue({ status: "PENDING" });
-    mockPrisma.mockSession.updateMany.mockResolvedValue({ count: 1 });
+    mockPrisma.interviewSession.findFirst.mockResolvedValue({ status: "PENDING" });
+    mockPrisma.interviewSession.updateMany.mockResolvedValue({ count: 1 });
     expect(await (await patch({ event: "live" })).json()).toEqual({ status: "LIVE" });
-    expect(mockPrisma.mockSession.updateMany).toHaveBeenCalledWith(
+    expect(mockPrisma.interviewSession.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: "m1", userId: "u1", status: "PENDING" },
       })
@@ -118,14 +118,14 @@ describe("PATCH /api/interview/sessions/:id — transitions", () => {
   });
 
   it("live is a no-op (returns the current status) when the CAS loses", async () => {
-    mockPrisma.mockSession.findFirst.mockResolvedValue({ status: "LIVE" });
-    mockPrisma.mockSession.updateMany.mockResolvedValue({ count: 0 });
+    mockPrisma.interviewSession.findFirst.mockResolvedValue({ status: "LIVE" });
+    mockPrisma.interviewSession.updateMany.mockResolvedValue({ count: 0 });
     expect(await (await patch({ event: "live" })).json()).toEqual({ status: "LIVE" });
   });
 
   it("interrupt flips LIVE→INTERRUPTED when the CAS wins", async () => {
-    mockPrisma.mockSession.findFirst.mockResolvedValue({ status: "LIVE" });
-    mockPrisma.mockSession.updateMany.mockResolvedValue({ count: 1 });
+    mockPrisma.interviewSession.findFirst.mockResolvedValue({ status: "LIVE" });
+    mockPrisma.interviewSession.updateMany.mockResolvedValue({ count: 1 });
     expect(await (await patch({ event: "interrupt" })).json()).toEqual({
       status: "INTERRUPTED",
     });

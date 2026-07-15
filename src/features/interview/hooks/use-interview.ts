@@ -55,7 +55,7 @@ export function useInterview() {
   const [state, dispatch] = useReducer(panelReducer, undefined, initialPanelState);
   // Live transcript + streaming coach text are render-visible state (not refs).
   const [liveTranscript, setLiveTranscript] = useState<
-    Array<{ role: "USER" | "COACH"; seatId: string | null; text: string }>
+    Array<{ role: "USER" | "INTERVIEWER"; seatId: string | null; text: string }>
   >([]);
   const [coachStreaming, setCoachStreaming] = useState("");
   // Push-to-talk: whether the candidate's mic is currently open (tapped "Start",
@@ -219,9 +219,9 @@ export function useInterview() {
       return; // spurious server-VAD response — do not commit / consume seq
     }
     const seatId = activeSeatId();
-    queueRef.current?.enqueue({ role: "COACH", transcript: text, seatId, words: [] });
+    queueRef.current?.enqueue({ role: "INTERVIEWER", transcript: text, seatId, words: [] });
     turnsLogRef.current.push({ role: "assistant", text });
-    setLiveTranscript((prev) => [...prev, { role: "COACH", seatId, text }]);
+    setLiveTranscript((prev) => [...prev, { role: "INTERVIEWER", seatId, text }]);
     dispatch({ type: "COACH_DONE", transcript: text });
 
     // Output-side turn-control backstop (research: system-prompt hardening is

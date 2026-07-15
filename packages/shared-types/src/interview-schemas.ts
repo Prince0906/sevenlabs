@@ -193,7 +193,7 @@ export const fluencySchema = z.object({
   ),
 });
 
-// Shape of a per-turn disfluency report (MockTurn.disfluencyJson) — used by the
+// Shape of a per-turn disfluency report (InterviewTurn.disfluencyJson) — used by the
 // orchestrator to safeParse stored reports before aggregating. Instance arrays
 // are kept loose (z.any) since the session rollup only needs the counts.
 export const disfluencyReportSchema = z.object({

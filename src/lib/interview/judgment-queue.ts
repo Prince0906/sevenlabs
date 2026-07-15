@@ -40,7 +40,7 @@ async function processOne(): Promise<boolean> {
   const job = await claimNext();
   if (!job) return false;
   try {
-    await runJudgment(job.sessionId); // sets MockSession → COMPLETED on success
+    await runJudgment(job.sessionId); // sets InterviewSession → COMPLETED on success
     await prisma.judgmentJob.update({
       where: { sessionId: job.sessionId },
       data: { status: "DONE" },
@@ -53,7 +53,7 @@ async function processOne(): Promise<boolean> {
           where: { sessionId: job.sessionId },
           data: { status: "FAILED", lastError },
         }),
-        prisma.mockSession.update({
+        prisma.interviewSession.update({
           where: { id: job.sessionId },
           data: { status: "FAILED" },
         }),

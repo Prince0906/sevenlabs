@@ -82,7 +82,7 @@ async function scoreSeat(
  * failure so the queue can retry/FAIL rather than emit a verdict missing the veto.
  */
 export async function runJudgment(sessionId: string): Promise<void> {
-  const session = await prisma.mockSession.findUnique({
+  const session = await prisma.interviewSession.findUnique({
     where: { id: sessionId },
     include: {
       scenario: { include: { panelSeats: { orderBy: { seatOrder: "asc" } } } },
@@ -141,7 +141,7 @@ export async function runJudgment(sessionId: string): Promise<void> {
   );
 
   const turnsLite: TurnLite[] = session.turns.map((t) => ({
-    role: t.role as "USER" | "COACH",
+    role: t.role as "USER" | "INTERVIEWER",
     seatId: t.seatId,
   }));
   const drill = evaluateDrill({
@@ -277,7 +277,7 @@ export async function runJudgment(sessionId: string): Promise<void> {
         difficultyApplied: difficultyInt,
       },
     }),
-    prisma.mockSession.update({
+    prisma.interviewSession.update({
       where: { id: sessionId },
       data: {
         status: "COMPLETED",

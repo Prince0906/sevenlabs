@@ -18,7 +18,7 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     const { id } = await params;
-    const mock = await prisma.mockSession.findFirst({
+    const interview = await prisma.interviewSession.findFirst({
       where: { id, userId },
       select: {
         id: true,
@@ -27,33 +27,33 @@ export async function GET(
         reportJson: true,
       },
     });
-    if (!mock) {
+    if (!interview) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
-    if (mock.status === "COMPLETED") {
-      const etag = `"${mock.id}-COMPLETED"`;
+    if (interview.status === "COMPLETED") {
+      const etag = `"${interview.id}-COMPLETED"`;
       if (request.headers.get("if-none-match") === etag) {
         return new NextResponse(null, { status: 304 });
       }
       return NextResponse.json(
-        { status: "COMPLETED", report: mock.reportJson },
+        { status: "COMPLETED", report: interview.reportJson },
         { headers: { ETag: etag } }
       );
     }
 
-    if (mock.status === "FAILED") {
+    if (interview.status === "FAILED") {
       return NextResponse.json({ status: "FAILED" });
     }
 
-    if (mock.status === "DEBRIEF") {
+    if (interview.status === "DEBRIEF") {
       // Hard wall-clock bound on the client's wait. A job that genuinely exhausts
       // its retries flips the SESSION to FAILED in the queue (caught above), so the
       // case this catches is a worker that died with the job stuck PENDING — without
       // it the browser would poll 202 forever. We don't persist FAILED here: a late
       // judgment can still surface a report on a later visit. (A5)
-      const ageSec = mock.endedAt
-        ? (Date.now() - mock.endedAt.getTime()) / 1000
+      const ageSec = interview.endedAt
+        ? (Date.now() - interview.endedAt.getTime()) / 1000
         : 0;
       if (ageSec > JUDGMENT_DEADLINE_SEC) {
         return NextResponse.json({ status: "FAILED", reason: "judgment_timeout" });
@@ -64,7 +64,7 @@ export async function GET(
       );
     }
 
-    return NextResponse.json({ status: mock.status });
+    return NextResponse.json({ status: interview.status });
   } catch (err) {
     log.error("[GET /api/interview/sessions/:id/report]", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

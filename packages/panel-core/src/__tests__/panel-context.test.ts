@@ -1,17 +1,17 @@
 import { describe, it, expect } from "vitest";
 import { buildPanelContextDigest, type PanelTurnLite } from "../panel-context";
 
-const turn = (role: "USER" | "COACH", text: string | null): PanelTurnLite => ({ role, text });
+const turn = (role: "USER" | "INTERVIEWER", text: string | null): PanelTurnLite => ({ role, text });
 
 describe("buildPanelContextDigest", () => {
   it("returns '' for no usable turns (seat 1 / empty handoff)", () => {
     expect(buildPanelContextDigest([])).toBe("");
-    expect(buildPanelContextDigest([turn("USER", ""), turn("COACH", null)])).toBe("");
+    expect(buildPanelContextDigest([turn("USER", ""), turn("INTERVIEWER", null)])).toBe("");
   });
 
   it("labels roles as Candidate / Interviewer and frames it as continuity", () => {
     const digest = buildPanelContextDigest([
-      turn("COACH", "What does a closure capture?"),
+      turn("INTERVIEWER", "What does a closure capture?"),
       turn("USER", "It captures variables by reference from its lexical scope."),
     ]);
     expect(digest).toContain("EARLIER IN THIS PANEL");
@@ -22,7 +22,7 @@ describe("buildPanelContextDigest", () => {
 
   it("keeps only the last 6 turns (bounded — never the whole transcript)", () => {
     const turns: PanelTurnLite[] = Array.from({ length: 20 }, (_, i) =>
-      turn(i % 2 === 0 ? "COACH" : "USER", `turn number ${i}`)
+      turn(i % 2 === 0 ? "INTERVIEWER" : "USER", `turn number ${i}`)
     );
     const digest = buildPanelContextDigest(turns);
     expect(digest).toContain("turn number 19");
@@ -42,9 +42,9 @@ describe("buildPanelContextDigest", () => {
 
   it("skips empty/blank turns when selecting the recent window", () => {
     const digest = buildPanelContextDigest([
-      turn("COACH", "real question"),
+      turn("INTERVIEWER", "real question"),
       turn("USER", "   "),
-      turn("COACH", null),
+      turn("INTERVIEWER", null),
       turn("USER", "real answer"),
     ]);
     expect(digest).toContain("Interviewer: real question");

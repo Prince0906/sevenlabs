@@ -27,7 +27,7 @@ describe("createTurnQueue", () => {
     const { post, bodies } = makePost([]);
     const q = createTurnQueue({ post, fetchMaxSeq: async () => -1, retryDelayMs: 0 });
     q.enqueue(turn({ role: "USER", transcript: "a" }));
-    q.enqueue(turn({ role: "COACH", transcript: "b", seatId: "s1" }));
+    q.enqueue(turn({ role: "INTERVIEWER", transcript: "b", seatId: "s1" }));
     q.enqueue(turn({ role: "USER", transcript: "c" }));
     await q.drainBeforeComplete();
     expect(bodies.map((b) => b.seq)).toEqual([0, 1, 2]);
@@ -85,10 +85,10 @@ describe("createTurnQueue", () => {
   it("posts the seatId snapshotted at enqueue, even if the active seat later advances", async () => {
     const { post, bodies } = makePost([]);
     const q = createTurnQueue({ post, fetchMaxSeq: async () => -1, retryDelayMs: 0 });
-    q.enqueue(turn({ role: "COACH", transcript: "drill", seatId: "bar-raiser" }));
+    q.enqueue(turn({ role: "INTERVIEWER", transcript: "drill", seatId: "bar-raiser" }));
     await q.drainBeforeComplete();
     expect(bodies[0]!.seatId).toBe("bar-raiser");
-    expect(bodies[0]!.role).toBe("COACH");
+    expect(bodies[0]!.role).toBe("INTERVIEWER");
   });
 
   it("reconcileSeq advances the starting seq on resume (maxSeq+1)", async () => {
@@ -104,10 +104,10 @@ describe("createTurnQueue", () => {
     const { post, bodies } = makePost([]);
     const q = createTurnQueue({ post, fetchMaxSeq: async () => -1, retryDelayMs: 0 });
     for (let n = 0; n < 4; n++) {
-      q.enqueue(turn({ role: "COACH", seatId: "br", transcript: `q${n}` }));
+      q.enqueue(turn({ role: "INTERVIEWER", seatId: "br", transcript: `q${n}` }));
     }
     await q.drainBeforeComplete();
-    const coach = bodies.filter((b) => b.role === "COACH" && b.seatId === "br");
+    const coach = bodies.filter((b) => b.role === "INTERVIEWER" && b.seatId === "br");
     expect(coach).toHaveLength(4);
   });
 });

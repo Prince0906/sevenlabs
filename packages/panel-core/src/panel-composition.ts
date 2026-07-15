@@ -40,7 +40,7 @@ export interface DimensionScoreInsert {
 }
 
 export interface TurnLite {
-  role: "USER" | "COACH";
+  role: "USER" | "INTERVIEWER";
   seatId: string | null;
 }
 
@@ -118,7 +118,7 @@ export function barRaiserDrillDepth(
   turns: TurnLite[],
   barRaiserSeatId: string
 ): number {
-  return turns.filter((t) => t.role === "COACH" && t.seatId === barRaiserSeatId)
+  return turns.filter((t) => t.role === "INTERVIEWER" && t.seatId === barRaiserSeatId)
     .length;
 }
 

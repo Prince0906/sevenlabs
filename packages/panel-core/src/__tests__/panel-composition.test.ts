@@ -100,10 +100,10 @@ describe("seatScoresToDimensionRows", () => {
 describe("barRaiserDrillDepth", () => {
   it("counts only the Bar Raiser seat's interviewer turns", () => {
     const turns = [
-      { role: "COACH" as const, seatId: "br" },
+      { role: "INTERVIEWER" as const, seatId: "br" },
       { role: "USER" as const, seatId: null },
-      { role: "COACH" as const, seatId: "br" },
-      { role: "COACH" as const, seatId: "other" },
+      { role: "INTERVIEWER" as const, seatId: "br" },
+      { role: "INTERVIEWER" as const, seatId: "other" },
     ];
     expect(barRaiserDrillDepth(turns, "br")).toBe(2);
   });

@@ -139,7 +139,7 @@ export async function mint(
 // ── POST /sessions/:id/turns (idempotent checkpoint) ─────────────────────────
 export interface TurnPostBody {
   seq: number;
-  role: "USER" | "COACH";
+  role: "USER" | "INTERVIEWER";
   seatId?: string | null;
   transcript?: string;
   words?: WordTimestamp[];

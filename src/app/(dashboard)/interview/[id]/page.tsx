@@ -1,6 +1,6 @@
 import { ReportView } from "@/features/interview/views/report-view";
 
-export default async function MockSessionPage({
+export default async function InterviewSessionPage({
   params,
 }: {
   params: Promise<{ id: string }>;

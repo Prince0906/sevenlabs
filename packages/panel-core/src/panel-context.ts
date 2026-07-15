@@ -15,7 +15,7 @@
  */
 
 export interface PanelTurnLite {
-  role: "USER" | "COACH";
+  role: "USER" | "INTERVIEWER";
   text: string | null;
 }
 

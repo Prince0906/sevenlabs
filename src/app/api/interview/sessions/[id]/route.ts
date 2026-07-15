@@ -23,26 +23,26 @@ export async function PATCH(
     if (!parsed.success) {
       return NextResponse.json({ error: "Invalid body" }, { status: 400 });
     }
-    const mock = await prisma.mockSession.findFirst({
+    const interview = await prisma.interviewSession.findFirst({
       where: { id, userId },
       select: { status: true },
     });
-    if (!mock) {
+    if (!interview) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
     if (parsed.data.event === "live") {
-      const r = await prisma.mockSession.updateMany({
+      const r = await prisma.interviewSession.updateMany({
         where: { id, userId, status: "PENDING" },
         data: { status: "LIVE", startedAt: new Date() },
       });
-      return NextResponse.json({ status: r.count > 0 ? "LIVE" : mock.status });
+      return NextResponse.json({ status: r.count > 0 ? "LIVE" : interview.status });
     }
-    const r = await prisma.mockSession.updateMany({
+    const r = await prisma.interviewSession.updateMany({
       where: { id, userId, status: "LIVE" },
       data: { status: "INTERRUPTED" },
     });
-    return NextResponse.json({ status: r.count > 0 ? "INTERRUPTED" : mock.status });
+    return NextResponse.json({ status: r.count > 0 ? "INTERRUPTED" : interview.status });
   } catch (err) {
     log.error("[PATCH /api/interview/sessions/:id]", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
@@ -61,7 +61,7 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     const { id } = await params;
-    const mock = await prisma.mockSession.findFirst({
+    const interview = await prisma.interviewSession.findFirst({
       where: { id, userId },
       select: {
         status: true,
@@ -86,21 +86,21 @@ export async function GET(
         },
       },
     });
-    if (!mock) {
+    if (!interview) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
-    const agg = await prisma.mockTurn.aggregate({
+    const agg = await prisma.interviewTurn.aggregate({
       where: { sessionId: id },
       _max: { seq: true },
     });
     return NextResponse.json({
-      status: mock.status,
-      scenarioId: mock.scenarioId,
+      status: interview.status,
+      scenarioId: interview.scenarioId,
       maxSeq: agg._max.seq ?? -1,
-      activeSeatIndex: mock.activeSeatIndex,
-      keySource: mock.keySource,
+      activeSeatIndex: interview.activeSeatIndex,
+      keySource: interview.keySource,
       maxDurationSec: env.MAX_SESSION_SEC,
-      seats: mock.scenario.panelSeats.map((s) => ({
+      seats: interview.scenario.panelSeats.map((s) => ({
         id: s.id,
         personaName: s.personaName,
         ownedLPs: s.ownedLPs,

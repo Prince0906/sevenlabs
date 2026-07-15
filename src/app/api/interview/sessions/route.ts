@@ -53,7 +53,7 @@ export async function POST(request: Request) {
     const { scenarioId, clientRequestId } = parsed.data;
 
     // Idempotency: a repeated clientRequestId never double-mints.
-    const existing = await prisma.mockSession.findUnique({
+    const existing = await prisma.interviewSession.findUnique({
       where: { userId_clientRequestId: { userId, clientRequestId } },
     });
     if (existing) {
@@ -80,7 +80,7 @@ export async function POST(request: Request) {
     // a session is over the ceiling and can't even re-mint (see mint route), so
     // it is definitively dead.
     const staleCutoff = new Date(Date.now() - env.MAX_SESSION_SEC * 1000);
-    const stale = await prisma.mockSession.findMany({
+    const stale = await prisma.interviewSession.findMany({
       where: {
         userId,
         status: { in: ["LIVE", "INTERRUPTED"] },
@@ -89,7 +89,7 @@ export async function POST(request: Request) {
       select: { id: true },
     });
     if (stale.length > 0) {
-      await prisma.mockSession.updateMany({
+      await prisma.interviewSession.updateMany({
         where: { id: { in: stale.map((s) => s.id) } },
         data: { status: "ABANDONED", endedAt: new Date() },
       });
@@ -97,7 +97,7 @@ export async function POST(request: Request) {
     }
 
     // Single-LIVE-session concurrency cap.
-    const liveCount = await prisma.mockSession.count({
+    const liveCount = await prisma.interviewSession.count({
       where: { userId, status: "LIVE" },
     });
     if (liveCount >= LIVE_CAP) {
@@ -132,7 +132,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const created = await prisma.mockSession.create({
+    const created = await prisma.interviewSession.create({
       data: {
         userId,
         scenarioId,
@@ -183,7 +183,7 @@ export async function POST(request: Request) {
       });
     } catch (e) {
       const status = e instanceof ProviderError ? e.status : 0;
-      await prisma.mockSession.update({
+      await prisma.interviewSession.update({
         where: { id: created.id },
         data: { status: "FAILED" },
       });
