@@ -1,6 +1,8 @@
 # ADR-0013: The speaking coach was removed; one product remains
 
-- Status: Accepted (2026-07-11)
+- Status: Accepted (2026-07-11). The "`COACH` kept" clause below was closed by
+  [ADR-0016](0016-db-rename-and-reset-at-zero-users.md) (2026-07-15): the enum
+  is now `TurnRole` with `COACH` renamed `INTERVIEWER`.
 
 ## Context
 Aloud began as a synchronous speaking coach (record → Whisper → feedback →

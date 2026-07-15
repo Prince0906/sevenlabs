@@ -47,7 +47,7 @@ src/lib/                    cross-cutting infra + server domain logic (the only 
   auth.ts db.ts env.ts byok.ts crypto.ts log.ts resume.ts …
 packages/panel-core         pure panel logic (rubrics, verdict math, disfluency…) — no I/O
 packages/shared-types       Zod contracts (interview-schemas, realtime-config) — no I/O
-prisma/                     schema + 9 migrations + seed
+prisma/                     schema + 1 squashed init migration + seed
 docs/                       this file, decisions/ (ADRs), runbooks/, testing.md, design.md
 ```
 
@@ -116,18 +116,17 @@ mint and the client patch ([ADR-0011](decisions/0011-push-to-talk-shared-input-c
 
 - **Auth** (Auth.js v5): `User` (sole tenant root; every owned row is
   `userId`-scoped + cascade-deletes), `Account`, `Session`, `VerificationToken`.
-- **Interview**: `Scenario`, `PanelSeat`, `MockSession` (central run),
-  `MockTurn` (`@@unique([sessionId, seq])`), `DimensionScore`, `PanelVerdict`,
+- **Interview**: `Scenario`, `PanelSeat`, `InterviewSession` (central run),
+  `InterviewTurn` (`@@unique([sessionId, seq])`), `DimensionScore`, `PanelVerdict`,
   `ConfidenceMetric`, `DrillAssignment`, `JudgmentJob`.
 - **Moat / custody / infra**: `Outcome`, `ProviderKey`, `ResumeProfile`,
   `RateBucket`, `GlobalSpend`, `SpendReservation`.
 
-**Naming note** ([ADR-0014](decisions/0014-ubiquitous-language.md)): the DB
-layer predates the interview/panel/providers language and is **frozen** —
-`MockSession`/`MockTurn`/`MockStatus` mean "interview session/turn/status", and
-`PracticeTurnRole.COACH` means "interviewer seat"
-([ADR-0013](decisions/0013-speaking-coach-removed.md)). Do not rename DB
-identifiers outside a coordinated schema+contract pass.
+**Naming note** ([ADR-0016](decisions/0016-db-rename-and-reset-at-zero-users.md)):
+the DB layer speaks the same language as the code — `InterviewSession`/
+`InterviewTurn`/`InterviewStatus`, and `TurnRole` is `USER | INTERVIEWER`.
+Migration history was squashed to a single init migration when the rename
+landed (zero users; databases reset).
 
 ## 7. Invariants (review-blocking if violated)
 
@@ -136,7 +135,7 @@ identifiers outside a coordinated schema+contract pass.
 3. BYOK keys are **never echoed back**; decrypt only inside the call frame; all
    logging flows through `redact()` via `src/lib/log.ts`.
 4. **`turn_detection` stays `null`** (push-to-talk) via the one shared config.
-5. `MockTurn` is **single-writer, seq-ordered**.
+5. `InterviewTurn` is **single-writer, seq-ordered**.
 
 Each invariant has a named owning test — see [`docs/testing.md`](testing.md) §6.
 
@@ -159,5 +158,5 @@ the EC2 box with a `/api/health` check). Reproduce CI locally with
   measured provider usage.
 - Data lifecycle: deletion is done + cascade-tested (unit level); export and a
   retention policy are not.
-- `/api/mock/:path*` compatibility rewrite in `next.config.ts` should be
-  removed once pre-rename clients age out.
+- The committee-debrief prompt hardcodes "React/JavaScript panel" — latent
+  until a second scenario (e.g. Amazon) is seeded.

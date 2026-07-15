@@ -1,7 +1,10 @@
 # ADR-0014: Ubiquitous language — interview / panel / providers; DB layer frozen
 
 - Status: Accepted (2026-07-14) — supersedes the `interview-core`/`lib/llm`
-  naming proposals from the 2026-06-12 audit
+  naming proposals from the 2026-06-12 audit. **Partially superseded by
+  [ADR-0016](0016-db-rename-and-reset-at-zero-users.md)** (2026-07-15): the
+  frozen-DB clause and the compat shims below were lifted once the product was
+  confirmed to have zero users.
 
 ## Context
 One product answered to six names (`mock`, `panel`, `coach`, `interview`,

@@ -109,7 +109,7 @@ without a replacement is a review-blocking change.
 | Secrets redacted from logs/errors over a realistic Error/stack | `packages/panel-core/.../redaction.test.ts` |
 | Judge model is **pinned** (never config-driven) | `panel-orchestrator.test.ts` / committee tests |
 | `turn_detection: null` at mint (push-to-talk) | `mint-route.test.ts` + the shared `REALTIME_INPUT_CONFIG` |
-| `MockTurn` is single-writer, `seq`-ordered | `turn-queue.test.ts`, `turns-route.test.ts` |
+| `InterviewTurn` is single-writer, `seq`-ordered | `turn-queue.test.ts`, `turns-route.test.ts` |
 | BYOK key **never echoed**; decrypt only in the call frame | `keys-route.test.ts`, `crypto.test.ts` |
 | `resolveSessionKey` is **fail-closed** → HOUSE on non-ACTIVE / unset KEK | `byok.test.ts` |
 | Spend is atomic; money math exact to the cent (no float) | `spend.test.ts`, `spend-reserve.test.ts` |
