@@ -94,7 +94,7 @@ export function InterviewView({ scenarioId = SCENARIO_ID }: { scenarioId?: strin
               seats={p.seats}
               activeSeatIndex={p.activeSeatIndex}
               activeSpeaker={
-                p.coachResponseInFlight ? "INTERVIEWER" : p.phase === "live" ? "USER" : null
+                p.interviewerResponseInFlight ? "INTERVIEWER" : p.phase === "live" ? "USER" : null
               }
               completedSeatIndexes={p.completedSeatIndexes}
             />
@@ -134,7 +134,7 @@ function PttControl({ p }: { p: ReturnType<typeof useInterview> }) {
         type="button"
         size="lg"
         onClick={p.toggleCapture}
-        disabled={p.coachResponseInFlight}
+        disabled={p.interviewerResponseInFlight}
         variant={p.isCapturing ? "default" : "outline"}
         className="rounded-full px-10"
       >
@@ -143,7 +143,7 @@ function PttControl({ p }: { p: ReturnType<typeof useInterview> }) {
       <p className="text-xs text-muted-foreground">
         {p.isCapturing
           ? "Take your time. Pauses are fine. Tap Send when you're done."
-          : p.coachResponseInFlight
+          : p.interviewerResponseInFlight
             ? "Listen to the interviewer…"
             : "Tap to answer. You control when your turn ends."}
       </p>
@@ -247,7 +247,7 @@ function LiveShell({ p }: { p: ReturnType<typeof useInterview> }) {
   const seat = p.seats[p.activeSeatIndex];
   const persona = seat ? splitPersona(seat.personaName) : { name: "", role: "" };
   const tint = SIGNAL_CSS_VAR[seatLevel(p.activeSeatIndex)];
-  const activeSpeaker = p.coachResponseInFlight ? "INTERVIEWER" : p.phase === "live" ? "USER" : null;
+  const activeSpeaker = p.interviewerResponseInFlight ? "INTERVIEWER" : p.phase === "live" ? "USER" : null;
 
   // Pre-live connect phases. Stage the copy so the wait reads like the room
   // waking up (never a frozen "One moment"), and offer a quiet escape back to
@@ -336,7 +336,7 @@ function LiveShell({ p }: { p: ReturnType<typeof useInterview> }) {
             counts as an addition; the streaming partial is aria-hidden so it
             isn't re-read on every token — its committed form announces once. */}
         <div role="log" aria-live="polite" aria-relevant="additions" aria-label="Live interview transcript">
-          {p.liveTranscript.length === 0 && !p.coachStreaming ? (
+          {p.liveTranscript.length === 0 && !p.interviewerStreaming ? (
             <p className="font-display text-base italic text-muted-foreground/70">
               The first interviewer will begin shortly…
             </p>
@@ -345,11 +345,11 @@ function LiveShell({ p }: { p: ReturnType<typeof useInterview> }) {
               {p.liveTranscript.map((t, i) => (
                 <TranscriptLine key={i} role={t.role} seatId={t.seatId} text={t.text} seatById={seatById} />
               ))}
-              {p.coachStreaming && (
+              {p.interviewerStreaming && (
                 <TranscriptLine
                   role="INTERVIEWER"
                   seatId={seat?.id ?? null}
-                  text={p.coachStreaming}
+                  text={p.interviewerStreaming}
                   seatById={seatById}
                   streaming
                 />

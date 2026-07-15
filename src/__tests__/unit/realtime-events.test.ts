@@ -21,23 +21,23 @@ describe("mapRealtimeEvent — happy-path event mapping", () => {
     ).toEqual({ type: "user_transcript", transcript: "" });
   });
 
-  it("maps coach transcript delta + done", () => {
+  it("maps interviewer transcript delta + done", () => {
     expect(ev({ type: "response.output_audio_transcript.delta", delta: "Tell " })).toEqual({
-      type: "coach_transcript_delta",
+      type: "interviewer_transcript_delta",
       delta: "Tell ",
     });
     expect(
       ev({ type: "response.output_audio_transcript.done", transcript: "Tell me about a time…" })
-    ).toEqual({ type: "coach_transcript_done", transcript: "Tell me about a time…" });
+    ).toEqual({ type: "interviewer_transcript_done", transcript: "Tell me about a time…" });
   });
 
   it("defaults a missing delta/transcript to empty string", () => {
     expect(ev({ type: "response.output_audio_transcript.delta" })).toEqual({
-      type: "coach_transcript_delta",
+      type: "interviewer_transcript_delta",
       delta: "",
     });
     expect(ev({ type: "response.output_audio_transcript.done" })).toEqual({
-      type: "coach_transcript_done",
+      type: "interviewer_transcript_done",
       transcript: "",
     });
   });
@@ -48,14 +48,14 @@ describe("mapRealtimeEvent — happy-path event mapping", () => {
   });
 
   it("maps response.created", () => {
-    expect(ev({ type: "response.created" })).toEqual({ type: "coach_response_start" });
+    expect(ev({ type: "response.created" })).toEqual({ type: "interviewer_response_start" });
   });
 });
 
 describe("mapRealtimeEvent — response.done (cancelled + usage)", () => {
   it("flags a cancelled response (barge-in)", () => {
     expect(ev({ type: "response.done", response: { status: "cancelled" } })).toEqual({
-      type: "coach_response_done",
+      type: "interviewer_response_done",
       cancelled: true,
       usage: null,
     });
@@ -64,7 +64,7 @@ describe("mapRealtimeEvent — response.done (cancelled + usage)", () => {
   it("a completed response is not cancelled and carries usage when present", () => {
     const usage = { input_tokens: 10, output_tokens: 20 };
     expect(ev({ type: "response.done", response: { status: "completed", usage } })).toEqual({
-      type: "coach_response_done",
+      type: "interviewer_response_done",
       cancelled: false,
       usage,
     });
@@ -72,13 +72,13 @@ describe("mapRealtimeEvent — response.done (cancelled + usage)", () => {
 
   it("usage is null when the response carries none", () => {
     expect(ev({ type: "response.done", response: { status: "completed" } })).toEqual({
-      type: "coach_response_done",
+      type: "interviewer_response_done",
       cancelled: false,
       usage: null,
     });
     // No response object at all is still a valid (uncancelled, usage-less) done.
     expect(ev({ type: "response.done" })).toEqual({
-      type: "coach_response_done",
+      type: "interviewer_response_done",
       cancelled: false,
       usage: null,
     });

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import type { MockReport } from "@sevenlabs/shared-types";
+import type { InterviewReport } from "@sevenlabs/shared-types";
 import { PageHeader } from "@/components/page-header";
 import { pageTransition } from "@/lib/motion";
 import { ReportBody } from "../components/report-body";
@@ -13,7 +13,7 @@ import * as api from "../lib/api-client";
 /** Standalone report route (/interview/[id]) — polls until COMPLETED or FAILED. */
 export function ReportView({ sessionId }: { sessionId: string }) {
   const [view, setView] = useState<
-    { kind: "loading" } | { kind: "debrief" } | { kind: "ready"; report: MockReport } | { kind: "failed"; reason?: string }
+    { kind: "loading" } | { kind: "debrief" } | { kind: "ready"; report: InterviewReport } | { kind: "failed"; reason?: string }
   >({ kind: "loading" });
   const etagRef = useRef<string | null>(null);
 

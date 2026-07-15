@@ -15,12 +15,12 @@ import { mapRealtimeEvent } from "./realtime-events";
 export interface RealtimeCallbacks {
   onSessionUpdated?: () => void;
   onUserTranscript?: (transcript: string) => void;
-  onCoachTranscriptDelta?: (delta: string) => void;
-  onCoachTranscriptDone?: (transcript: string) => void;
+  onInterviewerTranscriptDelta?: (delta: string) => void;
+  onInterviewerTranscriptDone?: (transcript: string) => void;
   onSpeechStarted?: () => void;
   onSpeechStopped?: () => void;
-  onCoachResponseStart?: () => void;
-  onCoachResponseDone?: (cancelled: boolean) => void;
+  onInterviewerResponseStart?: () => void;
+  onInterviewerResponseDone?: (cancelled: boolean) => void;
   /** Token usage on response.done — drives the BYOK spend estimate (§3.7). */
   onUsage?: (usage: unknown) => void;
   onDataChannelOpen?: () => void;
@@ -44,7 +44,7 @@ export interface RealtimePeer {
   commitCapture: () => void;
   /** Push-to-talk abort (too-short/stray tap): mute the mic and discard the buffer uncommitted. */
   discardCapture: () => void;
-  /** 0..1 gain on the remote (coach) audio — used for the handoff dim cue. */
+  /** 0..1 gain on the remote (interviewer) audio — used for the handoff dim cue. */
   setOutputGain: (gain: number) => void;
   /** Resolve once the interviewer's audio has finished playing out (the remote
    * stream has gone quiet for a beat), or after timeoutMs as a hard backstop, so
@@ -71,7 +71,7 @@ export async function connectRealtime(params: {
   const { ephemeral, micStream, callbacks } = params;
   const pc = new RTCPeerConnection();
 
-  // Remote (coach) audio sink. Detached on close; the element is owned here.
+  // Remote (interviewer) audio sink. Detached on close; the element is owned here.
   const remoteAudio = new Audio();
   remoteAudio.autoplay = true;
   // Energy meter on the remote stream — analysis only (never connected to the
@@ -156,11 +156,11 @@ export async function connectRealtime(params: {
       case "user_transcript":
         callbacks.onUserTranscript?.(ev.transcript);
         break;
-      case "coach_transcript_delta":
-        callbacks.onCoachTranscriptDelta?.(ev.delta);
+      case "interviewer_transcript_delta":
+        callbacks.onInterviewerTranscriptDelta?.(ev.delta);
         break;
-      case "coach_transcript_done":
-        callbacks.onCoachTranscriptDone?.(ev.transcript);
+      case "interviewer_transcript_done":
+        callbacks.onInterviewerTranscriptDone?.(ev.transcript);
         break;
       case "speech_started":
         callbacks.onSpeechStarted?.();
@@ -168,11 +168,11 @@ export async function connectRealtime(params: {
       case "speech_stopped":
         callbacks.onSpeechStopped?.();
         break;
-      case "coach_response_start":
-        callbacks.onCoachResponseStart?.();
+      case "interviewer_response_start":
+        callbacks.onInterviewerResponseStart?.();
         break;
-      case "coach_response_done":
-        callbacks.onCoachResponseDone?.(ev.cancelled);
+      case "interviewer_response_done":
+        callbacks.onInterviewerResponseDone?.(ev.cancelled);
         if (ev.usage) callbacks.onUsage?.(ev.usage);
         break;
       case "server_error":
@@ -214,7 +214,7 @@ export async function connectRealtime(params: {
       // GA content-part types (verified live against /v1/realtime): user items
       // use "input_text"; assistant items MUST use "output_text" — the server
       // rejects "text" with `Invalid value: 'text'. Value must be 'output_text'`,
-      // which would drop coach context on re-mint (the load-bearing
+      // which would drop interviewer context on re-mint (the load-bearing
       // persona-coherence path) and surface a spurious error event.
       send({
         type: "conversation.item.create",

@@ -100,14 +100,14 @@ describe("createTurnQueue", () => {
     expect(bodies[0]!.seq).toBe(8);
   });
 
-  it("delivers every enqueued seat-2 COACH turn before complete (drill-depth invariant)", async () => {
+  it("delivers every enqueued seat-2 INTERVIEWER turn before complete (drill-depth invariant)", async () => {
     const { post, bodies } = makePost([]);
     const q = createTurnQueue({ post, fetchMaxSeq: async () => -1, retryDelayMs: 0 });
     for (let n = 0; n < 4; n++) {
       q.enqueue(turn({ role: "INTERVIEWER", seatId: "br", transcript: `q${n}` }));
     }
     await q.drainBeforeComplete();
-    const coach = bodies.filter((b) => b.role === "INTERVIEWER" && b.seatId === "br");
-    expect(coach).toHaveLength(4);
+    const interviewer = bodies.filter((b) => b.role === "INTERVIEWER" && b.seatId === "br");
+    expect(interviewer).toHaveLength(4);
   });
 });

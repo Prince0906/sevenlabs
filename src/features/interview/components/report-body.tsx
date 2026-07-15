@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import type { MockReport } from "@sevenlabs/shared-types";
+import type { InterviewReport } from "@sevenlabs/shared-types";
 import { SIGNAL_LABEL, SIGNAL_THEME } from "@/lib/signal";
 import { staggerContainer, staggerItem } from "@/lib/motion";
 import { cn } from "@/lib/utils";
@@ -12,7 +12,7 @@ import { SIGNAL_CSS_VAR } from "../lib/seat-theme";
 
 /** The verdict body — reused by the live flow and the standalone report route.
  * Reveals section-by-section ("the verdict lights the room"). */
-export function ReportBody({ report }: { report: MockReport }) {
+export function ReportBody({ report }: { report: InterviewReport }) {
   const { verdict } = report;
   const dimensions = [...report.dimensions].sort((a, b) => a.score - b.score);
   const hasConfidence = report.confidence > 0;

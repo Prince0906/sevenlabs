@@ -1,4 +1,4 @@
-import type { PanelSeatPublic, MockReport, MockStatusT } from "@sevenlabs/shared-types";
+import type { PanelSeatPublic, InterviewReport, InterviewStatusT } from "@sevenlabs/shared-types";
 
 /**
  * Pure state machine for the live panel. No React, no I/O — the hook performs
@@ -44,7 +44,7 @@ export interface PanelState {
   exchangeCount: number; // USER turns with the active seat (handoff budget)
   bargeIns: number;
   interruptions: number;
-  coachResponseInFlight: boolean;
+  interviewerResponseInFlight: boolean;
   committedTurns: number;
   maxDurationSec: number;
   ephemeralExpiresAt: number | null;
@@ -52,7 +52,7 @@ export interface PanelState {
   /** A turn was dropped after exhausting retries — the report is partial, not
    * silently corrupt. Latches true; surfaced to the candidate + the report (D6). */
   degradedDelivery: boolean;
-  report: MockReport | null;
+  report: InterviewReport | null;
   reportEtag: string | null;
   recovery: RecoveryKind | null;
   errorMessage: string | null;
@@ -70,19 +70,19 @@ export type PanelAction =
   | { type: "CREATE_RATE_LIMITED" }
   | { type: "CREATE_VOICE_UNAVAILABLE" }
   | { type: "CREATE_ERROR"; message: string }
-  | { type: "RESUME_SNAPSHOT"; status: MockStatusT; seats: PanelSeatPublic[]; activeSeatIndex: number }
+  | { type: "RESUME_SNAPSHOT"; status: InterviewStatusT; seats: PanelSeatPublic[]; activeSeatIndex: number }
   | { type: "DC_OPEN" }
   | { type: "PATCH_LIVE_OK" }
   | { type: "RESUMED_LIVE" }
   | { type: "USER_TURN" }
-  | { type: "COACH_DONE"; transcript: string }
-  | { type: "COACH_RESPONSE_START" }
-  | { type: "COACH_RESPONSE_DONE"; cancelled: boolean }
+  | { type: "INTERVIEWER_DONE"; transcript: string }
+  | { type: "INTERVIEWER_RESPONSE_START" }
+  | { type: "INTERVIEWER_RESPONSE_DONE"; cancelled: boolean }
   | { type: "SPEECH_STARTED" }
   | { type: "TTL_REMINT" }
   | { type: "MINT_OK"; ephemeralExpiresAt: number }
   | { type: "MINT_EXPIRED" }
-  | { type: "MINT_NOT_RENEWABLE"; status: MockStatusT }
+  | { type: "MINT_NOT_RENEWABLE"; status: InterviewStatusT }
   | { type: "MINT_VOICE_UNAVAILABLE" }
   | { type: "MINT_RATE_LIMITED" }
   | { type: "DISCONNECTED" }
@@ -92,7 +92,7 @@ export type PanelAction =
   | { type: "END_REQUESTED" }
   | { type: "COMPLETE_DEBRIEF" }
   | { type: "COMPLETE_NOT_COMPLETABLE" }
-  | { type: "REPORT_COMPLETED"; report: MockReport; etag: string | null }
+  | { type: "REPORT_COMPLETED"; report: InterviewReport; etag: string | null }
   | { type: "REPORT_FAILED"; reason?: string }
   | { type: "DISMISS_ERROR" };
 
@@ -125,7 +125,7 @@ export function initialPanelState(): PanelState {
     exchangeCount: 0,
     bargeIns: 0,
     interruptions: 0,
-    coachResponseInFlight: false,
+    interviewerResponseInFlight: false,
     committedTurns: 0,
     maxDurationSec: 0,
     ephemeralExpiresAt: null,
@@ -148,7 +148,7 @@ function toError(
 }
 
 /** Reconcile a server-reported status into a phase (after adopt / not-renewable). */
-function reconcileStatus(state: PanelState, status: MockStatusT): PanelState {
+function reconcileStatus(state: PanelState, status: InterviewStatusT): PanelState {
   switch (status) {
     case "LIVE":
     case "INTERRUPTED":
@@ -226,19 +226,19 @@ export function panelReducer(state: PanelState, action: PanelAction): PanelState
       if (state.phase !== "live") return state;
       return { ...state, exchangeCount: state.exchangeCount + 1, committedTurns: state.committedTurns + 1 };
 
-    case "COACH_RESPONSE_START":
-      return { ...state, coachResponseInFlight: true };
-    case "COACH_RESPONSE_DONE":
+    case "INTERVIEWER_RESPONSE_START":
+      return { ...state, interviewerResponseInFlight: true };
+    case "INTERVIEWER_RESPONSE_DONE":
       return {
         ...state,
-        coachResponseInFlight: false,
+        interviewerResponseInFlight: false,
         interruptions: action.cancelled ? state.interruptions + 1 : state.interruptions,
       };
     case "SPEECH_STARTED":
-      // Barge-in = cutting over the coach while a response is in flight.
-      return state.coachResponseInFlight ? { ...state, bargeIns: state.bargeIns + 1 } : state;
+      // Barge-in = cutting over the interviewer while a response is in flight.
+      return state.interviewerResponseInFlight ? { ...state, bargeIns: state.bargeIns + 1 } : state;
 
-    case "COACH_DONE": {
+    case "INTERVIEWER_DONE": {
       if (state.phase !== "live") return { ...state, committedTurns: state.committedTurns + 1 };
       const isLast = state.activeSeatIndex >= state.seats.length - 1;
       const handoff =

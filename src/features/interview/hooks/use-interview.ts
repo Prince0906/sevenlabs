@@ -22,7 +22,7 @@ import * as api from "../lib/api-client";
 const TTL_GUARD_MS = 20_000; // re-mint this long before the ephemeral expires
 const CONFERRING_BEAT_MS = 1500; // "panel is conferring" handoff beat — deliberate, so seat swaps don't feel rushed
 const MAX_RECONNECTS = 3;
-const SPURIOUS_COACH_MIN_WORDS = 3;
+const SPURIOUS_INTERVIEWER_MIN_WORDS = 3;
 const ICE_DISCONNECT_GRACE_MS = 4000; // ICE "disconnected" is flappy; let it self-heal
 const MAX_POLL_ERRORS = 5; // bounded report-poll retries before giving up
 const MIN_CAPTURE_MS = 500; // push-to-talk: ignore stray taps shorter than this
@@ -53,11 +53,11 @@ function pickRecorderMime(): string | undefined {
  */
 export function useInterview() {
   const [state, dispatch] = useReducer(panelReducer, undefined, initialPanelState);
-  // Live transcript + streaming coach text are render-visible state (not refs).
+  // Live transcript + streaming interviewer text are render-visible state (not refs).
   const [liveTranscript, setLiveTranscript] = useState<
     Array<{ role: "USER" | "INTERVIEWER"; seatId: string | null; text: string }>
   >([]);
-  const [coachStreaming, setCoachStreaming] = useState("");
+  const [interviewerStreaming, setInterviewerStreaming] = useState("");
   // Push-to-talk: whether the candidate's mic is currently open (tapped "Start",
   // not yet "Done"). Ref mirror so toggleCapture branches synchronously.
   const [isCapturing, setIsCapturing] = useState(false);
@@ -77,9 +77,9 @@ export function useInterview() {
   const ephemeralRef = useRef<RealtimeEphemeral | null>(null);
   const seatsRef = useRef<PanelSeatPublic[]>([]);
 
-  const coachAccumRef = useRef<string>("");
+  const interviewerAccumRef = useRef<string>("");
   const turnsLogRef = useRef<Array<{ role: "user" | "assistant"; text: string }>>([]);
-  const lastCoachDoneAtRef = useRef<number>(0);
+  const lastInterviewerDoneAtRef = useRef<number>(0);
   const pendingBargeInsRef = useRef<number>(0);
   const pendingInterruptionsRef = useRef<number>(0);
   const replayOnConnectRef = useRef<boolean>(false);
@@ -177,7 +177,7 @@ export function useInterview() {
   // one is in flight (the server rejects a second concurrent response with
   // "Conversation already has an active response"), and only while live; a
   // candidate turn that lands mid-response is deferred until response.done.
-  const requestCoachResponse = useCallback(() => {
+  const requestInterviewerResponse = useCallback(() => {
     if (stateRef.current.phase !== "live") return;
     if (responseInFlightRef.current) {
       pendingResponseRef.current = true;
@@ -189,8 +189,8 @@ export function useInterview() {
 
   const enqueueUser = useCallback((transcript: string) => {
     const events: TurnEvents = {};
-    if (lastCoachDoneAtRef.current > 0) {
-      events.latencyToAnswerMs = Math.max(0, Date.now() - lastCoachDoneAtRef.current);
+    if (lastInterviewerDoneAtRef.current > 0) {
+      events.latencyToAnswerMs = Math.max(0, Date.now() - lastInterviewerDoneAtRef.current);
     }
     if (pendingBargeInsRef.current > 0) events.bargeIns = pendingBargeInsRef.current;
     if (pendingInterruptionsRef.current > 0) events.interruptions = pendingInterruptionsRef.current;
@@ -211,18 +211,18 @@ export function useInterview() {
     dispatch({ type: "USER_TURN" });
   }, [activeSeatId]);
 
-  const finalizeCoach = useCallback((transcript: string) => {
+  const finalizeInterviewer = useCallback((transcript: string) => {
     const text = transcript.trim();
-    coachAccumRef.current = "";
-    setCoachStreaming("");
-    if (text.split(/\s+/).filter(Boolean).length < SPURIOUS_COACH_MIN_WORDS) {
+    interviewerAccumRef.current = "";
+    setInterviewerStreaming("");
+    if (text.split(/\s+/).filter(Boolean).length < SPURIOUS_INTERVIEWER_MIN_WORDS) {
       return; // spurious server-VAD response — do not commit / consume seq
     }
     const seatId = activeSeatId();
     queueRef.current?.enqueue({ role: "INTERVIEWER", transcript: text, seatId, words: [] });
     turnsLogRef.current.push({ role: "assistant", text });
     setLiveTranscript((prev) => [...prev, { role: "INTERVIEWER", seatId, text }]);
-    dispatch({ type: "COACH_DONE", transcript: text });
+    dispatch({ type: "INTERVIEWER_DONE", transcript: text });
 
     // Output-side turn-control backstop (research: system-prompt hardening is
     // best-effort; pair it with an output check). If the interviewer stalled —
@@ -248,10 +248,10 @@ export function useInterview() {
             content: [{ type: "input_text", text: CONTINUATION_NUDGE }],
           },
         });
-        requestCoachResponse();
+        requestInterviewerResponse();
       }, 80);
     }
-  }, [activeSeatId, requestCoachResponse]);
+  }, [activeSeatId, requestInterviewerResponse]);
 
   const doConnect = useCallback(async (opts?: { greet?: boolean }) => {
     // Fresh seat connects (create / handoff) → the interviewer speaks first.
@@ -305,29 +305,29 @@ export function useInterview() {
           onUserTranscript: (t) => {
             // Log the transcript for the panel/scoring only. The interviewer's
             // reply is triggered when the candidate taps "Done" (toggleCapture →
-            // requestCoachResponse), NOT by transcription — so a late, empty, or
+            // requestInterviewerResponse), NOT by transcription — so a late, empty, or
             // hallucinated transcript can't make the interviewer respond, and a
             // real answer still gets a reply even if the transcript returns empty.
             if (t.trim()) enqueueUser(t);
           },
-          onCoachTranscriptDelta: (d) => {
-            coachAccumRef.current += d;
-            setCoachStreaming(coachAccumRef.current);
+          onInterviewerTranscriptDelta: (d) => {
+            interviewerAccumRef.current += d;
+            setInterviewerStreaming(interviewerAccumRef.current);
           },
-          onCoachTranscriptDone: (t) => finalizeCoach(t || coachAccumRef.current),
+          onInterviewerTranscriptDone: (t) => finalizeInterviewer(t || interviewerAccumRef.current),
           onSpeechStarted: () => {
             speakingRef.current = true;
-            if (stateRef.current.coachResponseInFlight) pendingBargeInsRef.current += 1;
+            if (stateRef.current.interviewerResponseInFlight) pendingBargeInsRef.current += 1;
             dispatch({ type: "SPEECH_STARTED" });
           },
           onSpeechStopped: () => {
             speakingRef.current = false;
           },
-          onCoachResponseStart: () => dispatch({ type: "COACH_RESPONSE_START" }),
-          onCoachResponseDone: (cancelled) => {
-            lastCoachDoneAtRef.current = Date.now();
+          onInterviewerResponseStart: () => dispatch({ type: "INTERVIEWER_RESPONSE_START" }),
+          onInterviewerResponseDone: (cancelled) => {
+            lastInterviewerDoneAtRef.current = Date.now();
             if (cancelled) pendingInterruptionsRef.current += 1;
-            dispatch({ type: "COACH_RESPONSE_DONE", cancelled });
+            dispatch({ type: "INTERVIEWER_RESPONSE_DONE", cancelled });
             // Manual control: this interviewer turn is finished. If a candidate
             // turn arrived while it was speaking, it's owed a reply now (skip if
             // we've left live — e.g. a handoff/wrap was triggered by this turn).
@@ -394,7 +394,7 @@ export function useInterview() {
     } catch {
       dispatch({ type: "DISCONNECTED" });
     }
-  }, [enqueueUser, finalizeCoach, closePeer]);
+  }, [enqueueUser, finalizeInterviewer, closePeer]);
 
   // ── phase-entry side effects ────────────────────────────────────────────────
   // The single-writer commit queue, built identically for a fresh create and an
@@ -410,7 +410,7 @@ export function useInterview() {
           return s.kind === "ok" ? s.data.maxSeq : -1;
         },
         onSessionExpired: () => dispatch({ type: "SESSION_EXPIRED" }),
-        // A COACH turn dropped after exhausting retries would otherwise vanish
+        // A INTERVIEWER turn dropped after exhausting retries would otherwise vanish
         // silently and the judge would score an incomplete transcript. Surface it
         // so the candidate + report can mark the session partial. (D6)
         onDeliveryError: () => dispatch({ type: "DELIVERY_DEGRADED" }),
@@ -637,7 +637,7 @@ export function useInterview() {
     if (state.phase !== "live" || !state.ephemeralExpiresAt) return;
     const id = setInterval(() => {
       const exp = stateRef.current.ephemeralExpiresAt ?? 0;
-      const idle = !speakingRef.current && !stateRef.current.coachResponseInFlight;
+      const idle = !speakingRef.current && !stateRef.current.interviewerResponseInFlight;
       if (Date.now() >= exp - TTL_GUARD_MS && idle) dispatch({ type: "TTL_REMINT" });
     }, 3000);
     return () => clearInterval(id);
@@ -677,8 +677,8 @@ export function useInterview() {
       scenarioRef.current = scenarioId;
       clientReqRef.current = crypto.randomUUID();
       turnsLogRef.current = [];
-      coachAccumRef.current = "";
-      lastCoachDoneAtRef.current = 0;
+      interviewerAccumRef.current = "";
+      lastInterviewerDoneAtRef.current = 0;
       pendingBargeInsRef.current = 0;
       pendingInterruptionsRef.current = 0;
       replayOnConnectRef.current = false;
@@ -706,7 +706,7 @@ export function useInterview() {
       spendUsdRef.current = 0; // reset the spend accumulator (NOT the cap — the
       setEstimatedSpendUsd(0); // user set it in the green-room before this run)
       setLiveTranscript([]);
-      setCoachStreaming("");
+      setInterviewerStreaming("");
       setIsCapturing(false);
       dispatch({ type: "START" });
       try {
@@ -786,14 +786,14 @@ export function useInterview() {
       stopTurnRecorder(longEnough); // only upload a real answer's audio
       if (longEnough) {
         peerRef.current?.commitCapture();
-        requestCoachResponse(); // ask the interviewer to reply to the committed answer
+        requestInterviewerResponse(); // ask the interviewer to reply to the committed answer
       } else {
         peerRef.current?.discardCapture(); // stray/too-short tap — drop it, no empty commit
       }
       return;
     }
     // Start only on the candidate's turn (live, interviewer not currently speaking).
-    if (stateRef.current.phase !== "live" || stateRef.current.coachResponseInFlight) return;
+    if (stateRef.current.phase !== "live" || stateRef.current.interviewerResponseInFlight) return;
     isCapturingRef.current = true;
     setIsCapturing(true);
     speakingRef.current = true; // keep the TTL watchdog from re-minting mid-answer
@@ -801,7 +801,7 @@ export function useInterview() {
     currentClientTurnIdRef.current = crypto.randomUUID();
     peerRef.current?.beginCapture();
     startTurnRecorder();
-  }, [requestCoachResponse, startTurnRecorder, stopTurnRecorder]);
+  }, [requestInterviewerResponse, startTurnRecorder, stopTurnRecorder]);
 
   const endAndScore = useCallback(() => dispatch({ type: "END_REQUESTED" }), []);
   const retryConnect = useCallback(() => {
@@ -817,7 +817,7 @@ export function useInterview() {
     seats: state.seats,
     activeSeatIndex: state.activeSeatIndex,
     completedSeatIndexes: state.completedSeatIndexes,
-    coachResponseInFlight: state.coachResponseInFlight,
+    interviewerResponseInFlight: state.interviewerResponseInFlight,
     reachedLive: state.reachedLive,
     committedTurns: state.committedTurns,
     bargeIns: state.bargeIns,
@@ -834,7 +834,7 @@ export function useInterview() {
     errorMessage: state.errorMessage,
     sessionId: state.sessionId,
     liveTranscript,
-    coachStreaming,
+    interviewerStreaming,
     isCapturing,
     micLevelRef,
     start,

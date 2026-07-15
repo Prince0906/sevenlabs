@@ -1,10 +1,10 @@
 import type {
-  CreateMockSessionResponse,
+  CreateInterviewSessionResponse,
   StatusResponse,
   TurnResponse,
-  MockReport,
+  InterviewReport,
   RealtimeEphemeral,
-  MockStatusT,
+  InterviewStatusT,
   WordTimestamp,
   TurnEvents,
 } from "@sevenlabs/shared-types";
@@ -26,7 +26,7 @@ function errMsg(body: Record<string, unknown>, fallback: string): string {
 
 // ── POST /sessions (create) ─────────────────────────────────────────────────
 export type CreateResult =
-  | { kind: "ok"; data: CreateMockSessionResponse }
+  | { kind: "ok"; data: CreateInterviewSessionResponse }
   | { kind: "duplicate"; sessionId: string }
   | { kind: "already-live" }
   | { kind: "capacity" }
@@ -44,7 +44,7 @@ export async function createSession(
     body: JSON.stringify({ scenarioId, clientRequestId }),
   });
   if (res.ok) {
-    return { kind: "ok", data: (await res.json()) as CreateMockSessionResponse };
+    return { kind: "ok", data: (await res.json()) as CreateInterviewSessionResponse };
   }
   const body = await readJson(res);
   if (res.status === 409) {
@@ -89,7 +89,7 @@ export async function getStatus(id: string): Promise<StatusResult> {
 
 // ── PATCH /sessions/:id (live | interrupt) ───────────────────────────────────
 export type PatchResult =
-  | { kind: "ok"; status: MockStatusT }
+  | { kind: "ok"; status: InterviewStatusT }
   | { kind: "error"; status: number; message: string };
 
 export async function patchEvent(
@@ -102,7 +102,7 @@ export async function patchEvent(
     body: JSON.stringify({ event }),
   });
   const body = await readJson(res);
-  if (res.ok) return { kind: "ok", status: body.status as MockStatusT };
+  if (res.ok) return { kind: "ok", status: body.status as InterviewStatusT };
   return { kind: "error", status: res.status, message: errMsg(body, "Patch failed") };
 }
 
@@ -110,7 +110,7 @@ export async function patchEvent(
 export type MintResult =
   | { kind: "ephemeral"; ephemeral: RealtimeEphemeral }
   | { kind: "expired" }
-  | { kind: "not-renewable"; status: MockStatusT }
+  | { kind: "not-renewable"; status: InterviewStatusT }
   | { kind: "voice-unavailable" }
   | { kind: "rate-limited" }
   | { kind: "error"; status: number; message: string };
@@ -130,7 +130,7 @@ export async function mint(
   }
   const body = await readJson(res);
   if (res.status === 410) return { kind: "expired" };
-  if (res.status === 409) return { kind: "not-renewable", status: body.status as MockStatusT };
+  if (res.status === 409) return { kind: "not-renewable", status: body.status as InterviewStatusT };
   if (res.status === 502) return { kind: "voice-unavailable" };
   if (res.status === 429) return { kind: "rate-limited" };
   return { kind: "error", status: res.status, message: errMsg(body, "Mint failed") };
@@ -222,7 +222,7 @@ export async function complete(
 
 // ── GET /sessions/:id/report (poll) ──────────────────────────────────────────
 export type ReportResult =
-  | { kind: "completed"; report: MockReport; etag: string | null }
+  | { kind: "completed"; report: InterviewReport; etag: string | null }
   | { kind: "debrief"; pollAfterMs: number }
   | { kind: "failed"; reason?: string }
   | { kind: "not-modified" }
@@ -275,7 +275,7 @@ export async function getReport(id: string, etag?: string | null): Promise<Repor
   }
   if (res.ok) {
     if (body.status === "COMPLETED") {
-      return { kind: "completed", report: body.report as MockReport, etag: res.headers.get("etag") };
+      return { kind: "completed", report: body.report as InterviewReport, etag: res.headers.get("etag") };
     }
     if (body.status === "FAILED") {
       return { kind: "failed", reason: typeof body.reason === "string" ? body.reason : undefined };

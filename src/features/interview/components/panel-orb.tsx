@@ -22,8 +22,8 @@ interface PanelOrbProps {
 
 /**
  * The panel's voice presence — a calm, paper-friendly orb (a soft filled disc
- * with a warm tinted halo), distinct from the coach's VoiceOrb so the speaking
- * coach stays untouched. Breathes at rest; swells with the candidate's voice.
+ * with a warm tinted halo), distinct from the interviewer's VoiceOrb so the speaking
+ * interviewer stays untouched. Breathes at rest; swells with the candidate's voice.
  */
 export function PanelOrb({
   levelRef,

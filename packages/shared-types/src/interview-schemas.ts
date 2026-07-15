@@ -16,7 +16,7 @@ export const interviewTypeSchema = z.enum([
   "BAR_RAISER_PANEL",
 ]);
 
-export const mockStatusSchema = z.enum([
+export const interviewStatusSchema = z.enum([
   "PENDING",
   "LIVE",
   "DEBRIEF",
@@ -120,7 +120,7 @@ export const realtimeEphemeralSchema = z.object({
 });
 
 /** POST /sessions success body. */
-export const createMockSessionResponseSchema = z.object({
+export const createInterviewSessionResponseSchema = z.object({
   sessionId: z.string(),
   // ALOUD = house/trial key; USER = the candidate's own key pays (BYOK), which
   // turns on the spend HUD and removes the dollar ceiling. (§3.6/§3.7)
@@ -138,7 +138,7 @@ export const createMockSessionResponseSchema = z.object({
  * The seat cursor + roster (D5) let an adopt/resume reconnect onto the right
  * interviewer; defaulted so a thinner legacy body still decodes. */
 export const statusResponseSchema = z.object({
-  status: mockStatusSchema,
+  status: interviewStatusSchema,
   scenarioId: z.string(),
   maxSeq: z.number().int(),
   activeSeatIndex: z.number().int().nonnegative().default(0),
@@ -161,7 +161,7 @@ export const turnResponseSchema = z.object({
  * src/lib/interview/panel-orchestrator.ts reportJson EXACTLY — do not let it drift.
  * `confidence` is the single composure score (0-100); in live mode it can be 0
  * when no USER-turn delivery metrics survived (decision 5) — render gracefully. */
-export const mockReportDimensionSchema = z.object({
+export const interviewReportDimensionSchema = z.object({
   key: z.string(),
   seatId: z.string().nullable(),
   signalLevel: signalLevelSchema,
@@ -231,14 +231,14 @@ export const disfluencySchema = z.object({
   totalSilentSec: z.number().nonnegative(),
 });
 
-export const mockReportSchema = z.object({
+export const interviewReportSchema = z.object({
   verdict: panelVerdictSchema,
   confidence: z.number().int().min(0).max(100),
   // Within-speaker resilience delta (B2): 50 = composure held from the warmup
   // baseline into the harder turns, >50 = it rose, <50 = it slipped. null when the
   // session was too short for a trustworthy delta. Self-relative, never absolute.
   resilience: z.number().int().min(0).max(100).nullish(),
-  dimensions: z.array(mockReportDimensionSchema),
+  dimensions: z.array(interviewReportDimensionSchema),
   oneRep: z
     .object({
       questionId: z.string(),
@@ -282,15 +282,15 @@ export const outcomeResponseSchema = z.object({
 export type MintRequest = z.infer<typeof mintRequestSchema>;
 export type PanelSeatPublic = z.infer<typeof panelSeatPublicSchema>;
 export type RealtimeEphemeral = z.infer<typeof realtimeEphemeralSchema>;
-export type CreateMockSessionResponse = z.infer<
-  typeof createMockSessionResponseSchema
+export type CreateInterviewSessionResponse = z.infer<
+  typeof createInterviewSessionResponseSchema
 >;
 export type StatusResponse = z.infer<typeof statusResponseSchema>;
 export type TurnResponse = z.infer<typeof turnResponseSchema>;
-export type MockReport = z.infer<typeof mockReportSchema>;
-export type MockReportDimension = z.infer<typeof mockReportDimensionSchema>;
-export type MockFluency = z.infer<typeof fluencySchema>;
-export type MockDisfluency = z.infer<typeof disfluencySchema>;
+export type InterviewReport = z.infer<typeof interviewReportSchema>;
+export type InterviewReportDimension = z.infer<typeof interviewReportDimensionSchema>;
+export type InterviewFluency = z.infer<typeof fluencySchema>;
+export type InterviewDisfluency = z.infer<typeof disfluencySchema>;
 export type DisfluencyReportData = z.infer<typeof disfluencyReportSchema>;
 export type InterviewOutcomeT = z.infer<typeof interviewOutcomeSchema>;
 export type OutcomeRequest = z.infer<typeof outcomeRequestSchema>;
@@ -298,7 +298,7 @@ export type OutcomeResponse = z.infer<typeof outcomeResponseSchema>;
 
 export type Inclination = z.infer<typeof inclinationSchema>;
 export type ScoreDimensionT = z.infer<typeof scoreDimensionSchema>;
-export type MockStatusT = z.infer<typeof mockStatusSchema>;
+export type InterviewStatusT = z.infer<typeof interviewStatusSchema>;
 export type InterviewTypeT = z.infer<typeof interviewTypeSchema>;
 export type DimensionScoreData = z.infer<typeof dimensionScoreSchema>;
 export type PanelVerdictData = z.infer<typeof panelVerdictSchema>;

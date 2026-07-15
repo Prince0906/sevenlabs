@@ -47,7 +47,7 @@ describe("panelReducer — happy path to live", () => {
 describe("panelReducer — seat handoff", () => {
   it("hands off seat0 -> seat1 on the closing sentinel", () => {
     let s = driveToLive();
-    s = panelReducer(s, { type: "COACH_DONE", transcript: "Great. Handing you to my colleague." });
+    s = panelReducer(s, { type: "INTERVIEWER_DONE", transcript: "Great. Handing you to my colleague." });
     expect(s.phase).toBe("handing-off");
     s = panelReducer(s, { type: "MINT_OK", ephemeralExpiresAt: 2000 });
     expect(s.phase).toBe("connecting");
@@ -60,31 +60,31 @@ describe("panelReducer — seat handoff", () => {
     let s = driveToLive();
     // Below the cap it must NOT force a handoff (no more "forced to finish fast").
     for (let i = 0; i < 13; i++) s = panelReducer(s, { type: "USER_TURN" });
-    s = panelReducer(s, { type: "COACH_DONE", transcript: "tell me more" });
+    s = panelReducer(s, { type: "INTERVIEWER_DONE", transcript: "tell me more" });
     expect(s.phase).toBe("live");
     // At the cap (14 for a non-last seat) it force-hands-off as a safety valve.
     s = panelReducer(s, { type: "USER_TURN" });
     expect(s.exchangeCount).toBe(14);
-    s = panelReducer(s, { type: "COACH_DONE", transcript: "ok, next question" });
+    s = panelReducer(s, { type: "INTERVIEWER_DONE", transcript: "ok, next question" });
     expect(s.phase).toBe("handing-off");
   });
 
   it("sequences 0 -> 1 -> 2 then wraps after the last (Bar Raiser) seat", () => {
     let s = driveToLive();
-    s = panelReducer(s, { type: "COACH_DONE", transcript: "Handing you to my colleague." });
+    s = panelReducer(s, { type: "INTERVIEWER_DONE", transcript: "Handing you to my colleague." });
     s = panelReducer(s, { type: "MINT_OK", ephemeralExpiresAt: 2 });
     s = reconnectToLive(s);
     expect(s.activeSeatIndex).toBe(1);
     expect(s.phase).toBe("live");
 
-    s = panelReducer(s, { type: "COACH_DONE", transcript: "Handing you to my colleague." });
+    s = panelReducer(s, { type: "INTERVIEWER_DONE", transcript: "Handing you to my colleague." });
     s = panelReducer(s, { type: "MINT_OK", ephemeralExpiresAt: 3 });
     s = reconnectToLive(s);
     expect(s.activeSeatIndex).toBe(2);
 
     // last seat: no sentinel, safety cap of 18
     for (let i = 0; i < 18; i++) s = panelReducer(s, { type: "USER_TURN" });
-    s = panelReducer(s, { type: "COACH_DONE", transcript: "thank you" });
+    s = panelReducer(s, { type: "INTERVIEWER_DONE", transcript: "thank you" });
     expect(s.phase).toBe("wrapping");
     expect(s.completedSeatIndexes).toEqual([0, 1]);
   });
@@ -137,7 +137,7 @@ describe("panelReducer — create recovery", () => {
 describe("panelReducer — mint / ceiling recovery", () => {
   it("routes a 410 SESSION_EXPIRED mint at handoff to wrapping", () => {
     let s = driveToLive();
-    s = panelReducer(s, { type: "COACH_DONE", transcript: "Handing you to my colleague." });
+    s = panelReducer(s, { type: "INTERVIEWER_DONE", transcript: "Handing you to my colleague." });
     expect(s.phase).toBe("handing-off");
     s = panelReducer(s, { type: "MINT_EXPIRED" });
     expect(s.phase).toBe("wrapping");
@@ -174,15 +174,15 @@ describe("panelReducer — complete / report", () => {
 });
 
 describe("panelReducer — barge-in / disconnect", () => {
-  it("counts a barge-in only when speech starts during an in-flight coach response", () => {
+  it("counts a barge-in only when speech starts during an in-flight interviewer response", () => {
     let s = driveToLive();
     s = panelReducer(s, { type: "SPEECH_STARTED" });
     expect(s.bargeIns).toBe(0);
-    s = panelReducer(s, { type: "COACH_RESPONSE_START" });
+    s = panelReducer(s, { type: "INTERVIEWER_RESPONSE_START" });
     s = panelReducer(s, { type: "SPEECH_STARTED" });
     expect(s.bargeIns).toBe(1);
-    s = panelReducer(s, { type: "COACH_RESPONSE_DONE", cancelled: true });
-    expect(s.coachResponseInFlight).toBe(false);
+    s = panelReducer(s, { type: "INTERVIEWER_RESPONSE_DONE", cancelled: true });
+    expect(s.interviewerResponseInFlight).toBe(false);
     expect(s.interruptions).toBe(1);
   });
 

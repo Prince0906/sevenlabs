@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { toPng } from "html-to-image";
-import type { MockReport } from "@sevenlabs/shared-types";
+import type { InterviewReport } from "@sevenlabs/shared-types";
 import { Button } from "@/components/ui/button";
 import { ShareableSignalCard } from "@/components/shareable-signal-card";
 
@@ -13,7 +13,7 @@ import { ShareableSignalCard } from "@/components/shareable-signal-card";
  * colors are explicit oklch so html-to-image renders them faithfully) and copy
  * the private session link, but never expose a public page.
  */
-export function ShareResult({ report }: { report: MockReport }) {
+export function ShareResult({ report }: { report: InterviewReport }) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);

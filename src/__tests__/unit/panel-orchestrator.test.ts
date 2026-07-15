@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { mockReportSchema } from "@sevenlabs/shared-types";
+import { interviewReportSchema } from "@sevenlabs/shared-types";
 
 // runJudgment is the off-band judge: score each seat, run the committee, assemble
 // the report, persist it. The I/O boundary (prisma + the OpenAI calls + spend) is
@@ -151,12 +151,12 @@ describe("runJudgment — persisted artifacts", () => {
     expect(verdictArg.data.judgeModel).toBe("gpt-4o-mini");
   });
 
-  it("persists a reportJson that satisfies mockReportSchema (D15)", async () => {
+  it("persists a reportJson that satisfies interviewReportSchema (D15)", async () => {
     await runJudgment("s1");
     const sessionArg = mockPrisma.interviewSession.update.mock.calls[0]![0];
     expect(sessionArg.data.status).toBe("COMPLETED");
     // The stored value is the schema-validated report; re-parsing must succeed.
-    expect(() => mockReportSchema.parse(sessionArg.data.reportJson)).not.toThrow();
+    expect(() => interviewReportSchema.parse(sessionArg.data.reportJson)).not.toThrow();
   });
 
   it("populates the within-speaker resilience delta (B2)", async () => {

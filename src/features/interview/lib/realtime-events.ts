@@ -9,12 +9,12 @@
 export type TransportEvent =
   | { type: "session_updated" }
   | { type: "user_transcript"; transcript: string }
-  | { type: "coach_transcript_delta"; delta: string }
-  | { type: "coach_transcript_done"; transcript: string }
+  | { type: "interviewer_transcript_delta"; delta: string }
+  | { type: "interviewer_transcript_done"; transcript: string }
   | { type: "speech_started" }
   | { type: "speech_stopped" }
-  | { type: "coach_response_start" }
-  | { type: "coach_response_done"; cancelled: boolean; usage: unknown | null }
+  | { type: "interviewer_response_start" }
+  | { type: "interviewer_response_done"; cancelled: boolean; usage: unknown | null }
   | { type: "server_error"; raw: unknown };
 
 export function mapRealtimeEvent(data: unknown): TransportEvent | null {
@@ -37,18 +37,18 @@ export function mapRealtimeEvent(data: unknown): TransportEvent | null {
     case "conversation.item.input_audio_transcription.completed":
       return { type: "user_transcript", transcript: msg.transcript ?? "" };
     case "response.output_audio_transcript.delta":
-      return { type: "coach_transcript_delta", delta: msg.delta ?? "" };
+      return { type: "interviewer_transcript_delta", delta: msg.delta ?? "" };
     case "response.output_audio_transcript.done":
-      return { type: "coach_transcript_done", transcript: msg.transcript ?? "" };
+      return { type: "interviewer_transcript_done", transcript: msg.transcript ?? "" };
     case "input_audio_buffer.speech_started":
       return { type: "speech_started" };
     case "input_audio_buffer.speech_stopped":
       return { type: "speech_stopped" };
     case "response.created":
-      return { type: "coach_response_start" };
+      return { type: "interviewer_response_start" };
     case "response.done":
       return {
-        type: "coach_response_done",
+        type: "interviewer_response_done",
         cancelled: msg.response?.status === "cancelled",
         usage: msg.response?.usage ?? null,
       };

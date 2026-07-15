@@ -3,14 +3,14 @@ import type { TurnResult, TurnPostBody } from "./api-client";
 
 /**
  * The single-writer, in-order async commit queue that owns seq assignment and
- * idempotent retry for /turns. COACH turns are SCORING INPUTS (Bar Raiser drill
+ * idempotent retry for /turns. INTERVIEWER turns are SCORING INPUTS (Bar Raiser drill
  * depth), so they are must-deliver/ordered exactly like USER turns.
  *
  * seq is assigned at DEQUEUE (not at event time): exactly one writer mutates
  * nextSeq, so two asynchronously-finalized turns can never read the same seq and
  * race a duplicate. The payload is frozen by the caller at enqueue; retries
  * replay the byte-identical body. seatId is snapshotted by the caller BEFORE a
- * handoff advances the active seat, so a late COACH .done from a torn-down peer
+ * handoff advances the active seat, so a late INTERVIEWER .done from a torn-down peer
  * keeps the correct (old) seat.
  */
 export interface FinalizedTurn {
@@ -59,7 +59,7 @@ export function createTurnQueue(opts: TurnQueueOptions): TurnQueue {
 
   function fail(item: FinalizedTurn, result: TurnResult) {
     // Last resort after exhausting retries: drop so the queue can't hang, but
-    // surface it — a lost COACH turn would corrupt the verdict.
+    // surface it — a lost INTERVIEWER turn would corrupt the verdict.
     queue.shift();
     headRef = null;
     opts.onDeliveryError?.(item, result);

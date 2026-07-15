@@ -5,7 +5,7 @@ import {
   panelVerdictSchema,
   speechMetricsSchema,
   disfluencyReportSchema,
-  mockReportSchema,
+  interviewReportSchema,
   type SpeechMetrics,
   type SignalLevel,
   type PanelVerdictData,
@@ -244,11 +244,11 @@ export async function runJudgment(sessionId: string): Promise<void> {
   };
 
   // Validate the assembled report against its own contract BEFORE persisting (D15).
-  // mockReportSchema is documented as matching this assembly EXACTLY; without this
+  // interviewReportSchema is documented as matching this assembly EXACTLY; without this
   // gate a drift would only surface at read time, in the candidate's UI. A failure
   // throws, so the durable queue retries then FAILs rather than shipping a malformed
   // report. Persist the parsed value so what's stored is exactly the contract shape.
-  const validatedReport = mockReportSchema.parse(reportJson);
+  const validatedReport = interviewReportSchema.parse(reportJson);
 
   await prisma.$transaction([
     prisma.dimensionScore.createMany({ data: dimensionRows }),
