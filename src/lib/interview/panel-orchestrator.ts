@@ -136,9 +136,29 @@ export async function runJudgment(sessionId: string): Promise<void> {
         x.parsed !== null
     );
 
-  const dimensionRows = validSeats.flatMap(({ seat, parsed }) =>
-    seatScoresToDimensionRows(seat.id, userId, sessionId, parsed, fullTranscript)
-  );
+  const dimensionRows = validSeats.flatMap(({ seat, parsed }) => {
+    const { rows, unknownKeys, blankedEvidence } = seatScoresToDimensionRows(
+      seat.id,
+      userId,
+      sessionId,
+      parsed,
+      fullTranscript,
+      seat.ownedLPs
+    );
+    if (unknownKeys.length > 0) {
+      log.warn("judge returned unknown LP keys (rows dropped)", {
+        seatId: seat.id,
+        unknownKeys,
+      });
+    }
+    if (blankedEvidence > 0) {
+      log.warn("dimension evidence unverified (rows kept, quotes blanked)", {
+        seatId: seat.id,
+        blankedEvidence,
+      });
+    }
+    return rows;
+  });
 
   const turnsLite: TurnLite[] = session.turns.map((t) => ({
     role: t.role as "USER" | "INTERVIEWER",

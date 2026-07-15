@@ -85,22 +85,55 @@ ${rubric.outputSpec}`;
   return { ownedLPs: input.ownedLPs, systemPrompt };
 }
 
+/** Lowercase and collapse every non-alphanumeric run to one space, so a judge
+ * quote that differs from the ASR transcript only in casing, punctuation, or
+ * curly quotes still verifies as verbatim. Applied to BOTH sides before the
+ * containment check. */
+export function normalizeForMatch(s: string): string {
+  return s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+/** Anti-hallucination check for a DISPLAYED quote: normalized containment. */
+export function verifyEvidence(transcript: string, quote: string): boolean {
+  if (!quote) return false;
+  return normalizeForMatch(transcript).includes(normalizeForMatch(quote));
+}
+
+export interface SeatDimensionRowsResult {
+  rows: DimensionScoreInsert[];
+  /** LP names the judge returned that this seat does not own (rows dropped). */
+  unknownKeys: string[];
+  /** Rows kept whose quote failed verification (evidence blanked, not shown). */
+  blankedEvidence: number;
+}
+
 /**
  * Map a seat's rubric output to DimensionScore rows. signalLevel→score via the
- * frozen ordinal map; gap is the seat's single weakestArea (degenerate, P0).
- * Anti-hallucination: drop any finding whose evidence is not a literal substring
- * of the transcript (turn-level anchoring with turn data is a P1 refinement).
+ * frozen ordinal map. The judge may quote OR paraphrase; scoring signal is
+ * never discarded for that — anti-hallucination only gates what is DISPLAYED:
+ * a quote that fails normalized-containment against the transcript is blanked,
+ * the row survives. Rows scoring a competency the seat doesn't own are dropped
+ * (the judge is prompted with the closed set; anything else is drift).
  */
 export function seatScoresToDimensionRows(
   seatId: string,
   userId: string,
   sessionId: string,
   parsed: SeatRubricOutput,
-  fullTranscript: string
-): DimensionScoreInsert[] {
-  return parsed.matchedLPs
-    .filter((lp) => fullTranscript.includes(lp.evidence))
-    .map((lp) => ({
+  seatTranscript: string,
+  ownedLPs: string[]
+): SeatDimensionRowsResult {
+  const unknownKeys: string[] = [];
+  let blankedEvidence = 0;
+  const rows: DimensionScoreInsert[] = [];
+  for (const lp of parsed.matchedLPs) {
+    if (!ownedLPs.includes(lp.name)) {
+      unknownKeys.push(lp.name);
+      continue;
+    }
+    const verified = verifyEvidence(seatTranscript, lp.evidence);
+    if (!verified) blankedEvidence++;
+    rows.push({
       sessionId,
       userId,
       seatId,
@@ -108,9 +141,11 @@ export function seatScoresToDimensionRows(
       key: lp.name,
       signalLevel: lp.signalLevel,
       score: SIGNAL_TO_SCORE[lp.signalLevel],
-      evidence: lp.evidence,
+      evidence: verified ? lp.evidence : "",
       gap: parsed.weakestArea,
-    }));
+    });
+  }
+  return { rows, unknownKeys, blankedEvidence };
 }
 
 /** Server-derived Bar Raiser drill depth = count of the Bar Raiser seat's turns. */

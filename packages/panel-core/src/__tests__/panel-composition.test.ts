@@ -70,30 +70,80 @@ describe("buildSeatRubric", () => {
 });
 
 describe("seatScoresToDimensionRows", () => {
-  it("maps signal→score (40/70/90), shares weakestArea as gap, drops hallucinated quotes", () => {
+  const OWNED = ["Ownership", "Deliver Results"];
+  const TRANSCRIPT = "So I owned the migration end-to-end and cut p99 by 40%.";
+
+  it("maps signal→score (40/70/90) and keeps a verbatim quote intact", () => {
     const parsed: SeatRubricOutput = {
       matchedLPs: [
         { name: "Ownership", signalLevel: "SENIOR", evidence: "I owned the migration" },
-        { name: "Deliver Results", signalLevel: "NEW_GRAD", evidence: "QUOTE NOT IN TRANSCRIPT" },
       ],
       overallSignal: "SDE_II",
       weakestArea: "Name the specific tradeoff you rejected.",
     };
-    const rows = seatScoresToDimensionRows(
-      "seat1",
-      "user1",
-      "sess1",
-      parsed,
-      "So I owned the migration end-to-end and cut p99 by 40%."
+    const { rows, unknownKeys, blankedEvidence } = seatScoresToDimensionRows(
+      "seat1", "user1", "sess1", parsed, TRANSCRIPT, OWNED
     );
-    expect(rows).toHaveLength(1); // the non-substring quote was dropped
+    expect(unknownKeys).toEqual([]);
+    expect(blankedEvidence).toBe(0);
     expect(rows[0]).toMatchObject({
       key: "Ownership",
       signalLevel: "SENIOR",
       score: 90,
+      evidence: "I owned the migration",
       gap: "Name the specific tradeoff you rejected.",
       seatId: "seat1",
     });
+  });
+
+  it("KEEPS a paraphrased-evidence row (scoring survives) but blanks the quote", () => {
+    const parsed: SeatRubricOutput = {
+      matchedLPs: [
+        { name: "Deliver Results", signalLevel: "NEW_GRAD", evidence: "QUOTE NOT IN TRANSCRIPT" },
+      ],
+      overallSignal: "NEW_GRAD",
+      weakestArea: "w",
+    };
+    const { rows, blankedEvidence } = seatScoresToDimensionRows(
+      "seat1", "user1", "sess1", parsed, TRANSCRIPT, OWNED
+    );
+    expect(rows).toHaveLength(1); // the defect: this row used to be silently dropped
+    expect(rows[0].evidence).toBe(""); // anti-fabrication still holds for display
+    expect(rows[0].score).toBe(40);
+    expect(blankedEvidence).toBe(1);
+  });
+
+  it("verifies a quote that differs only in casing/punctuation/curly quotes as verbatim", () => {
+    const parsed: SeatRubricOutput = {
+      matchedLPs: [
+        // ASR wrote "cut p99 by 40%."; the judge normalizes punctuation + case.
+        { name: "Ownership", signalLevel: "SDE_II", evidence: "Cut P99 by 40%" },
+      ],
+      overallSignal: "SDE_II",
+      weakestArea: "w",
+    };
+    const { rows, blankedEvidence } = seatScoresToDimensionRows(
+      "seat1", "user1", "sess1", parsed, TRANSCRIPT, OWNED
+    );
+    expect(blankedEvidence).toBe(0);
+    expect(rows[0].evidence).toBe("Cut P99 by 40%");
+  });
+
+  it("drops a row scoring a competency the seat does not own and reports the key", () => {
+    const parsed: SeatRubricOutput = {
+      matchedLPs: [
+        { name: "Ownership", signalLevel: "SENIOR", evidence: "I owned the migration" },
+        { name: "Invented Competency", signalLevel: "SENIOR", evidence: "I owned the migration" },
+      ],
+      overallSignal: "SDE_II",
+      weakestArea: "w",
+    };
+    const { rows, unknownKeys } = seatScoresToDimensionRows(
+      "seat1", "user1", "sess1", parsed, TRANSCRIPT, OWNED
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0].key).toBe("Ownership");
+    expect(unknownKeys).toEqual(["Invented Competency"]);
   });
 });
 
