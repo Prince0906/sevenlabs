@@ -51,6 +51,27 @@ export async function POST(
       ? Math.round((endedAt.getTime() - interview.startedAt.getTime()) / 1000)
       : 0;
 
+    // Zero answered turns ⇒ there is nothing to judge. FAIL the session now
+    // instead of enqueueing a judgment that would fabricate a verdict from an
+    // empty transcript (the report route already passes FAILED through).
+    const answered = await prisma.interviewTurn.count({
+      where: {
+        sessionId: id,
+        role: "USER",
+        NOT: [{ transcript: null }, { transcript: "" }],
+      },
+    });
+    if (answered === 0) {
+      await prisma.interviewSession.updateMany({
+        where: { id, status: { in: ["LIVE", "INTERRUPTED"] } },
+        data: { status: "FAILED", endedAt, durationSec, degradedDelivery },
+      });
+      return NextResponse.json(
+        { status: "FAILED", pollAfterMs: 2000 },
+        { status: 202 }
+      );
+    }
+
     const [updated] = await prisma.$transaction([
       prisma.interviewSession.updateMany({
         where: { id, status: { in: ["LIVE", "INTERRUPTED"] } },

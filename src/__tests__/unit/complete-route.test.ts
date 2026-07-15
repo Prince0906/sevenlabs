@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const mockPrisma = vi.hoisted(() => ({
   interviewSession: { findFirst: vi.fn(), updateMany: vi.fn() },
+  interviewTurn: { count: vi.fn() },
   judgmentJob: { upsert: vi.fn() },
   $transaction: vi.fn(),
 }));
@@ -37,6 +38,8 @@ beforeEach(() => {
     status: "LIVE",
     startedAt: new Date(Date.now() - 60_000),
   });
+  // Default: the candidate answered — the zero-turn guard stays out of the way.
+  mockPrisma.interviewTurn.count.mockResolvedValue(6);
   // $transaction([updateMany, upsert]) → [updated]; updated.count drives the kick.
   mockPrisma.$transaction.mockResolvedValue([{ count: 1 }, {}]);
 });
@@ -67,6 +70,35 @@ describe("POST /api/interview/sessions/:id/complete — guards", () => {
     mockPrisma.interviewSession.findFirst.mockResolvedValue({ status: "PENDING", startedAt: null });
     expect((await call()).status).toBe(409);
     expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+  });
+});
+
+describe("POST /api/interview/sessions/:id/complete — zero-answer guard (1c)", () => {
+  it("FAILs the session (no judgment job, no queue kick) when zero turns were answered", async () => {
+    mockPrisma.interviewTurn.count.mockResolvedValue(0);
+    mockPrisma.interviewSession.updateMany.mockResolvedValue({ count: 1 });
+    const res = await call();
+    expect(res.status).toBe(202);
+    expect(await res.json()).toMatchObject({ status: "FAILED" });
+    expect(mockPrisma.interviewSession.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ status: "FAILED" }),
+      })
+    );
+    expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+    expect(mockPrisma.judgmentJob.upsert).not.toHaveBeenCalled();
+    expect(mockQueue.drainJudgmentQueue).not.toHaveBeenCalled();
+  });
+
+  it("counts only answered USER turns (non-null, non-empty transcript)", async () => {
+    await call();
+    expect(mockPrisma.interviewTurn.count).toHaveBeenCalledWith({
+      where: {
+        sessionId: "m1",
+        role: "USER",
+        NOT: [{ transcript: null }, { transcript: "" }],
+      },
+    });
   });
 });
 

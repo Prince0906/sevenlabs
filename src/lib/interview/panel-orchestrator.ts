@@ -104,10 +104,13 @@ export async function runJudgment(sessionId: string): Promise<void> {
   if (!barRaiserSeat) throw new Error("scenario has no Bar Raiser seat");
 
   const userTurns = session.turns.filter((t) => t.role === "USER");
-  const fullTranscript = userTurns
-    .map((t) => t.transcript ?? "")
-    .filter(Boolean)
-    .join("\n");
+  const spokenTurns = userTurns.filter(
+    (t) => (t.transcript ?? "").trim() !== ""
+  );
+  if (spokenTurns.length === 0) {
+    // Belt to the complete-route guard: judging silence fabricates a verdict.
+    throw new Error("no user answers");
+  }
 
   const userTurnMetrics: SpeechMetrics[] = [];
   const disfluencyReports: DisfluencyReport[] = [];
@@ -118,23 +121,52 @@ export async function runJudgment(sessionId: string): Promise<void> {
     if (dis.success) disfluencyReports.push(dis.data as DisfluencyReport);
   }
 
+  // Per-seat transcript partition (1c). USER turns carry the seatId they
+  // answered; a seat is scored only if it actually received answers, each
+  // against ITS OWN slice. Unattributed turns (null/unknown seatId) ground
+  // every scored seat so no evidence is lost. Degraded-tagging fallback: if NO
+  // turn is seat-tagged at all, every seat scores on the full transcript —
+  // better a broad read than nobody scored.
+  const bySeat = new Map<string, string[]>();
+  const unattributed: string[] = [];
+  for (const t of spokenTurns) {
+    const text = (t.transcript ?? "").trim();
+    if (t.seatId && seats.some((s) => s.id === t.seatId)) {
+      const arr = bySeat.get(t.seatId) ?? [];
+      arr.push(text);
+      bySeat.set(t.seatId, arr);
+    } else {
+      unattributed.push(text);
+    }
+  }
+  const scoredSeats = bySeat.size > 0 ? seats.filter((s) => bySeat.has(s.id)) : seats;
+  const seatTranscript = (seatId: string) =>
+    [...(bySeat.get(seatId) ?? []), ...unattributed].join("\n");
+
   // Independent per-seat scoring (timeout + retry).
   const scored = await Promise.all(
-    seats.map((s) => scoreSeat(s, company, targetLevel, fullTranscript))
+    scoredSeats.map((s) =>
+      scoreSeat(s, company, targetLevel, seatTranscript(s.id))
+    )
   );
 
-  const barRaiserIdx = seats.findIndex((s) => s.id === barRaiserSeat.id);
-  const barRaiserParsed = scored[barRaiserIdx];
-  if (!barRaiserParsed) {
+  // The veto can never be skipped when the Bar-Raiser round actually happened;
+  // an unreached Bar Raiser (candidate ended earlier) is simply not scored.
+  const barRaiserIdx = scoredSeats.findIndex((s) => s.id === barRaiserSeat.id);
+  const barRaiserParsed = barRaiserIdx >= 0 ? scored[barRaiserIdx] : null;
+  if (barRaiserIdx >= 0 && !barRaiserParsed) {
     throw new Error("bar raiser seat scoring failed"); // REQUIRED — never skip the veto
   }
 
-  const validSeats = seats
+  const validSeats = scoredSeats
     .map((seat, i) => ({ seat, parsed: scored[i] }))
     .filter(
       (x): x is { seat: (typeof seats)[number]; parsed: SeatRubricOutput } =>
         x.parsed !== null
     );
+  if (validSeats.length === 0) {
+    throw new Error("all seat scoring failed");
+  }
 
   const dimensionRows = validSeats.flatMap(({ seat, parsed }) => {
     const { rows, unknownKeys, blankedEvidence } = seatScoresToDimensionRows(
@@ -142,7 +174,7 @@ export async function runJudgment(sessionId: string): Promise<void> {
       userId,
       sessionId,
       parsed,
-      fullTranscript,
+      seatTranscript(seat.id),
       seat.ownedLPs
     );
     if (unknownKeys.length > 0) {
@@ -164,10 +196,15 @@ export async function runJudgment(sessionId: string): Promise<void> {
     role: t.role as "USER" | "INTERVIEWER",
     seatId: t.seatId,
   }));
-  const drill = evaluateDrill({
-    barRaiserScores: barRaiserParsed,
-    followUpDepthApplied: barRaiserDrillDepth(turnsLite, barRaiserSeat.id),
-  });
+  const drill = barRaiserParsed
+    ? evaluateDrill({
+        barRaiserScores: barRaiserParsed,
+        followUpDepthApplied: barRaiserDrillDepth(turnsLite, barRaiserSeat.id),
+      })
+    : {
+        barRaiserVeto: false,
+        reason: "Bar-Raiser round not reached in this session.",
+      };
 
   const seatRollup = validSeats.map(({ seat, parsed }) => ({
     seatId: seat.id,

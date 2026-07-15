@@ -27,7 +27,7 @@ const titleCase = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 /**
  * Outcome capture (D13) — the real hire/no-hire label, the one signal a foundation
  * model can't manufacture. Rendered on the RETURNING-visit report (not right after
- * the mock, when the real interview hasn't happened yet). Candidate-side, kept off
+ * the session, when the real interview hasn't happened yet). Candidate-side, kept off
  * the credential, framed low-pressure as "check the panel's call against what really
  * happened." Offers the unresolved states (No response / Still waiting) so the moat
  * data isn't biased to only the resolved wins and losses.

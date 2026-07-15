@@ -146,6 +146,65 @@ describe("runJudgment — guards", () => {
   });
 });
 
+describe("runJudgment — per-seat scoring (1c)", () => {
+  it("scores only seats that received answers; the silent Bar Raiser is skipped without a throw", async () => {
+    const s = debriefSession({
+      turns: [
+        { ...userTurn(0), seatId: "seat0", transcript: "Answer for Maya about ownership." },
+        { ...userTurn(1), seatId: "seat0", transcript: "More detail for Maya." },
+      ],
+    });
+    mockPrisma.interviewSession.findUnique.mockResolvedValue(s);
+    await runJudgment("s1"); // seat1 (Bar Raiser) never spoke — must NOT throw
+    expect(mockOpenai.scoreAgainstRubric).toHaveBeenCalledTimes(1);
+    const verdictArg = mockPrisma.panelVerdict.create.mock.calls[0]![0];
+    expect(verdictArg.data.seatRollup).toHaveLength(1);
+    expect(verdictArg.data.seatRollup[0].seatId).toBe("seat0");
+    expect(verdictArg.data.barRaiserVeto).toBe(false); // unreached round can't veto
+  });
+
+  it("gives each spoken seat its OWN transcript slice, not the whole session", async () => {
+    const s = debriefSession({
+      turns: [
+        { ...userTurn(0), seatId: "seat0", transcript: "Maya answer one." },
+        { ...userTurn(1), seatId: "seat1", transcript: "Priya answer two." },
+      ],
+    });
+    mockPrisma.interviewSession.findUnique.mockResolvedValue(s);
+    await runJudgment("s1");
+    expect(mockOpenai.scoreAgainstRubric).toHaveBeenCalledTimes(2);
+    const msg0 = mockOpenai.scoreAgainstRubric.mock.calls[0]![1] as string;
+    const msg1 = mockOpenai.scoreAgainstRubric.mock.calls[1]![1] as string;
+    expect(msg0).toContain("Maya answer one.");
+    expect(msg0).not.toContain("Priya answer two.");
+    expect(msg1).toContain("Priya answer two.");
+    expect(msg1).not.toContain("Maya answer one.");
+  });
+
+  it("appends unattributed (null-seatId) turns to every scored seat's slice", async () => {
+    const s = debriefSession({
+      turns: [
+        { ...userTurn(0), seatId: "seat0", transcript: "Maya answer one." },
+        { ...userTurn(1), seatId: null, transcript: "Untagged closing remark." },
+      ],
+    });
+    mockPrisma.interviewSession.findUnique.mockResolvedValue(s);
+    await runJudgment("s1");
+    expect(mockOpenai.scoreAgainstRubric).toHaveBeenCalledTimes(1); // seat0 only
+    const msg0 = mockOpenai.scoreAgainstRubric.mock.calls[0]![1] as string;
+    expect(msg0).toContain("Untagged closing remark.");
+  });
+
+  it("throws on a session with zero answered turns (nothing to judge)", async () => {
+    mockPrisma.interviewSession.findUnique.mockResolvedValue(
+      debriefSession({ turns: [] })
+    );
+    await expect(runJudgment("s1")).rejects.toThrow(/no user answers/);
+    expect(mockOpenai.scoreAgainstRubric).not.toHaveBeenCalled();
+    expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+  });
+});
+
 describe("runJudgment — persisted artifacts", () => {
   beforeEach(() => {
     mockPrisma.interviewSession.findUnique.mockResolvedValue(debriefSession());
