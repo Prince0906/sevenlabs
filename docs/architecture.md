@@ -65,6 +65,22 @@ docs/                       this file, decisions/ (ADRs), runbooks/, testing.md,
    its `views/`; `components/`, `hooks/`, `lib/` are internal. Sibling imports
    are relative; cross-boundary imports use `@/`. No barrels.
 
+Package inventory (Vitest aliases `@sevenlabs/*` to package **source**, so
+package changes are picked up without a build):
+
+- `packages/panel-core`: `panel-composition.ts` (Bar-Raiser veto + verdict math:
+  `finalizeVerdict`, `computeComposure`, `aggregateFluency`),
+  `rubric-definitions.ts` (`RUBRIC_VERSION`, Amazon LP + React/JS rubrics),
+  `disfluency.ts` (vendor-agnostic engine over a verbatim word stream),
+  `speech-analysis.ts` (WPM/filler/pause over word timestamps),
+  `question-bank.ts`, `panel-context.ts` (cross-seat digest), `seat-openers.ts`,
+  `interviewer-guardrails.ts` (prompt-injection hardening), `resume.ts`
+  (grounding validation), `realtime-cost.ts`, `redaction.ts` (`redact()` masks
+  `sk-` / `sk-ant-` / `AIza` / `ek_` / `Bearer`).
+- `packages/shared-types`: `interview-schemas.ts`
+  (mint/turn/report/verdict/dimension/confidence/outcome + `SIGNAL_TO_SCORE`),
+  `schemas.ts` (speech-metrics), `realtime-config.ts` (`REALTIME_INPUT_CONFIG`).
+
 ## 4. The interview engine (client)
 
 `src/features/interview/`:
@@ -78,15 +94,17 @@ docs/                       this file, decisions/ (ADRs), runbooks/, testing.md,
 - `lib/realtime-events.ts` — pure `mapRealtimeEvent`: the single place
   untrusted OpenAI data-channel JSON becomes typed app state; malformed/unknown
   → `null`, never throws.
-- `lib/turn-queue.ts` — single-writer seq commit queue; a dropped/duplicated
-  interviewer turn corrupts the verdict.
+- `lib/turn-queue.ts` — single-writer seq commit queue (`seq` assigned at
+  dequeue); a dropped/duplicated interviewer turn corrupts the verdict.
 - `lib/api-client.ts` — typed fetch wrappers for the `/api/interview` BFF (the
   single URL chokepoint).
 
-Input session config (`turn_detection: null` push-to-talk, verbatim-leaning
-transcription) is the shared `REALTIME_INPUT_CONFIG` const in
-`packages/shared-types/src/realtime-config.ts`, imported by **both** the server
-mint and the client patch ([ADR-0011](decisions/0011-push-to-talk-shared-input-config.md)).
+Input session config is the shared `REALTIME_INPUT_CONFIG` const in
+`packages/shared-types/src/realtime-config.ts` — `transcription: {model:
+'gpt-4o-transcribe', language: 'en'}`, `turn_detection: null` (push-to-talk,
+half-duplex) — imported by **both** the server mint and the client patch
+([ADR-0011](decisions/0011-push-to-talk-shared-input-config.md)). Divergence
+between the two silently breaks PTT transcription.
 
 ## 5. Key flows (server)
 
@@ -94,6 +112,10 @@ mint and the client patch ([ADR-0011](decisions/0011-push-to-talk-shared-input-c
   (`@@unique([userId, clientRequestId])`); mint resolves BYOK-or-house via
   `resolveSessionKey` (fail-closed to house); turns commit `seq`-ordered;
   complete enqueues judgment; report polls until the verdict lands.
+  Vendor HTTP is raw `fetch`, not the SDK (`src/lib/providers/openai.ts`);
+  `mintRealtimeEphemeral` uses `params.apiKey ?? env.OPENAI_API_KEY` with model
+  `env.OPENAI_REALTIME_MODEL`; judge + resume-extraction models are pinned in
+  code, never env/config.
 - **BYOK custody** ([ADR-0001](decisions/0001-byok-key-custody.md)): raw key
   transits the server exactly once (`POST /api/keys`), stored AES-256-GCM under
   the `KEY_ENCRYPTION_SECRET` KEK, decrypted only inside the mint frame, never
@@ -101,13 +123,23 @@ mint and the client patch ([ADR-0011](decisions/0011-push-to-talk-shared-input-c
   `/api/keys` returns 503 and everything runs on the house key.
 - **Spend safety** (`src/lib/interview/spend.ts`): reserve-then-settle per
   session (`SpendReservation`), daily house cap (`GlobalSpend`), sliding-window
-  rate limit (`RateBucket`). House sessions bounded by `SESSION_CEILING_USD`;
-  BYOK by time only (`MAX_SESSION_SEC`). Metered on the **server clock**, never
-  client-reported time.
+  rate limit (`RateBucket`). House sessions bounded by `SESSION_CEILING_USD`
+  (default $4 ≈ 13 min @ `REALTIME_USD_PER_MIN` $0.30); BYOK by time only
+  (`MAX_SESSION_SEC`, default 3600 s); `DAILY_CAP_USD` (default $50) gates house
+  admission per day. All four knobs env-tunable. Metered on the **server
+  clock**, never client-reported time.
 - **Resume grounding**: `validateResumeFacts` (panel-core) drops any extracted
   fact whose verbatim quote isn't a substring of the resume text; the digest
-  fails **closed** (no grounding) on schema mismatch; resume content is fenced
-  as untrusted data in interviewer instructions.
+  (`src/lib/interview/resume-digest.ts`) fails **closed** (no grounding) on
+  schema mismatch; resume content is fenced as untrusted data in interviewer
+  instructions. PDF text extraction via `unpdf` in `src/lib/resume.ts` (max 20k
+  chars / 2 MB).
+- **Disfluency / fluency**: `DEEPGRAM_API_KEY` set ⇒ verbatim ASR
+  (`src/lib/providers/deepgram.ts`, `filler_words: true`) measures
+  fillers/repeats/false-starts into `InterviewTurn.disfluencyJson`; unset ⇒
+  Whisper fallback, which cleans speech so disfluency reads artificially low
+  (`disfluencyJson` null). Turn audio reaches the server via the best-effort
+  `turns/audio` upload.
 - **Moat capture**: `Outcome` (one per session) snapshots
   `predictedSignal`/`rubricVersion` at capture time so the prediction→outcome
   calibration pair survives rubric churn ([ADR-0012](decisions/0012-versioned-eval-contract.md)).
@@ -115,12 +147,30 @@ mint and the client patch ([ADR-0011](decisions/0011-push-to-talk-shared-input-c
 ## 6. Data model (domains)
 
 - **Auth** (Auth.js v5): `User` (sole tenant root; every owned row is
-  `userId`-scoped + cascade-deletes), `Account`, `Session`, `VerificationToken`.
-- **Interview**: `Scenario`, `PanelSeat`, `InterviewSession` (central run),
-  `InterviewTurn` (`@@unique([sessionId, seq])`), `DimensionScore`, `PanelVerdict`,
-  `ConfidenceMetric`, `DrillAssignment`, `JudgmentJob`.
-- **Moat / custody / infra**: `Outcome`, `ProviderKey`, `ResumeProfile`,
-  `RateBucket`, `GlobalSpend`, `SpendReservation`.
+  `userId`-scoped + cascade-deletes; `passwordHash` nullable for Google-only
+  users; carries `targetCompanies String[]` + `interviewDate?`), `Account`,
+  `Session`, `VerificationToken`. JWT session strategy (Credentials can't use
+  DB sessions); session shape gains `user.id` via `src/types/next-auth.d.ts`.
+  Config split: `src/auth.config.ts` is edge-safe; `src/proxy.ts` (Next 16's
+  middleware file — there is no `middleware.ts`) enforces auth at the edge;
+  `src/lib/auth.ts` adds the Prisma adapter + `Credentials.authorize`. Google
+  OAuth uses `allowDangerousEmailAccountLinking: true`. Public routes: `/`,
+  `/sign-in`, `/sign-up`, `/api/auth/*`, `/api/health`; everything else
+  redirects to `/sign-in?callbackUrl=...`.
+- **Interview**: `Scenario`, `PanelSeat` (`@@unique([scenarioId, seatOrder])`),
+  `InterviewSession` (central run — `@@unique([userId, clientRequestId])`
+  idempotency; `keySource` / `provider` / `apiKeyId`→ProviderKey / `spendCents`
+  / `reportJson`), `InterviewTurn` (`@@unique([sessionId, seq])`,
+  `clientTurnId`, `disfluencyJson`, `transcriptionMissing`), `DimensionScore`,
+  `PanelVerdict` (`sessionId @unique`; `barRaiserVeto`, `rubricVersion` +
+  `judgeModel`), `ConfidenceMetric`, `DrillAssignment`, `JudgmentJob`
+  (PK = sessionId; lease queue, index `(status, leaseUntil)`).
+- **Moat / custody / infra**: `Outcome` (`sessionId @unique`), `ProviderKey`
+  (`@@unique([userId, provider])`; AES-256-GCM `ciphertextB64`/`ivB64`/`tagB64`
+  under the env KEK, `dekVersion`), `ResumeProfile` (`userId @unique`;
+  validated `factsJson` + `sourceText`), `RateBucket` (PK `[key, windowStart]`),
+  `GlobalSpend` (PK = day), `SpendReservation` (PK = sessionId;
+  reserve-then-settle).
 
 **Naming note** ([ADR-0016](decisions/0016-db-rename-and-reset-at-zero-users.md)):
 the DB layer speaks the same language as the code — `InterviewSession`/
