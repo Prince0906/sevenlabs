@@ -8,9 +8,10 @@ import { mapRealtimeEvent } from "./realtime-events";
  * GA, not Beta: the SDP offer is POSTed to ephemeral.realtimeUrl
  * (/v1/realtime/calls) with Content-Type: application/sdp + Bearer
  * ephemeral.value and NO ?model= (the model is bound to the ephemeral). On
- * data-channel open we send a session.update enabling input transcription +
- * semantic VAD (belt-and-suspenders over the mint config) and the caller waits
- * for onSessionUpdated before accepting speech.
+ * data-channel open we send a session.update re-asserting input transcription +
+ * manual turn control (turn_detection null — push-to-talk, no VAD), belt-and-
+ * suspenders over the mint config, and the caller waits for onSessionUpdated
+ * before accepting speech.
  */
 export interface RealtimeCallbacks {
   onSessionUpdated?: () => void;
