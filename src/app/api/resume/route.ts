@@ -8,15 +8,15 @@ import {
   buildResumeExtractionMessage,
   validateResumeFacts,
   type ResumeFacts,
-} from "@sevenlabs/coach-core";
+} from "@sevenlabs/panel-core";
 import { resumeFactsSchema } from "@sevenlabs/shared-types";
-import { extractResumeJson, ProviderError } from "@/lib/coach/openai";
+import { extractResumeJson, ProviderError } from "@/lib/providers/openai";
 import {
   parseResumeFile,
   isSupportedResumeType,
   MAX_RESUME_BYTES,
 } from "@/lib/resume";
-import { checkRateLimit } from "@/lib/mock/spend";
+import { checkRateLimit } from "@/lib/interview/spend";
 
 // Below this, the parsed text is noise (an image-only / scanned PDF with no
 // embedded text) and extraction would hallucinate — refuse instead.

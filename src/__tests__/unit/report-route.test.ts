@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const mockPrisma = vi.hoisted(() => ({
-  mockSession: { findFirst: vi.fn() },
+  interviewSession: { findFirst: vi.fn() },
 }));
 
 vi.mock("@/lib/db", () => ({ prisma: mockPrisma }));
@@ -9,11 +9,11 @@ vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
 vi.mock("@/lib/log", () => ({ log: { error: vi.fn(), warn: vi.fn(), info: vi.fn() } }));
 
 import { auth } from "@/lib/auth";
-import { GET } from "@/app/api/mock/sessions/[id]/report/route";
+import { GET } from "@/app/api/interview/sessions/[id]/report/route";
 
 const ctx = { params: Promise.resolve({ id: "m1" }) };
 function req(headers?: Record<string, string>): Request {
-  return new Request("http://localhost/api/mock/sessions/m1/report", { headers });
+  return new Request("http://localhost/api/interview/sessions/m1/report", { headers });
 }
 const call = (headers?: Record<string, string>) => GET(req(headers), ctx);
 
@@ -22,24 +22,24 @@ beforeEach(() => {
   vi.mocked(auth).mockResolvedValue({ user: { id: "u1" } } as never);
 });
 
-describe("GET /api/mock/sessions/:id/report — guards", () => {
+describe("GET /api/interview/sessions/:id/report — guards", () => {
   it("401 when unauthenticated", async () => {
     vi.mocked(auth).mockResolvedValue(null as never);
     expect((await call()).status).toBe(401);
   });
 
   it("404 when not found (userId-scoped)", async () => {
-    mockPrisma.mockSession.findFirst.mockResolvedValue(null);
+    mockPrisma.interviewSession.findFirst.mockResolvedValue(null);
     expect((await call()).status).toBe(404);
-    expect(mockPrisma.mockSession.findFirst).toHaveBeenCalledWith(
+    expect(mockPrisma.interviewSession.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({ where: { id: "m1", userId: "u1" } })
     );
   });
 });
 
-describe("GET /api/mock/sessions/:id/report — COMPLETED (ETag)", () => {
+describe("GET /api/interview/sessions/:id/report — COMPLETED (ETag)", () => {
   beforeEach(() => {
-    mockPrisma.mockSession.findFirst.mockResolvedValue({
+    mockPrisma.interviewSession.findFirst.mockResolvedValue({
       id: "m1",
       status: "COMPLETED",
       endedAt: new Date(),
@@ -63,9 +63,9 @@ describe("GET /api/mock/sessions/:id/report — COMPLETED (ETag)", () => {
   });
 });
 
-describe("GET /api/mock/sessions/:id/report — DEBRIEF bound (A5)", () => {
+describe("GET /api/interview/sessions/:id/report — DEBRIEF bound (A5)", () => {
   it("202 while judging within the deadline", async () => {
-    mockPrisma.mockSession.findFirst.mockResolvedValue({
+    mockPrisma.interviewSession.findFirst.mockResolvedValue({
       id: "m1",
       status: "DEBRIEF",
       endedAt: new Date(Date.now() - 10_000), // 10s ago
@@ -77,7 +77,7 @@ describe("GET /api/mock/sessions/:id/report — DEBRIEF bound (A5)", () => {
   });
 
   it("FAILED past the wall-clock deadline even if the job never failed (stuck worker)", async () => {
-    mockPrisma.mockSession.findFirst.mockResolvedValue({
+    mockPrisma.interviewSession.findFirst.mockResolvedValue({
       id: "m1",
       status: "DEBRIEF",
       endedAt: new Date(Date.now() - 200_000), // 200s ago > 180s deadline
@@ -89,7 +89,7 @@ describe("GET /api/mock/sessions/:id/report — DEBRIEF bound (A5)", () => {
   });
 
   it("surfaces a queue-failed session (status already FAILED) as FAILED", async () => {
-    mockPrisma.mockSession.findFirst.mockResolvedValue({
+    mockPrisma.interviewSession.findFirst.mockResolvedValue({
       id: "m1",
       status: "FAILED",
       endedAt: new Date(),

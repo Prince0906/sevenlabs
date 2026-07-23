@@ -7,11 +7,11 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/page-header";
 import { pageTransition } from "@/lib/motion";
 import { SIGNAL_LABEL } from "@/lib/signal";
-import { CockpitGreeting } from "@/features/dashboard/components/cockpit-greeting";
+import { CockpitGreeting } from "../components/cockpit-greeting";
 import {
   PendingOutcomesCard,
   type PendingOutcome,
-} from "@/features/dashboard/components/pending-outcomes-card";
+} from "../components/pending-outcomes-card";
 
 export interface RecentPanel {
   id: string;
@@ -79,7 +79,7 @@ export function DashboardView({
                 shows you exactly where you stand. About 15 minutes.
               </p>
               <Button size="xl" asChild className="mt-7">
-                <Link href="/mock">Start my first panel</Link>
+                <Link href="/interview">Start my first panel</Link>
               </Button>
             </div>
           </motion.div>
@@ -120,7 +120,7 @@ export function DashboardView({
               </p>
             </div>
             <Button size="lg" asChild className="shrink-0">
-              <Link href="/mock">Start a panel</Link>
+              <Link href="/interview">Start a panel</Link>
             </Button>
           </div>
 
@@ -133,7 +133,7 @@ export function DashboardView({
                 {recentPanels.map((p) => (
                   <li key={p.id}>
                     <Link
-                      href={`/mock/${p.id}`}
+                      href={`/interview/${p.id}`}
                       className="group flex items-center justify-between rounded-lg border bg-card px-5 py-4 transition-colors hover:bg-accent/40"
                     >
                       <div className="min-w-0">

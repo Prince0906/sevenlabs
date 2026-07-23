@@ -6,7 +6,7 @@ const mockEnv = vi.hoisted(() => ({
 }));
 vi.mock("@/lib/env", () => mockEnv);
 
-import { transcribeVerbatim, isDeepgramConfigured } from "@/lib/coach/deepgram";
+import { transcribeVerbatim, isDeepgramConfigured } from "@/lib/providers/deepgram";
 
 const okResponse = () => ({
   ok: true,

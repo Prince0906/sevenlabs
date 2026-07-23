@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const mockPrisma = vi.hoisted(() => ({
-  mockSession: { findFirst: vi.fn() },
+  interviewSession: { findFirst: vi.fn() },
   outcome: { upsert: vi.fn(), findFirst: vi.fn() },
 }));
 
@@ -10,11 +10,11 @@ vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
 vi.mock("@/lib/log", () => ({ log: { error: vi.fn(), warn: vi.fn(), info: vi.fn() } }));
 
 import { auth } from "@/lib/auth";
-import { POST, GET } from "@/app/api/mock/sessions/[id]/outcome/route";
+import { POST, GET } from "@/app/api/interview/sessions/[id]/outcome/route";
 
 const params = (id: string) => ({ params: Promise.resolve({ id }) });
 const post = (body: unknown) =>
-  new Request("http://localhost/api/mock/sessions/s1/outcome", {
+  new Request("http://localhost/api/interview/sessions/s1/outcome", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -25,7 +25,7 @@ beforeEach(() => {
   vi.mocked(auth).mockResolvedValue({ user: { id: "u1" } } as never);
 });
 
-describe("POST /api/mock/sessions/:id/outcome (A1 capture)", () => {
+describe("POST /api/interview/sessions/:id/outcome (A1 capture)", () => {
   it("401 when unauthenticated", async () => {
     vi.mocked(auth).mockResolvedValueOnce(null as never);
     const res = await POST(post({ result: "ADVANCED" }), params("s1"));
@@ -38,17 +38,17 @@ describe("POST /api/mock/sessions/:id/outcome (A1 capture)", () => {
   });
 
   it("404 when the session is not owned by the user", async () => {
-    mockPrisma.mockSession.findFirst.mockResolvedValueOnce(null);
+    mockPrisma.interviewSession.findFirst.mockResolvedValueOnce(null);
     const res = await POST(post({ result: "REJECTED" }), params("s1"));
     expect(res.status).toBe(404);
     // ownership filter must be applied
-    expect(mockPrisma.mockSession.findFirst).toHaveBeenCalledWith(
+    expect(mockPrisma.interviewSession.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({ where: { id: "s1", userId: "u1" } })
     );
   });
 
   it("snapshots the prediction (verdict signal + weakest dimension) on CREATE only", async () => {
-    mockPrisma.mockSession.findFirst.mockResolvedValueOnce({
+    mockPrisma.interviewSession.findFirst.mockResolvedValueOnce({
       id: "s1",
       verdict: { overallSignal: "SDE_II", rubricVersion: "2026.06.0" },
       dimensionScores: [{ key: "useMemo" }], // weakest (lowest score), take:1
@@ -89,7 +89,7 @@ describe("POST /api/mock/sessions/:id/outcome (A1 capture)", () => {
   });
 
   it("tolerates a session with no verdict/dimensions (predicted* null)", async () => {
-    mockPrisma.mockSession.findFirst.mockResolvedValueOnce({
+    mockPrisma.interviewSession.findFirst.mockResolvedValueOnce({
       id: "s1",
       verdict: null,
       dimensionScores: [],
@@ -110,7 +110,7 @@ describe("POST /api/mock/sessions/:id/outcome (A1 capture)", () => {
   });
 });
 
-describe("GET /api/mock/sessions/:id/outcome", () => {
+describe("GET /api/interview/sessions/:id/outcome", () => {
   it("401 when unauthenticated", async () => {
     vi.mocked(auth).mockResolvedValueOnce(null as never);
     const res = await GET(new Request("http://localhost/x"), params("s1"));
@@ -118,7 +118,7 @@ describe("GET /api/mock/sessions/:id/outcome", () => {
   });
 
   it("returns { outcome: null, company } when none captured", async () => {
-    mockPrisma.mockSession.findFirst.mockResolvedValueOnce({ scenario: { company: "amazon" } });
+    mockPrisma.interviewSession.findFirst.mockResolvedValueOnce({ scenario: { company: "amazon" } });
     mockPrisma.outcome.findFirst.mockResolvedValueOnce(null);
     const res = await GET(new Request("http://localhost/x"), params("s1"));
     expect(res.status).toBe(200);
@@ -130,7 +130,7 @@ describe("GET /api/mock/sessions/:id/outcome", () => {
   });
 
   it("404 when the session isn't owned by the user", async () => {
-    mockPrisma.mockSession.findFirst.mockResolvedValueOnce(null);
+    mockPrisma.interviewSession.findFirst.mockResolvedValueOnce(null);
     mockPrisma.outcome.findFirst.mockResolvedValueOnce(null);
     const res = await GET(new Request("http://localhost/x"), params("s1"));
     expect(res.status).toBe(404);

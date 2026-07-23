@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { decryptSecret, isByokConfigured } from "@/lib/crypto";
-import { mintRealtimeEphemeral } from "@/lib/coach/openai";
+import { mintRealtimeEphemeral } from "@/lib/providers/openai";
 
 /**
  * BYOK policy + validation (INTERVIEW_ENGINE_PLAN D1/D3, §3.4/§3.6).

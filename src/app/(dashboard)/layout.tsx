@@ -4,7 +4,7 @@ import {
   SidebarProvider
 } from "@/components/ui/sidebar";
 
-import { DashboardSidebar } from "@/features/dashboard/components/dashboard-sidebar";
+import { DashboardSidebar } from "@/features/dashboard/views/dashboard-sidebar";
 
 export default async function DashboardLayout({
   children,

@@ -1,0 +1,212 @@
+# Architecture
+
+Current-state system design for **Aloud** — one product: a real-time 3-seat AI
+interview panel ("Bar-Raiser") over the OpenAI Realtime API. This document
+describes **what is built**, not plans; the reasoning behind load-bearing
+choices lives in [`docs/decisions/`](decisions/). Agent-facing working notes:
+[`CLAUDE.md`](../CLAUDE.md).
+
+## 1. System overview
+
+```
+Browser ──────────── WebRTC (audio + data channel) ──────────── OpenAI Realtime
+   │                                                                  ▲
+   │  HTTPS (BFF: create / mint / turns / complete / report)          │
+   ▼                                                                  │
+Next.js 16 (one container, :3000) ── mint ephemeral (BYOK or house) ──┘
+   │            │
+   │            └── judgment worker (lease queue, started by instrumentation.ts)
+   ▼                     └── OpenAI Chat (house key, pinned judge model)
+Prisma Postgres (cloud)                          Deepgram (optional verbatim ASR)
+```
+
+- **The server is never in the audio path** ([ADR-0004](decisions/0004-server-never-in-audio-path.md)).
+  The browser connects directly to OpenAI with a short-TTL ephemeral the server
+  mints. Voice quality and per-minute COGS never touch the box.
+- **One process** serves marketing, dashboard, the live interview room, and the
+  BFF API. Prod is a single EC2 t3.micro behind Caddy
+  ([runbook](runbooks/deploy.md)).
+- **Judgment is off-band**: completing a session enqueues a `JudgmentJob`; a
+  lease-based worker (`src/lib/interview/judgment-queue.ts`) assembles the
+  seq-ordered transcript and calls the committee judge on the **house key with a
+  code-pinned model** ([ADR-0002](decisions/0002-judge-on-house-key-pinned-model.md)).
+
+## 2. Repository map
+
+```
+src/app/                    routes only — thin pages/layouts + BFF route handlers
+  (dashboard)/              authed shell: dashboard, interview, interview/[id], settings
+  api/interview/sessions/*  create, [id], mint, turns, turns/audio, complete, outcome, report
+  api/{keys,resume,user,health,auth}
+src/features/<feature>/     feature slices: interview, dashboard, auth, marketing, settings
+  views/                    the ONLY entry route files may import
+  components/ hooks/ lib/   feature-internal
+src/lib/                    cross-cutting infra + server domain logic (the only I/O tier)
+  interview/                judgment-queue, panel-orchestrator, spend, resume-digest
+  providers/                vendor clients: openai.ts, deepgram.ts
+  auth.ts db.ts env.ts byok.ts crypto.ts log.ts resume.ts …
+packages/panel-core         pure panel logic (rubrics, verdict math, disfluency…) — no I/O
+packages/shared-types       Zod contracts (interview-schemas, realtime-config) — no I/O
+prisma/                     schema + 1 squashed init migration + seed
+docs/                       this file, decisions/ (ADRs), runbooks/, testing.md, design.md
+```
+
+## 3. Dependency rules (all currently hold — keep them holding)
+
+1. **Pure tier**: `packages/*` and `src/features/interview/lib/{panel-machine,realtime-events,turn-queue}`
+   contain no I/O and no React. Unit-tested directly.
+2. **I/O lives only in `src/lib`** (Prisma, OpenAI/Deepgram HTTP, crypto, log).
+3. **`src/lib` never imports from `src/features` or `src/components`.**
+4. Packages never import from `src/`; `panel-core → shared-types` is the only
+   package→package edge.
+5. Prisma is imported via the `prisma` singleton in `src/lib/db.ts`
+   (generated client at `src/generated/prisma`; never `@prisma/client`).
+6. **Feature shape**: a route file (page/layout) enters a feature only through
+   its `views/`; `components/`, `hooks/`, `lib/` are internal. Sibling imports
+   are relative; cross-boundary imports use `@/`. No barrels.
+
+Package inventory (Vitest aliases `@sevenlabs/*` to package **source**, so
+package changes are picked up without a build):
+
+- `packages/panel-core`: `panel-composition.ts` (Bar-Raiser veto + verdict math:
+  `finalizeVerdict`, `computeComposure`, `aggregateFluency`),
+  `rubric-definitions.ts` (`RUBRIC_VERSION`, Amazon LP + React/JS rubrics),
+  `disfluency.ts` (vendor-agnostic engine over a verbatim word stream),
+  `speech-analysis.ts` (WPM/filler/pause over word timestamps),
+  `question-bank.ts`, `panel-context.ts` (cross-seat digest), `seat-openers.ts`,
+  `interviewer-guardrails.ts` (prompt-injection hardening), `resume.ts`
+  (grounding validation), `realtime-cost.ts`, `redaction.ts` (`redact()` masks
+  `sk-` / `sk-ant-` / `AIza` / `ek_` / `Bearer`).
+- `packages/shared-types`: `interview-schemas.ts`
+  (mint/turn/report/verdict/dimension/confidence/outcome + `SIGNAL_TO_SCORE`),
+  `schemas.ts` (speech-metrics), `realtime-config.ts` (`REALTIME_INPUT_CONFIG`).
+
+## 4. The interview engine (client)
+
+`src/features/interview/`:
+
+- `lib/panel-machine.ts` — pure reducer FSM (13 phases) driving the session;
+  no I/O, unit-tested.
+- `hooks/use-interview.ts` — performs the side effects (mint/connect/post/
+  timers) on phase transitions; the orchestration sink.
+- `lib/realtime-connection.ts` — WebRTC shell around one ephemeral/one seat;
+  SDP offer POSTed as `application/sdp`.
+- `lib/realtime-events.ts` — pure `mapRealtimeEvent`: the single place
+  untrusted OpenAI data-channel JSON becomes typed app state; malformed/unknown
+  → `null`, never throws.
+- `lib/turn-queue.ts` — single-writer seq commit queue (`seq` assigned at
+  dequeue); a dropped/duplicated interviewer turn corrupts the verdict.
+- `lib/api-client.ts` — typed fetch wrappers for the `/api/interview` BFF (the
+  single URL chokepoint).
+
+Input session config is the shared `REALTIME_INPUT_CONFIG` const in
+`packages/shared-types/src/realtime-config.ts` — `transcription: {model:
+'gpt-4o-transcribe', language: 'en'}`, `turn_detection: null` (push-to-talk,
+half-duplex) — imported by **both** the server mint and the client patch
+([ADR-0011](decisions/0011-push-to-talk-shared-input-config.md)). Divergence
+between the two silently breaks PTT transcription.
+
+## 5. Key flows (server)
+
+- **Create → mint → turns → complete → report**: create is idempotent
+  (`@@unique([userId, clientRequestId])`); mint resolves BYOK-or-house via
+  `resolveSessionKey` (fail-closed to house); turns commit `seq`-ordered;
+  complete enqueues judgment; report polls until the verdict lands.
+  Vendor HTTP is raw `fetch`, not the SDK (`src/lib/providers/openai.ts`);
+  `mintRealtimeEphemeral` uses `params.apiKey ?? env.OPENAI_API_KEY` with model
+  `env.OPENAI_REALTIME_MODEL`; judge + resume-extraction models are pinned in
+  code, never env/config.
+- **BYOK custody** ([ADR-0001](decisions/0001-byok-key-custody.md)): raw key
+  transits the server exactly once (`POST /api/keys`), stored AES-256-GCM under
+  the `KEY_ENCRYPTION_SECRET` KEK, decrypted only inside the mint frame, never
+  echoed (display = `last4`/fingerprint), revoke = hard delete. KEK unset ⇒
+  `/api/keys` returns 503 and everything runs on the house key.
+- **Spend safety** (`src/lib/interview/spend.ts`): reserve-then-settle per
+  session (`SpendReservation`), daily house cap (`GlobalSpend`), sliding-window
+  rate limit (`RateBucket`). House sessions bounded by `SESSION_CEILING_USD`
+  (default $4 ≈ 13 min @ `REALTIME_USD_PER_MIN` $0.30); BYOK by time only
+  (`MAX_SESSION_SEC`, default 3600 s); `DAILY_CAP_USD` (default $50) gates house
+  admission per day. All four knobs env-tunable. Metered on the **server
+  clock**, never client-reported time.
+- **Resume grounding**: `validateResumeFacts` (panel-core) drops any extracted
+  fact whose verbatim quote isn't a substring of the resume text; the digest
+  (`src/lib/interview/resume-digest.ts`) fails **closed** (no grounding) on
+  schema mismatch; resume content is fenced as untrusted data in interviewer
+  instructions. PDF text extraction via `unpdf` in `src/lib/resume.ts` (max 20k
+  chars / 2 MB).
+- **Disfluency / fluency**: `DEEPGRAM_API_KEY` set ⇒ verbatim ASR
+  (`src/lib/providers/deepgram.ts`, `filler_words: true`) measures
+  fillers/repeats/false-starts into `InterviewTurn.disfluencyJson`; unset ⇒
+  Whisper fallback, which cleans speech so disfluency reads artificially low
+  (`disfluencyJson` null). Turn audio reaches the server via the best-effort
+  `turns/audio` upload.
+- **Moat capture**: `Outcome` (one per session) snapshots
+  `predictedSignal`/`rubricVersion` at capture time so the prediction→outcome
+  calibration pair survives rubric churn ([ADR-0012](decisions/0012-versioned-eval-contract.md)).
+
+## 6. Data model (domains)
+
+- **Auth** (Auth.js v5): `User` (sole tenant root; every owned row is
+  `userId`-scoped + cascade-deletes; `passwordHash` nullable for Google-only
+  users; carries `targetCompanies String[]` + `interviewDate?`), `Account`,
+  `Session`, `VerificationToken`. JWT session strategy (Credentials can't use
+  DB sessions); session shape gains `user.id` via `src/types/next-auth.d.ts`.
+  Config split: `src/auth.config.ts` is edge-safe; `src/proxy.ts` (Next 16's
+  middleware file — there is no `middleware.ts`) enforces auth at the edge;
+  `src/lib/auth.ts` adds the Prisma adapter + `Credentials.authorize`. Google
+  OAuth uses `allowDangerousEmailAccountLinking: true`. Public routes: `/`,
+  `/sign-in`, `/sign-up`, `/api/auth/*`, `/api/health`; everything else
+  redirects to `/sign-in?callbackUrl=...`.
+- **Interview**: `Scenario`, `PanelSeat` (`@@unique([scenarioId, seatOrder])`),
+  `InterviewSession` (central run — `@@unique([userId, clientRequestId])`
+  idempotency; `keySource` / `provider` / `apiKeyId`→ProviderKey / `spendCents`
+  / `reportJson`), `InterviewTurn` (`@@unique([sessionId, seq])`,
+  `clientTurnId`, `disfluencyJson`, `transcriptionMissing`), `DimensionScore`,
+  `PanelVerdict` (`sessionId @unique`; `barRaiserVeto`, `rubricVersion` +
+  `judgeModel`), `ConfidenceMetric`, `DrillAssignment`, `JudgmentJob`
+  (PK = sessionId; lease queue, index `(status, leaseUntil)`).
+- **Moat / custody / infra**: `Outcome` (`sessionId @unique`), `ProviderKey`
+  (`@@unique([userId, provider])`; AES-256-GCM `ciphertextB64`/`ivB64`/`tagB64`
+  under the env KEK, `dekVersion`), `ResumeProfile` (`userId @unique`;
+  validated `factsJson` + `sourceText`), `RateBucket` (PK `[key, windowStart]`),
+  `GlobalSpend` (PK = day), `SpendReservation` (PK = sessionId;
+  reserve-then-settle).
+
+**Naming note** ([ADR-0016](decisions/0016-db-rename-and-reset-at-zero-users.md)):
+the DB layer speaks the same language as the code — `InterviewSession`/
+`InterviewTurn`/`InterviewStatus`, and `TurnRole` is `USER | INTERVIEWER`.
+Migration history was squashed to a single init migration when the rename
+landed (zero users; databases reset).
+
+## 7. Invariants (review-blocking if violated)
+
+1. Every query touching user data is **userId-scoped**.
+2. The judge always runs on the **house key** with a **code-pinned model**.
+3. BYOK keys are **never echoed back**; decrypt only inside the call frame; all
+   logging flows through `redact()` via `src/lib/log.ts`.
+4. **`turn_detection` stays `null`** (push-to-talk) via the one shared config.
+5. `InterviewTurn` is **single-writer, seq-ordered**.
+
+Each invariant has a named owning test — see [`docs/testing.md`](testing.md) §6.
+
+## 8. CI/CD topology
+
+Two workflows: `ci.yml` (five secret-free checks on every PR: Lint, Typecheck,
+Tests + coverage gate, Clean build, Schema/migration drift) and `deploy.yml`
+(push-to-main only: re-gate → build+push GHCR → migrate → approval-gated roll of
+the EC2 box with a `/api/health` check). Reproduce CI locally with
+`npm run verify`. Full pipeline + box operations: [runbook](runbooks/deploy.md).
+
+## 9. Known gaps (tracked)
+
+- `POST /api/interview/sessions` (create) has no handler test — the top gap;
+  closing it lets the coverage ratchet rise. Also untested:
+  `api/user/interview-date`, `panel-core/question-bank.ts`.
+- No single-active-connection fence for LIVE sessions (two tabs can race the
+  seq space; only the `@@unique` constraint guards).
+- The daily spend cap reconciles against the reservation **estimate**, not
+  measured provider usage.
+- Data lifecycle: deletion is done + cascade-tested (unit level); export and a
+  retention policy are not.
+- The committee-debrief prompt hardcodes "React/JavaScript panel" — latent
+  until a second scenario (e.g. Amazon) is seeded.

@@ -1,4 +1,4 @@
-import { redact, redactUnknown } from "@sevenlabs/coach-core";
+import { redact, redactUnknown } from "@sevenlabs/panel-core";
 
 /**
  * The single chokepoint for writing to stdout. Every line is structured JSON

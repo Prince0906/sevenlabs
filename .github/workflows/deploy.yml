@@ -106,7 +106,7 @@ jobs:
       - run: npx prisma migrate status
       # Seed reference data (the Scenario + its PanelSeats). seed.ts uses upsert,
       # so this is idempotent and safe on every deploy; without it a fresh prod DB
-      # has no scenario and /mock can't start an interview (app boots fine).
+      # has no scenario and /interview can't start a session (app boots fine).
       - run: npm run prisma:seed
 
   deploy:

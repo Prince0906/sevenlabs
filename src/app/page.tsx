@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { LandingView } from "@/features/marketing/landing-view";
+import { LandingView } from "@/features/marketing/views/landing-view";
 
 export default async function HomePage() {
   const session = await auth();

@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const mockPrisma = vi.hoisted(() => ({
-  mockSession: { findFirst: vi.fn(), updateMany: vi.fn() },
+  interviewSession: { findFirst: vi.fn(), updateMany: vi.fn() },
+  interviewTurn: { count: vi.fn() },
   judgmentJob: { upsert: vi.fn() },
   $transaction: vi.fn(),
 }));
@@ -10,7 +11,7 @@ const mockQueue = vi.hoisted(() => ({ drainJudgmentQueue: vi.fn() }));
 vi.mock("@/lib/db", () => ({ prisma: mockPrisma }));
 vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
 vi.mock("@/lib/log", () => ({ log: { error: vi.fn(), warn: vi.fn(), info: vi.fn() } }));
-vi.mock("@/lib/mock/judgment-queue", () => mockQueue);
+vi.mock("@/lib/interview/judgment-queue", () => mockQueue);
 vi.mock("next/server", async (importOriginal) => {
   const actual = await importOriginal<typeof import("next/server")>();
   // Run the after() callback inline so the queue-kick is observable in the test.
@@ -18,11 +19,11 @@ vi.mock("next/server", async (importOriginal) => {
 });
 
 import { auth } from "@/lib/auth";
-import { POST } from "@/app/api/mock/sessions/[id]/complete/route";
+import { POST } from "@/app/api/interview/sessions/[id]/complete/route";
 
 const ctx = { params: Promise.resolve({ id: "m1" }) };
 function req(body?: unknown): Request {
-  return new Request("http://localhost/api/mock/sessions/m1/complete", {
+  return new Request("http://localhost/api/interview/sessions/m1/complete", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: body === undefined ? undefined : JSON.stringify(body),
@@ -33,30 +34,32 @@ const call = (body?: unknown) => POST(req(body), ctx);
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(auth).mockResolvedValue({ user: { id: "u1" } } as never);
-  mockPrisma.mockSession.findFirst.mockResolvedValue({
+  mockPrisma.interviewSession.findFirst.mockResolvedValue({
     status: "LIVE",
     startedAt: new Date(Date.now() - 60_000),
   });
+  // Default: the candidate answered — the zero-turn guard stays out of the way.
+  mockPrisma.interviewTurn.count.mockResolvedValue(6);
   // $transaction([updateMany, upsert]) → [updated]; updated.count drives the kick.
   mockPrisma.$transaction.mockResolvedValue([{ count: 1 }, {}]);
 });
 
-describe("POST /api/mock/sessions/:id/complete — guards", () => {
+describe("POST /api/interview/sessions/:id/complete — guards", () => {
   it("401 when unauthenticated", async () => {
     vi.mocked(auth).mockResolvedValue(null as never);
     expect((await call()).status).toBe(401);
   });
 
   it("404 when the session isn't found (userId-scoped)", async () => {
-    mockPrisma.mockSession.findFirst.mockResolvedValue(null);
+    mockPrisma.interviewSession.findFirst.mockResolvedValue(null);
     expect((await call()).status).toBe(404);
-    expect(mockPrisma.mockSession.findFirst).toHaveBeenCalledWith(
+    expect(mockPrisma.interviewSession.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({ where: { id: "m1", userId: "u1" } })
     );
   });
 
   it("202 (no re-transition) when already DEBRIEF", async () => {
-    mockPrisma.mockSession.findFirst.mockResolvedValue({ status: "DEBRIEF", startedAt: new Date() });
+    mockPrisma.interviewSession.findFirst.mockResolvedValue({ status: "DEBRIEF", startedAt: new Date() });
     const res = await call();
     expect(res.status).toBe(202);
     expect(await res.json()).toEqual({ status: "DEBRIEF", pollAfterMs: 2000 });
@@ -64,19 +67,48 @@ describe("POST /api/mock/sessions/:id/complete — guards", () => {
   });
 
   it("409 when the session can't be completed (PENDING)", async () => {
-    mockPrisma.mockSession.findFirst.mockResolvedValue({ status: "PENDING", startedAt: null });
+    mockPrisma.interviewSession.findFirst.mockResolvedValue({ status: "PENDING", startedAt: null });
     expect((await call()).status).toBe(409);
     expect(mockPrisma.$transaction).not.toHaveBeenCalled();
   });
 });
 
-describe("POST /api/mock/sessions/:id/complete — transition + D6 persistence", () => {
+describe("POST /api/interview/sessions/:id/complete — zero-answer guard (1c)", () => {
+  it("FAILs the session (no judgment job, no queue kick) when zero turns were answered", async () => {
+    mockPrisma.interviewTurn.count.mockResolvedValue(0);
+    mockPrisma.interviewSession.updateMany.mockResolvedValue({ count: 1 });
+    const res = await call();
+    expect(res.status).toBe(202);
+    expect(await res.json()).toMatchObject({ status: "FAILED" });
+    expect(mockPrisma.interviewSession.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ status: "FAILED" }),
+      })
+    );
+    expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+    expect(mockPrisma.judgmentJob.upsert).not.toHaveBeenCalled();
+    expect(mockQueue.drainJudgmentQueue).not.toHaveBeenCalled();
+  });
+
+  it("counts only answered USER turns (non-null, non-empty transcript)", async () => {
+    await call();
+    expect(mockPrisma.interviewTurn.count).toHaveBeenCalledWith({
+      where: {
+        sessionId: "m1",
+        role: "USER",
+        NOT: [{ transcript: null }, { transcript: "" }],
+      },
+    });
+  });
+});
+
+describe("POST /api/interview/sessions/:id/complete — transition + D6 persistence", () => {
   it("CAS LIVE→DEBRIEF, enqueues the job, and kicks the queue", async () => {
     const res = await call();
     expect(res.status).toBe(202);
     expect(await res.json()).toEqual({ status: "DEBRIEF", pollAfterMs: 2000 });
 
-    expect(mockPrisma.mockSession.updateMany).toHaveBeenCalledWith(
+    expect(mockPrisma.interviewSession.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: "m1", status: { in: ["LIVE", "INTERRUPTED"] } },
         data: expect.objectContaining({ status: "DEBRIEF" }),
@@ -90,7 +122,7 @@ describe("POST /api/mock/sessions/:id/complete — transition + D6 persistence",
 
   it("persists degradedDelivery:true when the client reports a dropped turn (D6)", async () => {
     await call({ degradedDelivery: true });
-    const arg = mockPrisma.mockSession.updateMany.mock.calls[0]![0] as {
+    const arg = mockPrisma.interviewSession.updateMany.mock.calls[0]![0] as {
       data: { degradedDelivery: boolean };
     };
     expect(arg.data.degradedDelivery).toBe(true);
@@ -98,7 +130,7 @@ describe("POST /api/mock/sessions/:id/complete — transition + D6 persistence",
 
   it("defaults degradedDelivery to false when the body omits it", async () => {
     await call({ reason: "ceiling" });
-    const arg = mockPrisma.mockSession.updateMany.mock.calls[0]![0] as {
+    const arg = mockPrisma.interviewSession.updateMany.mock.calls[0]![0] as {
       data: { degradedDelivery: boolean };
     };
     expect(arg.data.degradedDelivery).toBe(false);

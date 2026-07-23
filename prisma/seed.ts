@@ -7,7 +7,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 // Seat systemPrompts are the THIN, leakable voice personas (NOT the off-band
 // scorer — that lives on a separate call the voice session can't reach).
 // Seat ownedLPs MUST match REACT_JS_COMPETENCIES names exactly
-// (packages/coach-core/src/rubric-definitions.ts) or judgment hard-fails.
+// (packages/panel-core/src/rubric-definitions.ts) or judgment hard-fails.
 const SCENARIO = {
   id: "react-js-panel-p0",
   company: "react",

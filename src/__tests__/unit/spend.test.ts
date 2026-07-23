@@ -17,7 +17,7 @@ import {
   spendCentsForElapsed,
   isOverCeiling,
   isSessionOver,
-} from "@/lib/mock/spend";
+} from "@/lib/interview/spend";
 
 // These three are the authoritative, server-clock cost meter + per-session
 // kill-switch. A sign/rounding error silently over- or under-charges every

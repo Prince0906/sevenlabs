@@ -11,16 +11,16 @@ const mockPrisma = vi.hoisted(() => ({
   $queryRaw: vi.fn(),
   $transaction: vi.fn(),
   judgmentJob: { update: vi.fn() },
-  mockSession: { update: vi.fn() },
+  interviewSession: { update: vi.fn() },
 }));
 const mockOrch = vi.hoisted(() => ({ runJudgment: vi.fn() }));
 
 vi.mock("@/lib/db", () => ({ prisma: mockPrisma }));
-vi.mock("@/lib/mock/panel-orchestrator", () => mockOrch);
+vi.mock("@/lib/interview/panel-orchestrator", () => mockOrch);
 vi.mock("@/lib/log", () => ({ log: { error: vi.fn(), warn: vi.fn(), info: vi.fn() } }));
-vi.mock("@sevenlabs/coach-core", () => ({ redact: (s: string) => s }));
+vi.mock("@sevenlabs/panel-core", () => ({ redact: (s: string) => s }));
 
-import { drainJudgmentQueue } from "@/lib/mock/judgment-queue";
+import { drainJudgmentQueue } from "@/lib/interview/judgment-queue";
 
 /** claimNext returns these rows in order; an empty array ends the drain loop. */
 function claimSequence(...rounds: Array<Array<{ sessionId: string; attempts: number }>>) {
@@ -33,7 +33,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mockPrisma.$transaction.mockResolvedValue([]);
   mockPrisma.judgmentJob.update.mockResolvedValue({});
-  mockPrisma.mockSession.update.mockResolvedValue({});
+  mockPrisma.interviewSession.update.mockResolvedValue({});
   mockOrch.runJudgment.mockResolvedValue(undefined);
 });
 
@@ -66,7 +66,7 @@ describe("drainJudgmentQueue", () => {
     });
     // a retry must NOT fail the session — the report isn't lost yet
     expect(mockPrisma.$transaction).not.toHaveBeenCalled();
-    expect(mockPrisma.mockSession.update).not.toHaveBeenCalled();
+    expect(mockPrisma.interviewSession.update).not.toHaveBeenCalled();
   });
 
   it("FAILs the job AND the session in one txn once retries are exhausted", async () => {
@@ -77,7 +77,7 @@ describe("drainJudgmentQueue", () => {
       where: { sessionId: "s1" },
       data: { status: "FAILED", lastError: "judge down" },
     });
-    expect(mockPrisma.mockSession.update).toHaveBeenCalledWith({
+    expect(mockPrisma.interviewSession.update).toHaveBeenCalledWith({
       where: { id: "s1" },
       data: { status: "FAILED" },
     });

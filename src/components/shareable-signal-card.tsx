@@ -29,7 +29,8 @@ const SEGMENTS: SignalLevel[] = ["NEW_GRAD", "SDE_II", "SENIOR"];
 
 interface ShareableSignalCardProps {
   signal: SignalLevel;
-  topLP: MatchedLP | null;
+  // Only the displayed fields — the card never renders the per-LP gap.
+  topLP: Pick<MatchedLP, "name" | "signalLevel" | "evidence"> | null;
   weakestArea: string | null;
 }
 

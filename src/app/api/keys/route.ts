@@ -4,8 +4,8 @@ import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { log } from "@/lib/log";
-import { redactUnknown } from "@sevenlabs/coach-core";
-import { ProviderError } from "@/lib/coach/openai";
+import { redactUnknown } from "@sevenlabs/panel-core";
+import { ProviderError } from "@/lib/providers/openai";
 import {
   isByokConfigured,
   encryptSecret,
@@ -13,7 +13,7 @@ import {
   last4,
 } from "@/lib/crypto";
 import { validateKeyViaMint } from "@/lib/byok";
-import { checkRateLimit } from "@/lib/mock/spend";
+import { checkRateLimit } from "@/lib/interview/spend";
 
 // v1 BYOK is OpenAI-only (D3): only OpenAI offers GA realtime with browser-safe
 // ephemerals. Other providers are rejected until the turn-based path exists.

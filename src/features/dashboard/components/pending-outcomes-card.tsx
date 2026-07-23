@@ -41,7 +41,7 @@ export function PendingOutcomesCard({ sessions }: { sessions: PendingOutcome[] }
         {sessions.map((s) => (
           <li key={s.id}>
             <Link
-              href={`/mock/${s.id}`}
+              href={`/interview/${s.id}`}
               className="inline-flex items-center gap-1.5 text-[13px] font-medium text-primary underline-offset-4 hover:underline"
             >
               Report your result for {titleCase(s.company)}

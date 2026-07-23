@@ -15,7 +15,7 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   output: "standalone", // Required for Docker multi-stage builds
-  transpilePackages: ["@sevenlabs/coach-core", "@sevenlabs/shared-types"],
+  transpilePackages: ["@sevenlabs/panel-core", "@sevenlabs/shared-types"],
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

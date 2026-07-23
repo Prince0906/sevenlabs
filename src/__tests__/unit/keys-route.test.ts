@@ -26,9 +26,9 @@ vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
 vi.mock("@/lib/log", () => ({ log: { error: vi.fn(), warn: vi.fn(), info: vi.fn() } }));
 vi.mock("@/lib/crypto", () => mockCrypto);
 vi.mock("@/lib/byok", () => mockByok);
-vi.mock("@/lib/coach/openai", () => mockOpenai);
-vi.mock("@/lib/mock/spend", () => mockSpend);
-// coach-core (redactUnknown) stays real.
+vi.mock("@/lib/providers/openai", () => mockOpenai);
+vi.mock("@/lib/interview/spend", () => mockSpend);
+// panel-core (redactUnknown) stays real.
 
 import { auth } from "@/lib/auth";
 import { POST, GET, DELETE } from "@/app/api/keys/route";
