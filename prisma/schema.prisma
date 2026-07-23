@@ -263,9 +263,8 @@ model InterviewTurn {
   @@unique([sessionId, seq])
   // Unique (not just indexed): clientTurnId is the 1:1 join key for the parallel
   // fluency-audio upload, so the audio route can `update` one row, not updateMany.
-  // NULLs are distinct in Postgres, so COACH turns (clientTurnId null) are fine. (A6)
+  // NULLs are distinct in Postgres, so INTERVIEWER turns (clientTurnId null) are fine. (A6)
   @@unique([sessionId, clientTurnId])
-  @@index([sessionId, seq])
 }
 
 model DimensionScore {
@@ -299,10 +298,10 @@ model PanelVerdict {
   topRisks      String[]
   // Provenance for calibration (D4). The exact rubric content + judge model that
   // produced THIS verdict, so (prediction → outcome) pairs partition by what made
-  // them. Stamped explicitly by the orchestrator; the defaults only backfill rows
-  // written before provenance existed (code constants are the source of truth).
-  rubricVersion String      @default("2026.06.0")
-  judgeModel    String      @default("gpt-4o-mini")
+  // them. Required with no default: the orchestrator stamps both explicitly (code
+  // constants are the source of truth), so a writer that forgets fails loudly.
+  rubricVersion String
+  judgeModel    String
   createdAt     DateTime    @default(now())
 }
 

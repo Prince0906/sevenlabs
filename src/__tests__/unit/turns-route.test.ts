@@ -30,7 +30,7 @@ function req(body: unknown): Request {
 }
 const ctx = { params: Promise.resolve({ id: "m1" }) };
 const call = (body: unknown) => POST(req(body), ctx);
-const COACH_TURN = { seq: 0, role: "INTERVIEWER", transcript: "Tell me about a time." };
+const INTERVIEWER_TURN = { seq: 0, role: "INTERVIEWER", transcript: "Tell me about a time." };
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -46,27 +46,27 @@ beforeEach(() => {
 describe("POST /api/interview/sessions/:id/turns — auth & guards", () => {
   it("401 when unauthenticated", async () => {
     vi.mocked(auth).mockResolvedValue(null as never);
-    expect((await call(COACH_TURN)).status).toBe(401);
+    expect((await call(INTERVIEWER_TURN)).status).toBe(401);
   });
   it("400 on an invalid body (missing seq)", async () => {
     expect((await call({ role: "INTERVIEWER" })).status).toBe(400);
   });
   it("404 when the session isn't found (userId-scoped)", async () => {
     mockPrisma.interviewSession.findFirst.mockResolvedValue(null);
-    expect((await call(COACH_TURN)).status).toBe(404);
+    expect((await call(INTERVIEWER_TURN)).status).toBe(404);
     expect(mockPrisma.interviewSession.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({ where: { id: "m1", userId: "u1" } })
     );
   });
   it("409 when the session isn't LIVE", async () => {
     mockPrisma.interviewSession.findFirst.mockResolvedValue(liveSession({ status: "DEBRIEF" }));
-    expect((await call(COACH_TURN)).status).toBe(409);
+    expect((await call(INTERVIEWER_TURN)).status).toBe(409);
   });
 });
 
 describe("POST .../turns — single-writer idempotency on (sessionId, seq)", () => {
-  it("commits a new COACH turn", async () => {
-    const res = await call(COACH_TURN);
+  it("commits a new INTERVIEWER turn", async () => {
+    const res = await call(INTERVIEWER_TURN);
     expect(res.status).toBe(200);
     expect(mockPrisma.interviewTurn.create).toHaveBeenCalledTimes(1);
     expect(await res.json()).toMatchObject({ seq: 0, duplicate: false, turnId: "t1" });
@@ -77,14 +77,14 @@ describe("POST .../turns — single-writer idempotency on (sessionId, seq)", () 
       transcript: "Tell me about a time.",
       metricsJson: null,
     });
-    const res = await call(COACH_TURN);
+    const res = await call(INTERVIEWER_TURN);
     expect(res.status).toBe(200);
     expect(await res.json()).toMatchObject({ duplicate: true });
     expect(mockPrisma.interviewTurn.create).not.toHaveBeenCalled();
   });
   it("409 SEQ_CONFLICT when the same seq carries a different transcript", async () => {
     mockPrisma.interviewTurn.findUnique.mockResolvedValue({ id: "t1", transcript: "a different answer" });
-    const res = await call(COACH_TURN);
+    const res = await call(INTERVIEWER_TURN);
     expect(res.status).toBe(409);
     expect(await res.json()).toMatchObject({ error: "SEQ_CONFLICT" });
   });
@@ -93,15 +93,15 @@ describe("POST .../turns — single-writer idempotency on (sessionId, seq)", () 
 describe("POST .../turns — spend ceiling delegates to isSessionOver (D7)", () => {
   it("passes the session's keySource (USER) — BYOK is no longer force-stopped by the house $ ceiling", async () => {
     mockPrisma.interviewSession.findFirst.mockResolvedValue(liveSession({ keySource: "USER" }));
-    await call(COACH_TURN);
+    await call(INTERVIEWER_TURN);
     expect(mockSpend.isSessionOver).toHaveBeenCalledWith("USER", expect.any(Number), expect.any(Number));
   });
   it("sessionExpired reflects isSessionOver = true", async () => {
     mockSpend.isSessionOver.mockReturnValue(true);
-    expect(await (await call(COACH_TURN)).json()).toMatchObject({ sessionExpired: true });
+    expect(await (await call(INTERVIEWER_TURN)).json()).toMatchObject({ sessionExpired: true });
   });
   it("sessionExpired is false under the ceiling", async () => {
     mockSpend.isSessionOver.mockReturnValue(false);
-    expect(await (await call(COACH_TURN)).json()).toMatchObject({ sessionExpired: false });
+    expect(await (await call(INTERVIEWER_TURN)).json()).toMatchObject({ sessionExpired: false });
   });
 });

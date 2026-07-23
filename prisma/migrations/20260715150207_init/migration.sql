@@ -194,8 +194,8 @@ CREATE TABLE "PanelVerdict" (
     "seatRollup" JSONB NOT NULL,
     "topStrengths" TEXT[],
     "topRisks" TEXT[],
-    "rubricVersion" TEXT NOT NULL DEFAULT '2026.06.0',
-    "judgeModel" TEXT NOT NULL DEFAULT 'gpt-4o-mini',
+    "rubricVersion" TEXT NOT NULL,
+    "judgeModel" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "PanelVerdict_pkey" PRIMARY KEY ("id")
@@ -368,9 +368,6 @@ CREATE INDEX "InterviewSession_scenarioId_idx" ON "InterviewSession"("scenarioId
 CREATE UNIQUE INDEX "InterviewSession_userId_clientRequestId_key" ON "InterviewSession"("userId", "clientRequestId");
 
 -- CreateIndex
-CREATE INDEX "InterviewTurn_sessionId_seq_idx" ON "InterviewTurn"("sessionId", "seq");
-
--- CreateIndex
 CREATE UNIQUE INDEX "InterviewTurn_sessionId_seq_key" ON "InterviewTurn"("sessionId", "seq");
 
 -- CreateIndex
@@ -471,4 +468,3 @@ ALTER TABLE "ResumeProfile" ADD CONSTRAINT "ResumeProfile_userId_fkey" FOREIGN K
 
 -- AddForeignKey
 ALTER TABLE "SpendReservation" ADD CONSTRAINT "SpendReservation_sessionId_fkey" FOREIGN KEY ("sessionId") REFERENCES "InterviewSession"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
