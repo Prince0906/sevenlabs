@@ -14,7 +14,7 @@ interface KeyStatus {
 
 const STATUS_LABEL: Record<string, { text: string; tint: string }> = {
   ACTIVE: { text: "Active", tint: "var(--signal-senior)" },
-  INVALID: { text: "Invalid — re-add", tint: "var(--destructive)" },
+  INVALID: { text: "Invalid, re-add", tint: "var(--destructive)" },
   EXHAUSTED: { text: "No quota", tint: "var(--destructive)" },
   REVOKED: { text: "Revoked", tint: "var(--destructive)" },
 };
@@ -65,7 +65,7 @@ export function KeyManagement() {
       setValue("");
       setEditing(false);
     } catch {
-      setError("Network error — try again.");
+      setError("Network error. Try again.");
     } finally {
       setSaving(false);
     }
@@ -91,7 +91,7 @@ export function KeyManagement() {
       <div className="rounded-xl border border-border bg-card/40 p-5">
         <p className="text-[15px] font-semibold">Bring your own API key</p>
         <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-          Not enabled on this server yet — your panels run on the shared trial key.
+          Not enabled on this server yet. Your panels run on the shared trial key.
         </p>
       </div>
     );
@@ -104,7 +104,7 @@ export function KeyManagement() {
       <p className="text-[15px] font-semibold">Your OpenAI API key</p>
       <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
         Run unlimited, full-length panels on your own key. It&apos;s encrypted, used only to
-        start your interviews, and never shown again — the realtime minutes bill to your OpenAI
+        start your interviews, and never shown again. The realtime minutes bill to your OpenAI
         account. Remove it anytime.
       </p>
 

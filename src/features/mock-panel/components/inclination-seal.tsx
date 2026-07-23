@@ -49,7 +49,7 @@ export function InclinationSeal({ overallSignal, inclination, barRaiserVeto, sum
               "inline-block -rotate-2 rounded-md border-2 px-2.5 py-1 font-display text-sm font-semibold uppercase tracking-[0.06em]",
               barRaiserVeto
                 ? "border-border text-muted-foreground line-through"
-                : "border-[var(--clay)] text-[var(--clay-strong)]"
+                : "border-[var(--primary)] text-[var(--primary)]"
             )}
           >
             {INCLINATION_LABEL[inclination]}
@@ -63,7 +63,7 @@ export function InclinationSeal({ overallSignal, inclination, barRaiserVeto, sum
             Bar Raiser veto
           </p>
           <p className="mt-1 text-[15px] leading-relaxed text-muted-foreground">
-            The Bar Raiser could not endorse at this level — a veto is decisive and
+            The Bar Raiser could not endorse at this level. A veto is decisive and
             overrides the committee inclination above.
           </p>
         </div>

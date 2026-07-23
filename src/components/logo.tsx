@@ -2,20 +2,19 @@ import { BRAND } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 
 /**
- * Editorial serif wordmark — the brand renders as type, not a raster logo.
- * The emerald period nods to the Senior signal: the destination the product
- * moves you toward.
+ * Wordmark — the brand renders as type, not a raster logo. The cobalt period
+ * is the brand accent: the one blue in the whole app.
  */
 export function Logo({ className }: { className?: string }) {
   return (
     <span
       className={cn(
-        "font-display text-lg font-semibold tracking-tight text-foreground",
+        "font-display text-lg font-bold tracking-tight text-foreground",
         className
       )}
     >
       {BRAND.name}
-      <span className="text-signal-senior">.</span>
+      <span className="text-primary">.</span>
     </span>
   );
 }

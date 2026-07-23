@@ -85,15 +85,15 @@ export function OutcomeCapture({ sessionId }: { sessionId: string }) {
     <motion.section
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-xl border border-l-2 border-l-[var(--clay)] px-5 py-5"
-      style={{ backgroundColor: "color-mix(in oklch, var(--clay) 8%, var(--card))" }}
+      className="rounded-xl border border-l-2 border-l-primary px-5 py-5"
+      style={{ backgroundColor: "color-mix(in oklch, var(--primary) 8%, var(--card))" }}
     >
-      <p className="text-[10px] uppercase tracking-[0.16em] text-[var(--clay-strong)]">Close the loop</p>
+      <p className="text-[10px] uppercase tracking-[0.16em] text-primary">Close the loop</p>
       <h3 className="mt-1.5 font-display text-lg font-semibold tracking-tight">
         {company ? `Did you hear back from ${titleCase(company)}?` : "Did you hear back?"}
       </h3>
       <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
-        This is the one thing the panel can&apos;t see — how its call held up against what
+        This is the one thing the panel can&apos;t see: how its call held up against what
         actually happened. It stays private to you, and it&apos;s how the next prediction gets sharper.
       </p>
       <div className="mt-4 flex flex-wrap gap-2" aria-busy={saving}>

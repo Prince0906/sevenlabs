@@ -8,7 +8,6 @@ import { PageHeader } from "@/components/page-header";
 import { pageTransition } from "@/lib/motion";
 import { SIGNAL_LABEL } from "@/lib/signal";
 import { CockpitGreeting } from "@/features/dashboard/components/cockpit-greeting";
-import { StoriesCard } from "@/features/dashboard/components/stories-card";
 import {
   PendingOutcomesCard,
   type PendingOutcome,
@@ -76,7 +75,7 @@ export function DashboardView({
                 Step into the room when you&apos;re ready.
               </h2>
               <p className="mx-auto mt-3 max-w-md text-[15px] leading-relaxed text-muted-foreground">
-                A live, three-interviewer panel scores you against the real bar — and
+                A live, three-interviewer panel scores you against the real bar, and
                 shows you exactly where you stand. About 15 minutes.
               </p>
               <Button size="xl" asChild className="mt-7">
@@ -140,7 +139,7 @@ export function DashboardView({
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium">
                           {titleCase(p.company)}
-                          {p.title ? ` — ${p.title}` : ""}
+                          {p.title ? ` · ${p.title}` : ""}
                         </p>
                         <p className="mt-0.5 text-[12px] text-muted-foreground">
                           {formatDate(p.endedAtIso)}
@@ -159,7 +158,9 @@ export function DashboardView({
             </section>
           )}
 
-          <StoriesCard />
+          {/* Future gamified widgets (daily streak, story bank) land here once
+              they have real backing data. The dashboard shows shipped features
+              only; no "coming soon" tiles. */}
         </motion.div>
       </div>
     </div>

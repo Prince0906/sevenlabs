@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Fraunces, Hanken_Grotesk, Geist_Mono } from "next/font/google";
+import { Bricolage_Grotesque, Hanken_Grotesk, Geist_Mono } from "next/font/google";
 import { SessionProvider } from "next-auth/react";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
@@ -12,8 +12,8 @@ const hanken = Hanken_Grotesk({
   display: "swap",
 });
 
-const fraunces = Fraunces({
-  variable: "--font-fraunces",
+const bricolage = Bricolage_Grotesque({
+  variable: "--font-bricolage",
   subsets: ["latin"],
   display: "swap",
 });
@@ -25,15 +25,15 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: `${BRAND.name} — ${BRAND.tagline}`,
+    default: `${BRAND.name} · ${BRAND.tagline}`,
     template: `%s · ${BRAND.name}`,
   },
   description:
-    "Practice your FAANG behavioral answers out loud and get scored against the company's actual rubric — see whether you read as New Grad, SDE II, or Senior.",
+    "A live three-interviewer voice panel that scores you against the real bar. See whether you read as New Grad, SDE II, or Senior before it counts.",
   openGraph: {
-    title: `${BRAND.name} — ${BRAND.tagline}`,
+    title: `${BRAND.name} · ${BRAND.tagline}`,
     description:
-      "Voice-first interview practice with company-specific rubric scoring. Hear exactly where you lost the interviewer.",
+      "Get judged before it counts. A live three-interviewer panel tells you the level you read as, before a real one does.",
     siteName: BRAND.name,
   },
 };
@@ -46,11 +46,11 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${hanken.variable} ${fraunces.variable} ${geistMono.variable} font-sans antialiased`}
+        className={`${hanken.variable} ${bricolage.variable} ${geistMono.variable} font-sans antialiased`}
       >
         <ThemeProvider
           attribute="class"
-          forcedTheme="dark"
+          forcedTheme="light"
           disableTransitionOnChange
         >
           <SessionProvider>{children}</SessionProvider>

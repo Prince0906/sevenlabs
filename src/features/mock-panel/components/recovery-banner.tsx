@@ -17,7 +17,7 @@ type Cta = "retry" | "end" | "over";
 const CONFIG: Record<RecoveryKind, { title: string; body: string; tone: "warn" | "error"; cta: Cta }> = {
   "mic-denied": {
     title: "Microphone needed",
-    body: "Allow mic access to begin — your voice powers the live interview, and a recording of each answer is sent to score your delivery, then discarded.",
+    body: "Allow mic access to begin. Your voice powers the live interview, and a recording of each answer is sent to score your delivery, then discarded.",
     tone: "warn",
     cta: "retry",
   },
@@ -59,7 +59,7 @@ const CONFIG: Record<RecoveryKind, { title: string; body: string; tone: "warn" |
   },
   "judgment-timeout": {
     title: "Scoring timed out",
-    body: "We couldn't finish scoring in time — your transcript is saved. Try again shortly.",
+    body: "We couldn't finish scoring in time. Your transcript is saved. Try again shortly.",
     tone: "error",
     cta: "over",
   },
@@ -84,7 +84,7 @@ export function RecoveryBanner({ kind, onRetry, onEndAndScore, onStartOver }: Re
         c.tone === "error" ? "border-destructive/40" : "border-border"
       )}
     >
-      <Icon className={cn("mt-0.5 size-5 shrink-0", c.tone === "error" ? "text-destructive" : "text-[var(--clay-strong)]")} />
+      <Icon className={cn("mt-0.5 size-5 shrink-0", c.tone === "error" ? "text-destructive" : "text-[var(--primary)]")} />
       <div className="min-w-0 flex-1">
         <p className="font-display text-[15px] font-semibold tracking-tight">{c.title}</p>
         <p className="mt-1 text-[15px] leading-relaxed text-muted-foreground">{c.body}</p>

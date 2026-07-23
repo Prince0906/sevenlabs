@@ -26,15 +26,15 @@ export function PendingOutcomesCard({ sessions }: { sessions: PendingOutcome[] }
     <motion.section
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-xl border border-l-2 border-l-[var(--clay)] px-5 py-5"
-      style={{ backgroundColor: "color-mix(in oklch, var(--clay) 8%, var(--card))" }}
+      className="rounded-xl border border-l-2 border-l-primary px-5 py-5"
+      style={{ backgroundColor: "color-mix(in oklch, var(--primary) 8%, var(--card))" }}
     >
-      <p className="text-[10px] uppercase tracking-[0.16em] text-[var(--clay-strong)]">Close the loop</p>
+      <p className="text-[10px] uppercase tracking-[0.16em] text-primary">Close the loop</p>
       <h2 className="mt-1.5 font-display text-lg font-semibold tracking-tight">
         How did your real interviews go?
       </h2>
       <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
-        The real result is the one thing your panel can&apos;t see — and the one thing that makes its
+        The real result is the one thing your panel can&apos;t see, and the one thing that makes its
         next call sharper. It stays private to you.
       </p>
       <ul className="mt-4 space-y-2">
@@ -42,7 +42,7 @@ export function PendingOutcomesCard({ sessions }: { sessions: PendingOutcome[] }
           <li key={s.id}>
             <Link
               href={`/mock/${s.id}`}
-              className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[var(--clay-strong)] underline-offset-4 hover:underline"
+              className="inline-flex items-center gap-1.5 text-[13px] font-medium text-primary underline-offset-4 hover:underline"
             >
               Report your result for {titleCase(s.company)}
               <span aria-hidden>&rarr;</span>

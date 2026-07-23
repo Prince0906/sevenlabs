@@ -37,9 +37,9 @@ export function ReportBody({ report }: { report: MockReport }) {
       {report.degradedDelivery && (
         <motion.div
           variants={staggerItem}
-          className="rounded-lg border border-amber-500/30 bg-amber-500/6 px-4 py-3"
+          className="rounded-lg border border-signal-newgrad/40 bg-signal-newgrad/10 px-4 py-3"
         >
-          <p className="text-sm leading-relaxed text-amber-200/90">
+          <p className="text-sm leading-relaxed text-foreground/85">
             <span className="font-semibold">Connection hiccup.</span> Part of this
             session didn’t reach our servers, so a few moments may be missing from the
             transcript the panel scored. Read this verdict as directional.
@@ -54,7 +54,7 @@ export function ReportBody({ report }: { report: MockReport }) {
       {dimensions.length > 0 && (
         <motion.section variants={staggerItem} className="space-y-5">
           <h2 className="font-display text-xl font-semibold tracking-tight">
-            Where you scored — weakest first
+            Where you scored, weakest first
           </h2>
           <div className="space-y-5">
             {dimensions.map((d) => (
@@ -68,7 +68,7 @@ export function ReportBody({ report }: { report: MockReport }) {
                 <div className="h-1 w-full rounded-full bg-border">
                   <div
                     className="h-1 rounded-full transition-all"
-                    style={{ width: `${d.score}%`, backgroundColor: SIGNAL_CSS_VAR[d.signalLevel], boxShadow: `0 0 8px color-mix(in oklch, ${SIGNAL_CSS_VAR[d.signalLevel]} 50%, transparent)` }}
+                    style={{ width: `${d.score}%`, backgroundColor: SIGNAL_CSS_VAR[d.signalLevel] }}
                   />
                 </div>
                 {d.evidence && (
@@ -97,10 +97,10 @@ export function ReportBody({ report }: { report: MockReport }) {
         {report.resilience != null && (
           <p className="text-[13px] leading-relaxed text-muted-foreground">
             {report.resilience >= 55
-              ? "Your delivery composure held — even sharpened — as the questions got harder, measured against your own warm-up. That steadiness under pressure is what carries into the real room."
+              ? "Your delivery composure held, even sharpened, as the questions got harder, measured against your own warm-up. That steadiness under pressure is what carries into the real room."
               : report.resilience >= 45
-                ? "Your composure stayed level from your warm-up through the harder questions — no pressure wobble in your delivery."
-                : "Your delivery composure slipped under the harder questions, relative to your own warm-up. That gap is the most trainable part — it shrinks with reps, and it's measured only against you, never anyone else."}
+                ? "Your composure stayed level from your warm-up through the harder questions. No pressure wobble in your delivery."
+                : "Your delivery composure slipped under the harder questions, relative to your own warm-up. That gap is the most trainable part. It shrinks with reps, and it's measured only against you, never anyone else."}
           </p>
         )}
         {!hasConfidence && (
@@ -155,7 +155,7 @@ export function ReportBody({ report }: { report: MockReport }) {
 
               <p className="text-[11px] leading-relaxed text-muted-foreground/70">
                 Across {report.disfluency.answersScored} answer
-                {report.disfluency.answersScored === 1 ? "" : "s"} — counted from the words you
+                {report.disfluency.answersScored === 1 ? "" : "s"}, counted from the words you
                 actually said, fillers and repeats included, so you hear your real habits, not a
                 cleaned-up version.
               </p>
@@ -177,14 +177,14 @@ export function ReportBody({ report }: { report: MockReport }) {
                 />
               </div>
               <p className="text-[11px] leading-relaxed text-muted-foreground/70">
-                Filler counts here are a floor — quiet hesitations often register only as a pause.
+                Filler counts here are a floor. Quiet hesitations often register only as a pause.
               </p>
             </>
           ) : null}
 
           {report.fluency && report.fluency.perAnswer.length > 1 && (
             <details className="group">
-              <summary className="cursor-pointer text-[13px] font-medium text-[var(--clay-strong)]">
+              <summary className="cursor-pointer text-[13px] font-medium text-primary">
                 Per-answer breakdown
               </summary>
               <div className="mt-3 space-y-2">
@@ -216,10 +216,10 @@ export function ReportBody({ report }: { report: MockReport }) {
       {report.oneRep && (
         <motion.section
           variants={staggerItem}
-          className="rounded-lg border border-l-2 border-l-[var(--clay)] px-4 py-4"
-          style={{ backgroundColor: "color-mix(in oklch, var(--clay) 10%, var(--card))" }}
+          className="rounded-lg border border-l-2 border-l-[var(--primary)] px-4 py-4"
+          style={{ backgroundColor: "color-mix(in oklch, var(--primary) 10%, var(--card))" }}
         >
-          <p className="text-[10px] uppercase tracking-[0.16em] text-[var(--clay-strong)]">Drill this next</p>
+          <p className="text-[10px] uppercase tracking-[0.16em] text-primary">Drill this next</p>
           <p className="mt-1.5 font-display text-lg font-semibold tracking-tight">{report.oneRep.lp}</p>
           <p className="mt-1 text-[15px] leading-relaxed text-muted-foreground">{report.oneRep.text}</p>
         </motion.section>
@@ -245,20 +245,14 @@ function StatTile({
 }) {
   return (
     <div
-      className="rounded-xl border border-border/70 bg-card px-3.5 py-3 sm:px-4 sm:py-3.5"
-      style={
-        accent
-          ? { boxShadow: "inset 0 1px 0 color-mix(in oklch, var(--clay) 22%, transparent)" }
-          : undefined
-      }
-    >
+      className="rounded-xl border border-border/70 bg-card px-3.5 py-3 sm:px-4 sm:py-3.5">
       <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground sm:text-[11px]">
         {label}
       </p>
       <p
         className={cn(
           "mt-1 font-display text-[1.7rem] font-semibold leading-none tabular-nums sm:text-4xl",
-          accent && "text-[var(--clay-strong)]"
+          accent && "text-primary"
         )}
       >
         {value}
@@ -275,13 +269,12 @@ function FillerChip({ token, count }: { token: string; count: number }) {
     <span
       className="inline-flex items-baseline gap-1.5 rounded-full border px-3 py-1.5"
       style={{
-        borderColor: "color-mix(in oklch, var(--clay) 45%, transparent)",
-        backgroundColor: "color-mix(in oklch, var(--clay) 8%, var(--card))",
-        boxShadow: "0 0 18px color-mix(in oklch, var(--clay) 14%, transparent)",
+        borderColor: "color-mix(in oklch, var(--primary) 45%, transparent)",
+        backgroundColor: "color-mix(in oklch, var(--primary) 8%, var(--card))",
       }}
     >
       <span className="font-display text-[15px] font-medium text-foreground">{`“${token}”`}</span>
-      <span className="text-[12px] font-semibold tabular-nums text-[var(--clay-strong)]">
+      <span className="text-[12px] font-semibold tabular-nums text-primary">
         &times;{count}
       </span>
     </span>
@@ -338,7 +331,7 @@ export function MockReportView({ sessionId }: { sessionId: string }) {
   }, [sessionId]);
 
   return (
-    <div className="panel-stage flex min-h-0 flex-1 flex-col bg-background text-foreground">
+    <div className="flex min-h-0 flex-1 flex-col bg-background text-foreground">
       <PageHeader title="Panel Verdict" />
       <div className="min-h-0 flex-1 overflow-y-auto">
         <motion.div
@@ -392,7 +385,7 @@ export function FailedScreen({ reason }: { reason?: string }) {
       </p>
       <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
         {timedOut
-          ? "Your transcript is saved — try again shortly."
+          ? "Your transcript is saved. Try again shortly."
           : "There's nothing to score for this one."}
       </p>
       <Button variant="outline" size="sm" className="mt-2" asChild>

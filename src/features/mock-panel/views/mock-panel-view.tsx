@@ -81,7 +81,7 @@ export function MockPanelView({ scenarioId = SCENARIO_ID }: { scenarioId?: strin
   }
 
   return (
-    <div className="panel-stage flex min-h-0 flex-1 flex-col bg-background text-foreground">
+    <div className="flex min-h-0 flex-1 flex-col bg-background text-foreground">
       <PageHeader title="React & JavaScript Panel" rightAction={rightAction} />
       {/* The three interviewers pinned at the TOP, OUTSIDE the scroll area, so
           they stay in view as the transcript grows (mirrors the PTT bar below —
@@ -137,14 +137,14 @@ function PttControl({ p }: { p: ReturnType<typeof useMockPanel> }) {
         variant={p.isCapturing ? "default" : "outline"}
         className="rounded-full px-10"
       >
-        {p.isCapturing ? "Done — send to the panel" : "Start answering"}
+        {p.isCapturing ? "Send to the panel" : "Start answering"}
       </Button>
       <p className="text-xs text-muted-foreground">
         {p.isCapturing
-          ? "Take your time — pauses are fine. Tap Done when you've finished."
+          ? "Take your time. Pauses are fine. Tap Send when you're done."
           : p.coachResponseInFlight
             ? "Listen to the interviewer…"
-            : "Tap to answer — you control when your turn ends."}
+            : "Tap to answer. You control when your turn ends."}
       </p>
     </div>
   );
@@ -187,7 +187,7 @@ export function Intro({
           <div key={i} className="flex items-center gap-5">
             <div
               className="size-3 rounded-full"
-              style={{ backgroundColor: tint, boxShadow: `0 0 14px color-mix(in oklch, ${tint} 55%, transparent)`, opacity: 0.85 - i * 0.15 }}
+              style={{ backgroundColor: tint, opacity: 0.85 - i * 0.15 }}
             />
             {i < TEASER_TINTS.length - 1 && <span className="h-px w-10 bg-border" />}
           </div>
@@ -195,7 +195,7 @@ export function Intro({
       </motion.div>
 
       <motion.div variants={staggerItem} className="space-y-5 text-center">
-        <p className="text-xs font-medium uppercase tracking-[0.22em] text-[var(--clay-strong)]">
+        <p className="text-xs font-medium uppercase tracking-[0.22em] text-primary">
           React / JavaScript · Technical Panel
         </p>
         <h1 className="mx-auto max-w-2xl font-display text-[1.7rem] font-semibold leading-[1.12] tracking-[-0.02em] sm:text-4xl sm:leading-[1.05] lg:text-5xl">
@@ -204,8 +204,8 @@ export function Intro({
           Hear where you really stand.
         </h1>
         <p className="mx-auto max-w-prose text-base leading-relaxed text-muted-foreground">
-          Three interviewers — JavaScript fundamentals, React &amp; Next.js, and rendering
-          performance — one of them a Bar Raiser who drills your strongest area. Conceptual
+          Three interviewers: JavaScript fundamentals, React &amp; Next.js, and rendering
+          performance. One of them is a Bar Raiser who drills your strongest area. Conceptual
           questions with real follow-ups, then a committee verdict, not a number.
         </p>
       </motion.div>
@@ -213,7 +213,7 @@ export function Intro({
       <motion.ol variants={staggerItem} className="mx-auto max-w-prose space-y-4 border-t border-border pt-6">
         {INTRO_STEPS.map(([n, t, d]) => (
           <li key={n} className="flex gap-4">
-            <span className="font-display text-base font-semibold tabular-nums text-[var(--clay-strong)]">
+            <span className="font-display text-base font-semibold tabular-nums text-primary">
               {n}
             </span>
             <div>
@@ -262,7 +262,7 @@ function LiveShell({ p }: { p: ReturnType<typeof useMockPanel> }) {
       : p.phase === "creating"
         ? "Securing a private line…"
         : "Waking your interviewers…";
-  let hint = connecting ? "This can take a moment — hang tight" : "One moment";
+  let hint = connecting ? "This can take a moment. Hang tight" : "One moment";
   let dim = false;
   let reactive = false;
   let busy = false;
@@ -281,7 +281,7 @@ function LiveShell({ p }: { p: ReturnType<typeof useMockPanel> }) {
     // Push-to-talk: the candidate's mic is open. The orb reacts; nothing ends the
     // turn until they tap Done, so pauses to think are completely safe.
     label = "Listening…";
-    hint = "Take your time — tap Done when you've finished";
+    hint = "Take your time. Tap Send when you're done";
     reactive = true;
   } else if (p.phase === "live" && p.committedTurns === 0) {
     // Opening beat: the interviewer speaks first. Don't tell the candidate it's
@@ -427,7 +427,7 @@ export function TranscriptLine({
         )}
       >
         {text}
-        {streaming && <span className="ml-0.5 inline-block animate-pulse text-[var(--clay)]">▍</span>}
+        {streaming && <span className="ml-0.5 inline-block animate-pulse text-primary">▍</span>}
       </p>
     </div>
   );

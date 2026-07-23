@@ -11,27 +11,16 @@ interface AuthShellProps {
 }
 
 /**
- * Immersive brand panel for the first-impression / conversion surface. The
- * Signal palette (amber → blue → emerald) appears here as atmosphere + a
- * product visual — color where it sells. The form panel (right) stays calm
- * and high-contrast for the action itself.
+ * First-impression / conversion surface. The brand panel (left) is the same
+ * daylight world as the app — paper, ink edges, the signal trio only where it
+ * means level. The form panel (right) stays calm for the action itself.
  */
 export function AuthShell({ children }: AuthShellProps) {
   return (
     <div className="grid min-h-screen lg:grid-cols-2">
-      <div
-        className="relative hidden overflow-hidden lg:flex lg:flex-col lg:justify-between lg:p-12"
-        style={{ backgroundColor: "oklch(0.19 0.012 60)" }}
-      >
-        {/* Colored atmosphere — the brand's signal palette as soft glows */}
-        <div aria-hidden className="pointer-events-none absolute inset-0">
-          <div className="absolute -left-24 -top-24 size-80 rounded-full bg-signal-senior/30 blur-[110px]" />
-          <div className="absolute -right-16 top-1/3 size-80 rounded-full bg-signal-sde2/25 blur-[120px]" />
-          <div className="absolute -bottom-28 left-1/3 size-80 rounded-full bg-signal-newgrad/25 blur-[110px]" />
-        </div>
-
+      <div className="relative hidden border-r border-border bg-secondary/40 lg:flex lg:flex-col lg:justify-between lg:p-12">
         <Link href="/" className="relative z-10 flex items-center gap-2">
-          <Logo className="text-white" />
+          <Logo />
         </Link>
 
         <motion.div
@@ -40,24 +29,23 @@ export function AuthShell({ children }: AuthShellProps) {
           animate="animate"
           className="relative z-10 max-w-md space-y-8"
         >
-          <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-white/50">
+          <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
             Interview prep, out loud
           </p>
-          <h2 className="font-display text-3xl font-semibold leading-[1.15] tracking-tight text-white xl:text-4xl">
-            Practice your FAANG behavioral answers and hear exactly where you
-            lost the interviewer.
+          <h2 className="font-display text-3xl font-bold leading-[1.1] tracking-tight xl:text-4xl">
+            Get judged before it counts.
           </h2>
 
           <SignalShowcase />
 
-          <p className="text-sm leading-relaxed text-white/65">
-            Every answer is scored against the company&rsquo;s actual rubric.
-            You see whether you read as New Grad, SDE II, or Senior — not just
-            whether you said &ldquo;um.&rdquo;
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            Three interviewers, live, by voice. A committee verdict tells you
+            whether you read as New Grad, SDE II, or Senior, and the one gap
+            to close next.
           </p>
         </motion.div>
 
-        <p className="relative z-10 text-xs text-white/45">
+        <p className="relative z-10 text-xs text-muted-foreground">
           Get to Senior signal before your interview day.
         </p>
       </div>
@@ -83,16 +71,21 @@ export function AuthShell({ children }: AuthShellProps) {
   );
 }
 
+const TRIO = [
+  "var(--signal-newgrad)",
+  "var(--signal-sde2)",
+  "var(--signal-senior)",
+];
+
 /**
- * Product proof: the leadership-signal readout that no competitor offers,
- * rendered with the full amber → blue → emerald progression so the brand's
- * color language is the first thing a visitor sees.
+ * Product proof: the leadership-signal readout, as a game piece. The level
+ * meter is three hard-stop bands with a pin — never a blended gradient.
  */
 function SignalShowcase() {
   return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.04] p-5 backdrop-blur-sm">
+    <div className="piece p-5">
       <div className="flex items-center justify-between">
-        <span className="text-[11px] font-medium uppercase tracking-[0.08em] text-white/45">
+        <span className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
           Leadership signal
         </span>
         <span className="rounded-full bg-signal-senior/15 px-2.5 py-0.5 text-xs font-semibold text-signal-senior">
@@ -100,22 +93,28 @@ function SignalShowcase() {
         </span>
       </div>
 
-      <div className="mt-4 grid grid-cols-3 text-center text-[11px]">
-        <span className="text-signal-newgrad">New Grad</span>
-        <span className="text-signal-sde2">SDE II</span>
-        <span className="font-semibold text-signal-senior">Senior</span>
+      <div className="relative mt-4 flex h-2 gap-1">
+        {TRIO.map((c, i) => (
+          <span
+            key={c}
+            className="h-full flex-1 rounded-full"
+            style={{ backgroundColor: c, opacity: i === 2 ? 1 : 0.25 }}
+          />
+        ))}
+        <span
+          className="absolute top-1/2 size-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-foreground"
+          style={{ left: `${(5 * 100) / 6}%`, backgroundColor: TRIO[2] }}
+        />
       </div>
-      <div
-        className="mt-2 h-1 rounded-full"
-        style={{
-          backgroundImage:
-            "linear-gradient(to right, var(--signal-newgrad), var(--signal-sde2), var(--signal-senior))",
-        }}
-      />
+      <div className="mt-1.5 grid grid-cols-3 text-center text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+        <span>New Grad</span>
+        <span>SDE II</span>
+        <span className="font-semibold text-foreground">Senior</span>
+      </div>
 
-      <div className="mt-4 border-l-2 border-signal-senior/50 pl-3">
-        <p className="text-sm font-medium text-white">Ownership</p>
-        <p className="mt-0.5 text-xs leading-relaxed text-white/55">
+      <div className="mt-4 border-l-2 border-signal-senior pl-3">
+        <p className="text-sm font-medium">Ownership</p>
+        <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
           &ldquo;I owned the migration end-to-end and cut p99 latency by
           40%.&rdquo;
         </p>
