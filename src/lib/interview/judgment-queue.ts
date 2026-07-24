@@ -12,7 +12,12 @@ import { log } from "@/lib/log";
  */
 const MAX_ATTEMPTS = 3;
 const LEASE_SEC = 120;
-const SWEEP_INTERVAL_MS = 60_000;
+// The normal path drains on enqueue; this interval is only the crash-recovery
+// and failed-retry net, so its period IS the worst-case rescue SLA for a
+// stranded job. 5 min is the deliberate floor: fast enough that no one notices,
+// slow enough that an idle box doesn't burn the metered DB's op quota on empty
+// polls (2 ops/tick × 1440/day dominated the free tier at 60s — see cost notes).
+const SWEEP_INTERVAL_MS = 300_000;
 const DRAIN_CAP = 50; // safety cap per drain pass
 
 /** Atomically claim one due job (PENDING, or RUNNING with an expired lease). */
