@@ -11,11 +11,11 @@ const mockPrisma = vi.hoisted(() => ({
 }));
 const mockLog = vi.hoisted(() => ({ warn: vi.fn(), info: vi.fn(), error: vi.fn() }));
 
-vi.mock("@/lib/db", () => ({ prisma: mockPrisma }));
-vi.mock("@/lib/log", () => ({ log: mockLog }));
-vi.mock("@/lib/env", () => ({ env: { DAILY_CAP_USD: 50 } }));
+vi.mock("@sevenlabs/backend/infrastructure/db", () => ({ prisma: mockPrisma }));
+vi.mock("@sevenlabs/backend/infrastructure/log", () => ({ log: mockLog }));
+vi.mock("@sevenlabs/backend/infrastructure/env", () => ({ env: { DAILY_CAP_USD: 50 } }));
 
-import { reserveGlobalSpend, checkRateLimit, reapRateBuckets } from "@/lib/interview/spend";
+import { reserveGlobalSpend, checkRateLimit, reapRateBuckets } from "@sevenlabs/backend/usage/spend";
 
 beforeEach(() => {
   vi.clearAllMocks();

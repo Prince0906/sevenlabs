@@ -5,7 +5,7 @@
 
 generator client {
   provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  output   = "../packages/backend/src/generated/prisma"
 }
 
 datasource db {
@@ -23,6 +23,9 @@ model User {
   emailVerified DateTime?
   image         String?
   passwordHash  String?
+  // Additive auth cutover: retain the legacy timestamp/hash until parity gates.
+  authEmailVerified Boolean @default(false)
+  disabledAt    DateTime?
 
   targetCompanies String[]  @default(["amazon"])
   interviewDate   DateTime?
@@ -44,7 +47,7 @@ model User {
 model Account {
   id                String  @id @default(cuid())
   userId            String
-  type              String
+  type              String  @default("oauth")
   provider          String
   providerAccountId String
   refresh_token     String? @db.Text
@@ -54,6 +57,11 @@ model Account {
   scope             String?
   id_token          String? @db.Text
   session_state     String?
+  password          String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @default(now()) @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -66,6 +74,10 @@ model Session {
   sessionToken String   @unique
   userId       String
   expires      DateTime
+  ipAddress    String?
+  userAgent    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now()) @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -78,6 +90,51 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+// Better Auth verification values are not unique tokens; the legacy
+// VerificationToken table cannot safely serve both schemas during cutover.
+model AuthVerification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @default(now()) @updatedAt
+
+  @@index([identifier])
+}
+
+model AuthRateLimit {
+  id          String @id @default(cuid())
+  key         String @unique
+  count       Int
+  lastRequest BigInt
+}
+
+// Token/content-free transactional email state. Recipient lookup is keyed HMAC,
+// not a plain email/hash. Suppression must survive restarts and repeated events.
+model EmailRecipient {
+  hash            String @id
+  suppressedAt    DateTime?
+  suppressionReason String?
+  lastRequestedAt DateTime @default(dbgenerated("'1970-01-01 00:00:00'::timestamp without time zone"))
+  deliveries      EmailDelivery[]
+}
+
+model EmailDelivery {
+  id                String @id
+  recipientHash     String
+  recipient         EmailRecipient @relation(fields: [recipientHash], references: [hash])
+  providerMessageId String?
+  status            String @default("pending")
+  eventRank         Int @default(0)
+  eventAt           DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @default(now()) @updatedAt
+
+  @@index([recipientHash])
+  @@index([status, createdAt])
 }
 
 // Who spoke in a turn: the candidate (USER) or an AI panel seat (INTERVIEWER).

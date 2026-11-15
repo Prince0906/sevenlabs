@@ -1,5 +1,5 @@
 import { type WordTimestamp, REALTIME_INPUT_CONFIG } from "@sevenlabs/shared-types";
-import { env } from "@/lib/env";
+import { env } from "../env";
 
 const OPENAI_BASE = "https://api.openai.com/v1";
 

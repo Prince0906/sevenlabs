@@ -10,6 +10,11 @@ WORKDIR /app
 
 # Copy package files and Prisma schema (postinstall runs "prisma generate")
 COPY package.json package-lock.json ./
+COPY packages/backend/package.json ./packages/backend/package.json
+COPY packages/panel-core/package.json ./packages/panel-core/package.json
+COPY packages/shared-types/package.json ./packages/shared-types/package.json
+COPY apps/api/package.json ./apps/api/package.json
+COPY apps/worker/package.json ./apps/worker/package.json
 COPY prisma ./prisma
 
 # Install all dependencies (including devDeps needed for prisma generate)
@@ -32,7 +37,7 @@ COPY . .
 ENV SKIP_ENV_VALIDATION=true
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Generate Prisma client (outputs to src/generated/prisma/client)
+# Generate the backend-owned Prisma client
 RUN npx prisma generate
 
 RUN npm run build
@@ -57,8 +62,8 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 # IMPORTANT: Next.js standalone does NOT auto-copy custom generated directories.
-# We must manually copy the Prisma client that was generated in src/generated/prisma
-COPY --from=builder --chown=nextjs:nodejs /app/src/generated/prisma ./src/generated/prisma
+# Keep the backend-owned generated client in sync with prisma/schema.prisma.
+COPY --from=builder --chown=nextjs:nodejs /app/packages/backend/src/generated/prisma ./packages/backend/src/generated/prisma
 
 # Switch to non-root user
 USER nextjs

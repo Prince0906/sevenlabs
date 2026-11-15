@@ -1,8 +1,8 @@
-import { prisma } from "@/lib/db";
+import { prisma } from "../../../infrastructure/db";
 import { redact } from "@sevenlabs/panel-core";
 import { runJudgment } from "./panel-orchestrator";
-import { reapRateBuckets } from "./spend";
-import { log } from "@/lib/log";
+import { reapRateBuckets } from "@sevenlabs/backend/usage/spend";
+import { log } from "../../../infrastructure/log";
 
 /**
  * Durable judgment queue. `complete` writes a JudgmentJob in
@@ -79,14 +79,15 @@ async function processOne(): Promise<boolean> {
 }
 
 /** Process all currently-due jobs (bounded). */
-export async function drainJudgmentQueue(): Promise<void> {
+export async function drainJudgmentQueue(signal?: AbortSignal): Promise<void> {
   let processed = 0;
-  while (processed < DRAIN_CAP && (await processOne())) processed += 1;
+  while (!signal?.aborted && processed < DRAIN_CAP && (await processOne())) processed += 1;
 }
 
 let started = false;
 /** Wire from instrumentation.register() so it runs once per server process. */
 export function startJudgmentSweeper(): void {
+  if (process.env.JUDGMENT_EXECUTION === "worker") return;
   if (started) return;
   started = true;
   void drainJudgmentQueue().catch((e) =>

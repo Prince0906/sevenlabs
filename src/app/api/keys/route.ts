@@ -1,19 +1,19 @@
 import { NextResponse } from "next/server";
-import type { Prisma } from "@/generated/prisma/client";
+import type { Prisma } from "@sevenlabs/backend/infrastructure/db";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/db";
-import { log } from "@/lib/log";
+import { prisma } from "@sevenlabs/backend/infrastructure/db";
+import { log } from "@sevenlabs/backend/infrastructure/log";
 import { redactUnknown } from "@sevenlabs/panel-core";
-import { ProviderError } from "@/lib/providers/openai";
+import { ProviderError } from "@sevenlabs/backend/infrastructure/providers/openai";
 import {
   isByokConfigured,
   encryptSecret,
   fingerprintSecret,
   last4,
-} from "@/lib/crypto";
-import { validateKeyViaMint } from "@/lib/byok";
-import { checkRateLimit } from "@/lib/interview/spend";
+} from "@sevenlabs/backend/infrastructure/crypto";
+import { validateKeyViaMint } from "@sevenlabs/backend/identity/keys";
+import { checkRateLimit } from "@sevenlabs/backend/usage/spend";
 
 // v1 BYOK is OpenAI-only (D3): only OpenAI offers GA realtime with browser-safe
 // ephemerals. Other providers are rejected until the turn-based path exists.

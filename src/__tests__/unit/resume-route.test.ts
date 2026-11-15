@@ -26,12 +26,12 @@ const mockSpend = vi.hoisted(() => ({
   checkRateLimit: vi.fn(async () => true),
 }));
 
-vi.mock("@/lib/db", () => ({ prisma: mockPrisma }));
+vi.mock("@sevenlabs/backend/infrastructure/db", () => ({ prisma: mockPrisma }));
 vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
-vi.mock("@/lib/log", () => ({ log: { error: vi.fn(), warn: vi.fn(), info: vi.fn() } }));
-vi.mock("@/lib/providers/openai", () => mockOpenai);
-vi.mock("@/lib/resume", () => mockResumeLib);
-vi.mock("@/lib/interview/spend", () => mockSpend);
+vi.mock("@sevenlabs/backend/infrastructure/log", () => ({ log: { error: vi.fn(), warn: vi.fn(), info: vi.fn() } }));
+vi.mock("@sevenlabs/backend/infrastructure/providers/openai", () => mockOpenai);
+vi.mock("@sevenlabs/backend/profiles/resume", () => mockResumeLib);
+vi.mock("@sevenlabs/backend/usage/spend", () => mockSpend);
 // panel-core stays REAL — the real validateResumeFacts runs through the route.
 
 import { auth } from "@/lib/auth";

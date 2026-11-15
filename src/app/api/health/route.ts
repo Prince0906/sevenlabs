@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
-import { isByokConfigured } from "@/lib/crypto";
-import { log } from "@/lib/log";
+import { prisma } from "@sevenlabs/backend/infrastructure/db";
+import { isByokConfigured } from "@sevenlabs/backend/infrastructure/crypto";
+import { log } from "@sevenlabs/backend/infrastructure/log";
 
 /**
  * Readiness probe (Caddy / uptime checks hit this; it's a public route). "Ready"

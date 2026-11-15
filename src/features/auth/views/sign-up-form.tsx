@@ -1,6 +1,7 @@
 "use client";
 
-import { signIn } from "next-auth/react";
+import { authClient, signIn } from "@/lib/auth-client";
+import { backendAuthEnabled, safeAuthRedirect } from "@/lib/auth-mode";
 import { use, useState } from "react";
 import Link from "next/link";
 
@@ -22,6 +23,7 @@ export function SignUpForm({ searchParamsPromise }: Props) {
   const [password, setPassword] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [verificationSent, setVerificationSent] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -29,6 +31,12 @@ export function SignUpForm({ searchParamsPromise }: Props) {
     setError(null);
 
     try {
+      if (backendAuthEnabled) {
+        const result = await authClient.signUp.email({ name: name.trim() || "Aloud user", email, password, callbackURL: "/sign-in" });
+        if (result.error) setError("Unable to create your account. Try again or request a verification email.");
+        else setVerificationSent(true);
+        return;
+      }
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -49,7 +57,7 @@ export function SignUpForm({ searchParamsPromise }: Props) {
       });
 
       if (signInRes?.ok) {
-        window.location.href = callbackUrl;
+        window.location.href = safeAuthRedirect(callbackUrl);
       } else {
         setError("Account created, but sign-in failed. Try signing in manually.");
       }
@@ -98,7 +106,7 @@ export function SignUpForm({ searchParamsPromise }: Props) {
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          {verificationSent ? <p role="status">Check your inbox for a verification link before signing in. If it does not arrive, <Link href="/verify-email" className="underline">request another email</Link>.</p> : <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name">Name</Label>
               <Input
@@ -147,7 +155,7 @@ export function SignUpForm({ searchParamsPromise }: Props) {
               {pending && <Spinner className="mr-2" />}
               {pending ? "Creating account" : "Create account"}
             </Button>
-          </form>
+          </form>}
         </CardContent>
       </Card>
 

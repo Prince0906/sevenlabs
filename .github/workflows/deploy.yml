@@ -45,6 +45,13 @@ jobs:
       SKIP_ENV_VALIDATION: "true"
       DATABASE_URL: "postgresql://user:pass@localhost:5432/db"
     steps:
+      # Temporary fail-closed hold: the auth backfill must not run while legacy
+      # auth is still writable. Remove only in the reviewed auth cutover commit
+      # after email/OAuth/browser/SSR parity and reconciliation/restore rehearsal.
+      - name: Block unfinished authentication cutover
+        run: |
+          echo "::error::Deployment paused: backend authentication cutover is incomplete. See docs/backend-migration.md."
+          exit 1
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
         with:
@@ -93,6 +100,9 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     if: github.repository == 'Prince0906/sevenlabs'
+    # Database mutation needs the same protected Environment as the rollout.
+    # Required reviewers must be configured in GitHub; YAML alone is not approval.
+    environment: production
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
     steps:

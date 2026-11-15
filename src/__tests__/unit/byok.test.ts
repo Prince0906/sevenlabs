@@ -7,11 +7,11 @@ const mockCrypto = vi.hoisted(() => ({
   isByokConfigured: vi.fn(() => true),
   decryptSecret: vi.fn(() => "sk-decrypted-key"),
 }));
-vi.mock("@/lib/db", () => ({ prisma: mockPrisma }));
-vi.mock("@/lib/crypto", () => mockCrypto);
-vi.mock("@/lib/providers/openai", () => ({ mintRealtimeEphemeral: vi.fn() }));
+vi.mock("@sevenlabs/backend/infrastructure/db", () => ({ prisma: mockPrisma }));
+vi.mock("@sevenlabs/backend/infrastructure/crypto", () => mockCrypto);
+vi.mock("@sevenlabs/backend/infrastructure/providers/openai", () => ({ mintRealtimeEphemeral: vi.fn() }));
 
-import { resolveSessionKey, markKeyFromMintError } from "@/lib/byok";
+import { resolveSessionKey, markKeyFromMintError } from "@sevenlabs/backend/identity/keys";
 
 const ENC = { ciphertextB64: "ct", ivB64: "iv", tagB64: "tag" };
 

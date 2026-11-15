@@ -1,6 +1,7 @@
 "use client";
 
-import { signIn } from "next-auth/react";
+import { signIn } from "@/lib/auth-client";
+import { backendAuthEnabled, safeAuthRedirect } from "@/lib/auth-mode";
 import { use, useState } from "react";
 import Link from "next/link";
 
@@ -43,11 +44,11 @@ export function SignInForm({ searchParamsPromise }: Props) {
         redirect: false,
       });
       if (res?.error) {
-        setError(ERROR_MESSAGES.CredentialsSignin);
+        setError(res.error === "EMAIL_NOT_VERIFIED" ? "Verify your email before signing in. You can request a new verification email below." : ERROR_MESSAGES.CredentialsSignin);
         return;
       }
       if (res?.ok) {
-        window.location.href = callbackUrl;
+        window.location.href = safeAuthRedirect(callbackUrl);
       }
     } catch {
       setError(ERROR_MESSAGES.Default);
@@ -129,6 +130,10 @@ export function SignInForm({ searchParamsPromise }: Props) {
               {pending ? "Signing in" : "Sign in"}
             </Button>
           </form>
+          {backendAuthEnabled && <div className="flex justify-between text-sm">
+            <Link href="/forgot-password" className="underline">Forgot password?</Link>
+            <Link href="/verify-email" className="underline">Resend verification</Link>
+          </div>}
         </CardContent>
       </Card>
 

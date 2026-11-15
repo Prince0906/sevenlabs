@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/db";
-import { log } from "@/lib/log";
+import { prisma } from "@sevenlabs/backend/infrastructure/db";
+import { log } from "@sevenlabs/backend/infrastructure/log";
 
 const JUDGMENT_DEADLINE_SEC = 180;
 

@@ -15,12 +15,12 @@ const mockPrisma = vi.hoisted(() => ({
 }));
 const mockOrch = vi.hoisted(() => ({ runJudgment: vi.fn() }));
 
-vi.mock("@/lib/db", () => ({ prisma: mockPrisma }));
-vi.mock("@/lib/interview/panel-orchestrator", () => mockOrch);
-vi.mock("@/lib/log", () => ({ log: { error: vi.fn(), warn: vi.fn(), info: vi.fn() } }));
+vi.mock("@sevenlabs/backend/infrastructure/db", () => ({ prisma: mockPrisma }));
+vi.mock("../../../packages/backend/src/modules/interviews/evaluation/panel-orchestrator", () => mockOrch);
+vi.mock("@sevenlabs/backend/infrastructure/log", () => ({ log: { error: vi.fn(), warn: vi.fn(), info: vi.fn() } }));
 vi.mock("@sevenlabs/panel-core", () => ({ redact: (s: string) => s }));
 
-import { drainJudgmentQueue } from "@/lib/interview/judgment-queue";
+import { drainJudgmentQueue } from "@sevenlabs/backend/interviews/jobs";
 
 /** claimNext returns these rows in order; an empty array ends the drain loop. */
 function claimSequence(...rounds: Array<Array<{ sessionId: string; attempts: number }>>) {
@@ -38,6 +38,12 @@ beforeEach(() => {
 });
 
 describe("drainJudgmentQueue", () => {
+  it("does not claim new work after shutdown is requested", async () => {
+    claimSequence([{ sessionId: "s1", attempts: 1 }]);
+    await drainJudgmentQueue(AbortSignal.abort());
+    expect(mockPrisma.$queryRaw).not.toHaveBeenCalled();
+    expect(mockOrch.runJudgment).not.toHaveBeenCalled();
+  });
   it("claims a due job, runs it, and marks it DONE on success", async () => {
     claimSequence([{ sessionId: "s1", attempts: 1 }]);
     await drainJudgmentQueue();

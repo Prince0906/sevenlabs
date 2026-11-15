@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/db";
-import { env } from "@/lib/env";
-import { log } from "@/lib/log";
+import { prisma } from "@sevenlabs/backend/infrastructure/db";
+import { env } from "@sevenlabs/backend/infrastructure/env";
+import { log } from "@sevenlabs/backend/infrastructure/log";
 
 const patchSchema = z.object({ event: z.enum(["live", "interrupt"]) });
 

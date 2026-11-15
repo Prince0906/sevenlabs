@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 
 // The spend meter reads env thresholds and imports prisma at module load. Pin the
 // env to known values and stub prisma so the PURE meter math is deterministic.
-vi.mock("@/lib/env", () => ({
+vi.mock("@sevenlabs/backend/infrastructure/env", () => ({
   env: {
     SESSION_CEILING_USD: 4,
     MAX_SESSION_SEC: 2700,
@@ -10,14 +10,14 @@ vi.mock("@/lib/env", () => ({
     DAILY_CAP_USD: 50,
   },
 }));
-vi.mock("@/lib/db", () => ({ prisma: {} }));
+vi.mock("@sevenlabs/backend/infrastructure/db", () => ({ prisma: {} }));
 
 import {
   estimateSessionUsd,
   spendCentsForElapsed,
   isOverCeiling,
   isSessionOver,
-} from "@/lib/interview/spend";
+} from "@sevenlabs/backend/usage/spend";
 
 // These three are the authoritative, server-clock cost meter + per-session
 // kill-switch. A sign/rounding error silently over- or under-charges every

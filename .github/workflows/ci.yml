@@ -47,12 +47,25 @@ jobs:
         with:
           node-version: 22
           cache: "npm"
-      - run: npm ci # `prisma generate` writes src/generated/prisma, which tsc needs
+      - run: npm ci # `prisma generate` writes packages/backend/src/generated/prisma, which tsc needs
       - run: npm run typecheck
 
   test:
     name: Tests + coverage gate
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: aloud_test
+          POSTGRES_PASSWORD: local_test_only
+          POSTGRES_DB: aloud_auth_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     # Full Vitest suite with coverage. The per-layer thresholds in
     # vitest.config.ts (docs/testing.md) fail the build on a regression — a ratchet,
     # not a vanity number. This is the ONLY test job in the whole pipeline.
@@ -61,6 +74,7 @@ jobs:
       # Zod env is bypassed above; the Prisma datasource still wants a
       # syntactically valid URL when modules import it. Dummy, never connects.
       DATABASE_URL: "postgresql://user:pass@localhost:5432/db"
+      TEST_DATABASE_URL: "postgresql://aloud_test:local_test_only@127.0.0.1:5432/aloud_auth_test"
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6

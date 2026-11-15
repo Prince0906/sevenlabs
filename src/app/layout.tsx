@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Bricolage_Grotesque, Hanken_Grotesk, Geist_Mono } from "next/font/google";
-import { SessionProvider } from "next-auth/react";
+import { AuthSessionProvider } from "@/components/auth-session-provider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { BRAND } from "@/lib/brand";
@@ -53,7 +53,7 @@ export default function RootLayout({
           forcedTheme="light"
           disableTransitionOnChange
         >
-          <SessionProvider>{children}</SessionProvider>
+          <AuthSessionProvider>{children}</AuthSessionProvider>
           <Toaster />
         </ThemeProvider>
       </body>

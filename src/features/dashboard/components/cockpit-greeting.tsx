@@ -1,6 +1,6 @@
 "use client";
 
-import { useSession } from "next-auth/react";
+import { useSession } from "@/lib/auth-client";
 import { SetInterviewDateDialog } from "./set-interview-date-dialog";
 import { cn } from "@/lib/utils";
 

@@ -1,6 +1,6 @@
 import type { DisfluencyWord } from "@sevenlabs/panel-core";
-import { env } from "@/lib/env";
-import { ProviderError } from "@/lib/providers/openai";
+import { env } from "../env";
+import { ProviderError } from "./openai";
 
 const DEEPGRAM_LISTEN = "https://api.deepgram.com/v1/listen";
 

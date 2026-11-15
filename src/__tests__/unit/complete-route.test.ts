@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 const mockPrisma = vi.hoisted(() => ({
   interviewSession: { findFirst: vi.fn(), updateMany: vi.fn() },
@@ -8,10 +8,10 @@ const mockPrisma = vi.hoisted(() => ({
 }));
 const mockQueue = vi.hoisted(() => ({ drainJudgmentQueue: vi.fn() }));
 
-vi.mock("@/lib/db", () => ({ prisma: mockPrisma }));
+vi.mock("@sevenlabs/backend/infrastructure/db", () => ({ prisma: mockPrisma }));
 vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
-vi.mock("@/lib/log", () => ({ log: { error: vi.fn(), warn: vi.fn(), info: vi.fn() } }));
-vi.mock("@/lib/interview/judgment-queue", () => mockQueue);
+vi.mock("@sevenlabs/backend/infrastructure/log", () => ({ log: { error: vi.fn(), warn: vi.fn(), info: vi.fn() } }));
+vi.mock("@sevenlabs/backend/interviews/jobs", () => mockQueue);
 vi.mock("next/server", async (importOriginal) => {
   const actual = await importOriginal<typeof import("next/server")>();
   // Run the after() callback inline so the queue-kick is observable in the test.
@@ -33,6 +33,7 @@ const call = (body?: unknown) => POST(req(body), ctx);
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.stubEnv("JUDGMENT_EXECUTION", "embedded");
   vi.mocked(auth).mockResolvedValue({ user: { id: "u1" } } as never);
   mockPrisma.interviewSession.findFirst.mockResolvedValue({
     status: "LIVE",
@@ -43,6 +44,8 @@ beforeEach(() => {
   // $transaction([updateMany, upsert]) → [updated]; updated.count drives the kick.
   mockPrisma.$transaction.mockResolvedValue([{ count: 1 }, {}]);
 });
+
+afterEach(() => vi.unstubAllEnvs());
 
 describe("POST /api/interview/sessions/:id/complete — guards", () => {
   it("401 when unauthenticated", async () => {
@@ -103,6 +106,12 @@ describe("POST /api/interview/sessions/:id/complete — zero-answer guard (1c)",
 });
 
 describe("POST /api/interview/sessions/:id/complete — transition + D6 persistence", () => {
+  it("only enqueues when standalone worker execution is enabled", async () => {
+    vi.stubEnv("JUDGMENT_EXECUTION", "worker");
+    expect((await call()).status).toBe(202);
+    expect(mockPrisma.judgmentJob.upsert).toHaveBeenCalled();
+    expect(mockQueue.drainJudgmentQueue).not.toHaveBeenCalled();
+  });
   it("CAS LIVE→DEBRIEF, enqueues the job, and kicks the queue", async () => {
     const res = await call();
     expect(res.status).toBe(202);

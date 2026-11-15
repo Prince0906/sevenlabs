@@ -1,8 +1,9 @@
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
-import { log } from "@/lib/log";
+import { prisma } from "@sevenlabs/backend/infrastructure/db";
+import { log } from "@sevenlabs/backend/infrastructure/log";
+import { backendAuthEnabled } from "@/lib/auth-mode";
 
 export const runtime = "nodejs";
 
@@ -13,6 +14,7 @@ const registerSchema = z.object({
 });
 
 export async function POST(request: Request) {
+  if (backendAuthEnabled) return NextResponse.json({ error: "Registration is served by the API" }, { status: 410 });
   try {
     const body = await request.json().catch(() => null);
     const parsed = registerSchema.safeParse(body);

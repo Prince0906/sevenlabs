@@ -1,5 +1,5 @@
-import { prisma } from "@/lib/db";
-import type { Prisma } from "@/generated/prisma/client";
+import { prisma } from "../../../infrastructure/db";
+import type { Prisma } from "../../../generated/prisma/client";
 import {
   rubricScoresSchema,
   panelVerdictSchema,
@@ -31,9 +31,9 @@ import {
   type CommitteeSeatInput,
   type DisfluencyReport,
 } from "@sevenlabs/panel-core";
-import { scoreAgainstRubric, judgeCommittee, JUDGE_MODEL } from "@/lib/providers/openai";
-import { settleReservation } from "@/lib/interview/spend";
-import { log } from "@/lib/log";
+import { scoreAgainstRubric, judgeCommittee, JUDGE_MODEL } from "../../../infrastructure/providers/openai";
+import { settleReservation } from "@sevenlabs/backend/usage/spend";
+import { log } from "../../../infrastructure/log";
 
 const CALL_TIMEOUT_MS = 30_000;
 const SEAT_ATTEMPTS = 2;

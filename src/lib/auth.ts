@@ -4,14 +4,17 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { authConfig } from "@/auth.config";
-import { prisma } from "@/lib/db";
+import { prisma } from "@sevenlabs/backend/infrastructure/db";
+import { headers } from "next/headers";
+import { backendAuthEnabled } from "./auth-mode";
+import { readBackendSession } from "./backend-session";
 
 const credentialsSchema = z.object({
   email: z.string().email(),
   password: z.string().min(1),
 });
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
+const legacyAuth = NextAuth({
   ...authConfig,
   adapter: PrismaAdapter(prisma),
   session: { strategy: "jwt" },
@@ -43,3 +46,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
 });
+
+export const handlers = backendAuthEnabled
+  ? { GET: async () => Response.json({ error: "Authentication is served by the API" }, { status: 410 }), POST: async () => Response.json({ error: "Authentication is served by the API" }, { status: 410 }) }
+  : legacyAuth.handlers;
+
+export async function auth() {
+  if (!backendAuthEnabled) return legacyAuth.auth();
+  return readBackendSession((await headers()).get("cookie") ?? "");
+}

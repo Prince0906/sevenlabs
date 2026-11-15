@@ -1,0 +1,90 @@
+{
+  "src/app/(dashboard)/dashboard/page.tsx": [
+    "@sevenlabs/backend/infrastructure/db"
+  ],
+  "src/app/api/auth/register/route.ts": [
+    "@sevenlabs/backend/infrastructure/db",
+    "@sevenlabs/backend/infrastructure/log"
+  ],
+  "src/app/api/health/route.ts": [
+    "@sevenlabs/backend/infrastructure/crypto",
+    "@sevenlabs/backend/infrastructure/db",
+    "@sevenlabs/backend/infrastructure/log"
+  ],
+  "src/app/api/interview/sessions/[id]/complete/route.ts": [
+    "@sevenlabs/backend/infrastructure/db",
+    "@sevenlabs/backend/infrastructure/log",
+    "@sevenlabs/backend/interviews/jobs"
+  ],
+  "src/app/api/interview/sessions/[id]/mint/route.ts": [
+    "@sevenlabs/backend/identity/keys",
+    "@sevenlabs/backend/infrastructure/db",
+    "@sevenlabs/backend/infrastructure/env",
+    "@sevenlabs/backend/infrastructure/log",
+    "@sevenlabs/backend/infrastructure/providers/openai",
+    "@sevenlabs/backend/profiles/resume-digest",
+    "@sevenlabs/backend/usage/spend"
+  ],
+  "src/app/api/interview/sessions/[id]/outcome/route.ts": [
+    "@sevenlabs/backend/infrastructure/db",
+    "@sevenlabs/backend/infrastructure/log"
+  ],
+  "src/app/api/interview/sessions/[id]/report/route.ts": [
+    "@sevenlabs/backend/infrastructure/db",
+    "@sevenlabs/backend/infrastructure/log"
+  ],
+  "src/app/api/interview/sessions/[id]/route.ts": [
+    "@sevenlabs/backend/infrastructure/db",
+    "@sevenlabs/backend/infrastructure/env",
+    "@sevenlabs/backend/infrastructure/log"
+  ],
+  "src/app/api/interview/sessions/[id]/turns/audio/route.ts": [
+    "@sevenlabs/backend/infrastructure/db",
+    "@sevenlabs/backend/infrastructure/log",
+    "@sevenlabs/backend/infrastructure/providers/deepgram",
+    "@sevenlabs/backend/infrastructure/providers/openai"
+  ],
+  "src/app/api/interview/sessions/[id]/turns/route.ts": [
+    "@sevenlabs/backend/infrastructure/db",
+    "@sevenlabs/backend/infrastructure/log",
+    "@sevenlabs/backend/usage/spend"
+  ],
+  "src/app/api/interview/sessions/route.ts": [
+    "@sevenlabs/backend/identity/keys",
+    "@sevenlabs/backend/infrastructure/db",
+    "@sevenlabs/backend/infrastructure/env",
+    "@sevenlabs/backend/infrastructure/log",
+    "@sevenlabs/backend/infrastructure/providers/openai",
+    "@sevenlabs/backend/profiles/resume-digest",
+    "@sevenlabs/backend/usage/spend"
+  ],
+  "src/app/api/keys/route.ts": [
+    "@sevenlabs/backend/identity/keys",
+    "@sevenlabs/backend/infrastructure/crypto",
+    "@sevenlabs/backend/infrastructure/db",
+    "@sevenlabs/backend/infrastructure/log",
+    "@sevenlabs/backend/infrastructure/providers/openai",
+    "@sevenlabs/backend/usage/spend"
+  ],
+  "src/app/api/resume/route.ts": [
+    "@sevenlabs/backend/infrastructure/db",
+    "@sevenlabs/backend/infrastructure/log",
+    "@sevenlabs/backend/infrastructure/providers/openai",
+    "@sevenlabs/backend/profiles/resume",
+    "@sevenlabs/backend/usage/spend"
+  ],
+  "src/app/api/user/interview-date/route.ts": [
+    "@sevenlabs/backend/infrastructure/db",
+    "@sevenlabs/backend/infrastructure/log"
+  ],
+  "src/app/api/user/route.ts": [
+    "@sevenlabs/backend/infrastructure/db",
+    "@sevenlabs/backend/infrastructure/log"
+  ],
+  "src/instrumentation.ts": [
+    "@sevenlabs/backend/interviews/jobs"
+  ],
+  "src/lib/auth.ts": [
+    "@sevenlabs/backend/infrastructure/db"
+  ]
+}

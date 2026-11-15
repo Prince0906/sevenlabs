@@ -23,14 +23,14 @@ const mockSpend = vi.hoisted(() => ({
 const mockByok = vi.hoisted(() => ({ resolveSessionKey: vi.fn() }));
 const mockResume = vi.hoisted(() => ({ getResumeDigest: vi.fn(async () => "") }));
 
-vi.mock("@/lib/db", () => ({ prisma: mockPrisma }));
+vi.mock("@sevenlabs/backend/infrastructure/db", () => ({ prisma: mockPrisma }));
 vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
-vi.mock("@/lib/log", () => ({ log: { error: vi.fn(), warn: vi.fn(), info: vi.fn() } }));
-vi.mock("@/lib/env", () => ({ env: { AUTH_SECRET: "test-secret", MAX_SESSION_SEC: 3600 } }));
-vi.mock("@/lib/providers/openai", () => mockOpenai);
-vi.mock("@/lib/interview/spend", () => mockSpend);
-vi.mock("@/lib/byok", () => mockByok);
-vi.mock("@/lib/interview/resume-digest", () => mockResume);
+vi.mock("@sevenlabs/backend/infrastructure/log", () => ({ log: { error: vi.fn(), warn: vi.fn(), info: vi.fn() } }));
+vi.mock("@sevenlabs/backend/infrastructure/env", () => ({ env: { AUTH_SECRET: "test-secret", MAX_SESSION_SEC: 3600 } }));
+vi.mock("@sevenlabs/backend/infrastructure/providers/openai", () => mockOpenai);
+vi.mock("@sevenlabs/backend/usage/spend", () => mockSpend);
+vi.mock("@sevenlabs/backend/identity/keys", () => mockByok);
+vi.mock("@sevenlabs/backend/profiles/resume-digest", () => mockResume);
 // @sevenlabs/panel-core stays real — pure instruction/opener/digest builders.
 
 import { auth } from "@/lib/auth";

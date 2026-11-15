@@ -23,13 +23,13 @@ const mockOpenai = vi.hoisted(() => ({
 }));
 const mockSpend = vi.hoisted(() => ({ settleReservation: vi.fn() }));
 
-vi.mock("@/lib/db", () => ({ prisma: mockPrisma }));
-vi.mock("@/lib/providers/openai", () => mockOpenai);
-vi.mock("@/lib/interview/spend", () => mockSpend);
-vi.mock("@/lib/log", () => ({ log: { error: vi.fn(), warn: vi.fn(), info: vi.fn() } }));
+vi.mock("@sevenlabs/backend/infrastructure/db", () => ({ prisma: mockPrisma }));
+vi.mock("@sevenlabs/backend/infrastructure/providers/openai", () => mockOpenai);
+vi.mock("@sevenlabs/backend/usage/spend", () => mockSpend);
+vi.mock("@sevenlabs/backend/infrastructure/log", () => ({ log: { error: vi.fn(), warn: vi.fn(), info: vi.fn() } }));
 // panel-core (pure composition) + shared-types (schemas) stay real.
 
-import { runJudgment } from "@/lib/interview/panel-orchestrator";
+import { runJudgment } from "../../../packages/backend/src/modules/interviews/evaluation/panel-orchestrator";
 
 const EVIDENCE = "owned the outage end to end";
 

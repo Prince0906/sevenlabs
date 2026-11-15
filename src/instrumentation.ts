@@ -6,6 +6,6 @@
  */
 export async function register() {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
-  const { startJudgmentSweeper } = await import("@/lib/interview/judgment-queue");
+  const { startJudgmentSweeper } = await import("@sevenlabs/backend/interviews/jobs");
   startJudgmentSweeper();
 }

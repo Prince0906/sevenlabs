@@ -3,10 +3,10 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const mockPrisma = vi.hoisted(() => ({
   resumeProfile: { findUnique: vi.fn() },
 }));
-vi.mock("@/lib/db", () => ({ prisma: mockPrisma }));
+vi.mock("@sevenlabs/backend/infrastructure/db", () => ({ prisma: mockPrisma }));
 // panel-core stays REAL so the real buildResumeDigest runs.
 
-import { getResumeDigest } from "@/lib/interview/resume-digest";
+import { getResumeDigest } from "@sevenlabs/backend/profiles/resume-digest";
 
 describe("getResumeDigest", () => {
   beforeEach(() => vi.clearAllMocks());

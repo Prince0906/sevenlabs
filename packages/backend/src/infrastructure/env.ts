@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createEnv } from "@t3-oss/env-nextjs";
+import { createEnv } from "@t3-oss/env-core";
 
 export const env = createEnv({
   server: {
@@ -55,6 +55,6 @@ export const env = createEnv({
     GOOGLE_CLIENT_SECRET: z.string().min(1),
 
   },
-  experimental__runtimeEnv: {},
+  runtimeEnv: process.env,
   skipValidation: !!process.env.SKIP_ENV_VALIDATION,
 });

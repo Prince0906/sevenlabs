@@ -4,7 +4,7 @@ import { describe, it, expect, vi } from "vitest";
 const mockEnv = vi.hoisted(() => ({
   env: { KEY_ENCRYPTION_SECRET: "test-kek-please-ignore-0123456789abcdef" as string | undefined },
 }));
-vi.mock("@/lib/env", () => mockEnv);
+vi.mock("@sevenlabs/backend/infrastructure/env", () => mockEnv);
 
 import {
   encryptSecret,
@@ -12,7 +12,7 @@ import {
   fingerprintSecret,
   last4,
   isByokConfigured,
-} from "@/lib/crypto";
+} from "@sevenlabs/backend/infrastructure/crypto";
 
 const KEY = "sk-proj-abcDEF1234567890supersecretkeyvalue";
 

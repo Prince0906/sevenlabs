@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { PrismaClient } from "../src/generated/prisma/client";
+import { PrismaClient } from "../packages/backend/src/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 
 // The ONE P0 scenario: a React/JavaScript technical panel, 3 seats partitioning

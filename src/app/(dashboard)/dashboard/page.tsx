@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/db";
+import { prisma } from "@sevenlabs/backend/infrastructure/db";
 import { DashboardView } from "@/features/dashboard/views/dashboard-view";
 
 function daysUntil(date: Date | null | undefined): number | null {

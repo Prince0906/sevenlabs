@@ -4,12 +4,12 @@
 # --- Security-sensitive: explicit owner review, never blind-merge ---
 
 # BYOK key custody + crypto. A mistake here leaks billing-enabled API keys.
-/src/lib/crypto.ts                         @Prince0906
-/src/lib/byok.ts                           @Prince0906
+/packages/backend/src/infrastructure/crypto.ts                         @Prince0906
+/packages/backend/src/modules/identity/byok.ts                           @Prince0906
 /packages/panel-core/src/redaction.ts      @Prince0906
 
 # Spend / rate-limit safety — a bypass means uncapped cost.
-/src/lib/interview/spend.ts                      @Prince0906
+/packages/backend/src/modules/usage/spend.ts                      @Prince0906
 
 # Auth & route protection.
 /src/auth.config.ts                         @Prince0906

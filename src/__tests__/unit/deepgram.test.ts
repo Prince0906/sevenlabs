@@ -4,9 +4,9 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const mockEnv = vi.hoisted(() => ({
   env: { DEEPGRAM_API_KEY: "dg-test", OPENAI_API_KEY: "x" } as { DEEPGRAM_API_KEY?: string; OPENAI_API_KEY: string },
 }));
-vi.mock("@/lib/env", () => mockEnv);
+vi.mock("@sevenlabs/backend/infrastructure/env", () => mockEnv);
 
-import { transcribeVerbatim, isDeepgramConfigured } from "@/lib/providers/deepgram";
+import { transcribeVerbatim, isDeepgramConfigured } from "@sevenlabs/backend/infrastructure/providers/deepgram";
 
 const okResponse = () => ({
   ok: true,

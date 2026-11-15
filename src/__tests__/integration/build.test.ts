@@ -28,7 +28,7 @@ describe("Application Integration", () => {
 
   describe("Environment Validation", () => {
     it("should define required env variables in schema", async () => {
-      const envModule = await import("@/lib/env");
+      const envModule = await import("@sevenlabs/backend/infrastructure/env");
 
       expect(envModule.env).toBeDefined();
       expect(typeof envModule.env).toBe("object");

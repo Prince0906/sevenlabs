@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-vi.mock("@/lib/db", () => ({
+vi.mock("@sevenlabs/backend/infrastructure/db", () => ({
   prisma: {
     user: {
       findUnique: vi.fn(),
@@ -13,7 +13,7 @@ vi.mock("bcryptjs", () => ({
   default: { hash: vi.fn().mockResolvedValue("hashed-password") },
 }));
 
-import { prisma } from "@/lib/db";
+import { prisma } from "@sevenlabs/backend/infrastructure/db";
 import bcrypt from "bcryptjs";
 import { POST } from "@/app/api/auth/register/route";
 

@@ -1,7 +1,7 @@
-import { prisma } from "@/lib/db";
+import { prisma } from "../../infrastructure/db";
 import { buildResumeDigest } from "@sevenlabs/panel-core";
 import { resumeFactsSchema } from "@sevenlabs/shared-types";
-import { log } from "@/lib/log";
+import { log } from "../../infrastructure/log";
 
 /**
  * Render the user's stored resume into the seat-instruction digest injected at

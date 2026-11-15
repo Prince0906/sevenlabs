@@ -4,7 +4,7 @@ import {
   createHash,
   randomBytes,
 } from "crypto";
-import { env } from "@/lib/env";
+import { env } from "./env";
 
 /**
  * Authenticated encryption for BYOK provider keys (INTERVIEW_ENGINE_PLAN D1).

@@ -15,9 +15,10 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   output: "standalone", // Required for Docker multi-stage builds
-  transpilePackages: ["@sevenlabs/panel-core", "@sevenlabs/shared-types"],
+  transpilePackages: ["@sevenlabs/panel-core", "@sevenlabs/shared-types", "@sevenlabs/backend"],
   async headers() {
-    return [{ source: "/:path*", headers: securityHeaders }];
+    return [{ source: "/:path*", headers: securityHeaders },
+      { source: "/reset-password", headers: [{ key: "Referrer-Policy", value: "no-referrer" }, { key: "Cache-Control", value: "no-store" }] }];
   },
 };
 

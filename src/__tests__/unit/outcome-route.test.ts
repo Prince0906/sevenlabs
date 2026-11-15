@@ -5,9 +5,9 @@ const mockPrisma = vi.hoisted(() => ({
   outcome: { upsert: vi.fn(), findFirst: vi.fn() },
 }));
 
-vi.mock("@/lib/db", () => ({ prisma: mockPrisma }));
+vi.mock("@sevenlabs/backend/infrastructure/db", () => ({ prisma: mockPrisma }));
 vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
-vi.mock("@/lib/log", () => ({ log: { error: vi.fn(), warn: vi.fn(), info: vi.fn() } }));
+vi.mock("@sevenlabs/backend/infrastructure/log", () => ({ log: { error: vi.fn(), warn: vi.fn(), info: vi.fn() } }));
 
 import { auth } from "@/lib/auth";
 import { POST, GET } from "@/app/api/interview/sessions/[id]/outcome/route";

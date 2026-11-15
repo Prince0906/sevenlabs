@@ -3,7 +3,7 @@ import path from "path";
 
 export default defineConfig({
   test: {
-    include: ["src/**/*.test.ts", "packages/**/*.test.ts"],
+    include: ["src/**/*.test.ts", "packages/**/*.test.ts", "apps/**/*.test.ts"],
     environment: "node",
     reporters: ["default", "junit"],
     outputFile: {
@@ -19,6 +19,7 @@ export default defineConfig({
       include: [
         "packages/panel-core/src/**/*.ts",
         "src/lib/**/*.ts",
+        "packages/backend/src/**/*.ts",
         "src/app/api/interview/**/*.ts",
         "src/app/api/keys/**/*.ts",
         "src/app/api/resume/**/*.ts",
@@ -29,6 +30,11 @@ export default defineConfig({
         "**/*.test.ts",
         "**/index.ts", // barrels — no logic
         "**/*.d.ts",
+        "packages/backend/src/generated/**",
+        "packages/backend/src/infrastructure/providers/openai.ts",
+        "packages/backend/src/infrastructure/env.ts",
+        "packages/backend/src/infrastructure/db.ts",
+        "packages/backend/src/infrastructure/log.ts",
         // Pure I/O adapters / transport — exercised through mocked callers, not
         // unit-tested directly (docs/testing.md §"Deliberately not unit-tested").
         "src/lib/providers/openai.ts",

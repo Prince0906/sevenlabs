@@ -1,9 +1,9 @@
 import { NextResponse, after } from "next/server";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/db";
-import { log } from "@/lib/log";
-import { drainJudgmentQueue } from "@/lib/interview/judgment-queue";
+import { prisma } from "@sevenlabs/backend/infrastructure/db";
+import { log } from "@sevenlabs/backend/infrastructure/log";
+import { drainJudgmentQueue } from "@sevenlabs/backend/interviews/jobs";
 
 const bodySchema = z.object({
   reason: z.string().optional(),
@@ -84,7 +84,7 @@ export async function POST(
       }),
     ]);
 
-    if (updated.count > 0) {
+    if (updated.count > 0 && process.env.JUDGMENT_EXECUTION !== "worker") {
       after(() => drainJudgmentQueue());
     }
     return NextResponse.json(

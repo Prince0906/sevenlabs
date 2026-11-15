@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import type { Prisma } from "@/generated/prisma/client";
+import type { Prisma } from "@sevenlabs/backend/infrastructure/db";
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/db";
-import { log } from "@/lib/log";
+import { prisma } from "@sevenlabs/backend/infrastructure/db";
+import { log } from "@sevenlabs/backend/infrastructure/log";
 import { analyzeSpeech, analyzeDisfluency } from "@sevenlabs/panel-core";
-import { transcribeAudio, ProviderError } from "@/lib/providers/openai";
-import { isDeepgramConfigured, transcribeVerbatim } from "@/lib/providers/deepgram";
+import { transcribeAudio, ProviderError } from "@sevenlabs/backend/infrastructure/providers/openai";
+import { isDeepgramConfigured, transcribeVerbatim } from "@sevenlabs/backend/infrastructure/providers/deepgram";
 
 // Whisper's hard upload ceiling. A push-to-talk answer is opus/webm at a few
 // hundred KB/min, so this is only a guard against a pathological upload.

@@ -9,10 +9,10 @@ const mockSpend = vi.hoisted(() => ({
   isSessionOver: vi.fn(() => false),
 }));
 
-vi.mock("@/lib/db", () => ({ prisma: mockPrisma }));
+vi.mock("@sevenlabs/backend/infrastructure/db", () => ({ prisma: mockPrisma }));
 vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
-vi.mock("@/lib/log", () => ({ log: { error: vi.fn(), warn: vi.fn(), info: vi.fn() } }));
-vi.mock("@/lib/interview/spend", () => mockSpend);
+vi.mock("@sevenlabs/backend/infrastructure/log", () => ({ log: { error: vi.fn(), warn: vi.fn(), info: vi.fn() } }));
+vi.mock("@sevenlabs/backend/usage/spend", () => mockSpend);
 // @sevenlabs/panel-core (analyzeSpeech) + shared-types schemas stay real.
 
 import { auth } from "@/lib/auth";

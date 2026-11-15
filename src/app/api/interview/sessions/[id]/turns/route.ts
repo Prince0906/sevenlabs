@@ -1,15 +1,15 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/db";
-import { log } from "@/lib/log";
+import { prisma } from "@sevenlabs/backend/infrastructure/db";
+import { log } from "@sevenlabs/backend/infrastructure/log";
 import { analyzeSpeech } from "@sevenlabs/panel-core";
 import {
   wordTimestampSchema,
   turnEventsSchema,
   type SpeechMetrics,
 } from "@sevenlabs/shared-types";
-import { spendCentsForElapsed, isSessionOver } from "@/lib/interview/spend";
+import { spendCentsForElapsed, isSessionOver } from "@sevenlabs/backend/usage/spend";
 
 const bodySchema = z.object({
   seq: z.number().int().nonnegative(),
