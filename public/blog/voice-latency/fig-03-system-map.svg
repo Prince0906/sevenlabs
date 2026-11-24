@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1250 670" width="1250" height="670" font-family="Arial, Helvetica, sans-serif">
+<title>Aloud today: what runs where</title>
+<desc>The browser streams audio directly to OpenAI over WebRTC. The server, on one EC2 box behind Caddy, handles session creation, key minting, saving turns, judging and reports, and talks to Postgres and optionally Deepgram.</desc>
+<defs>
+<marker id="ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#15181E"/></marker>
+<marker id="ah-cobalt" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2B50F0"/></marker>
+</defs>
+<rect width="1250" height="670" fill="#F7F8FB"/>
+<rect x="20" y="230" width="310" height="330" rx="8" fill="none" stroke="#5C6673" stroke-width="2" stroke-dasharray="8 6"/>
+<rect x="45" y="265" width="260" height="95" rx="8" fill="#E9EDFE" stroke="#2B50F0" stroke-width="3"/>
+<text x="175" y="308.5" font-size="16" fill="#15181E" text-anchor="middle">WebRTC peer</text>
+<text x="175" y="328.5" font-size="16" fill="#15181E" text-anchor="middle">mic in, interviewer voice out</text>
+<rect x="45" y="410" width="260" height="95" rx="8" fill="#FFFFFF" stroke="#15181E" stroke-width="2"/>
+<text x="175" y="453.5" font-size="16" fill="#15181E" text-anchor="middle">Interview screen</text>
+<text x="175" y="473.5" font-size="16" fill="#15181E" text-anchor="middle">(panel state machine)</text>
+<rect x="60" y="20" width="300" height="100" rx="8" fill="#FFFFFF" stroke="#15181E" stroke-width="2"/>
+<text x="210" y="66" font-size="16" fill="#15181E" text-anchor="middle">OpenAI Realtime API</text>
+<text x="210" y="86" font-size="16" fill="#15181E" text-anchor="middle">speech-to-speech model</text>
+<rect x="520" y="200" width="400" height="360" rx="8" fill="none" stroke="#5C6673" stroke-width="2" stroke-dasharray="8 6"/>
+<rect x="545" y="265" width="350" height="65" rx="8" fill="#FFFFFF" stroke="#15181E" stroke-width="2"/>
+<text x="720" y="293.5" font-size="16" fill="#15181E" text-anchor="middle">Caddy</text>
+<text x="720" y="313.5" font-size="16" fill="#15181E" text-anchor="middle">auto-HTTPS reverse proxy</text>
+<rect x="545" y="380" width="350" height="150" rx="8" fill="#FFFFFF" stroke="#15181E" stroke-width="2"/>
+<text x="720" y="431" font-size="16" fill="#15181E" text-anchor="middle">Next.js app in Docker</text>
+<text x="720" y="451" font-size="16" fill="#15181E" text-anchor="middle">API routes: create session, mint key,</text>
+<text x="720" y="471" font-size="16" fill="#15181E" text-anchor="middle">save turns, complete, report</text>
+<text x="720" y="491" font-size="16" fill="#15181E" text-anchor="middle">Judgment sweeper (boot + every 5 min)</text>
+<rect x="1030" y="400" width="200" height="90" rx="8" fill="#FFFFFF" stroke="#15181E" stroke-width="2"/>
+<text x="1130" y="441" font-size="16" fill="#15181E" text-anchor="middle">Postgres</text>
+<text x="1130" y="461" font-size="16" fill="#15181E" text-anchor="middle">Prisma Postgres, cloud</text>
+<rect x="1030" y="520" width="200" height="90" rx="8" fill="#FFFFFF" stroke="#15181E" stroke-width="2"/>
+<text x="1130" y="551" font-size="16" fill="#15181E" text-anchor="middle">Deepgram</text>
+<text x="1130" y="571" font-size="16" fill="#15181E" text-anchor="middle">fluency analysis</text>
+<text x="1130" y="591" font-size="16" fill="#15181E" text-anchor="middle">(optional)</text>
+<text x="30" y="583" font-size="15" fill="#5C6673" text-anchor="start">Candidate's browser</text>
+<text x="530" y="583" font-size="15" fill="#5C6673" text-anchor="start">AWS EC2 t3.micro, one box</text>
+<text x="215" y="165" font-size="15" fill="#2B50F0" text-anchor="start">Audio and events over WebRTC</text>
+<text x="215" y="183.75" font-size="15" fill="#2B50F0" text-anchor="start">(direct, the server is not in this path)</text>
+<text x="340" y="492" font-size="14" fill="#15181E" text-anchor="start">HTTPS: create,</text>
+<text x="340" y="509.5" font-size="14" fill="#15181E" text-anchor="start">mint key, save turns,</text>
+<text x="340" y="527" font-size="14" fill="#15181E" text-anchor="start">complete, poll report</text>
+<text x="465" y="54" font-size="14" fill="#15181E" text-anchor="start">mint keys, judge</text>
+<text x="465" y="71.5" font-size="14" fill="#15181E" text-anchor="start">the interview</text>
+<text x="1030" y="372" font-size="14" fill="#15181E" text-anchor="start">sessions, turns,</text>
+<text x="1030" y="389.5" font-size="14" fill="#15181E" text-anchor="start">jobs, reports</text>
+<text x="932" y="589" font-size="14" fill="#15181E" text-anchor="start">turn audio,</text>
+<text x="932" y="606.5" font-size="14" fill="#15181E" text-anchor="start">best effort</text>
+<text x="20" y="654" font-size="14" fill="#5C6673" text-anchor="start">Blue is live audio, browser to OpenAI directly. Black is ordinary HTTPS and server calls.</text>
+<line x1="175" y1="265" x2="175" y2="120" stroke="#2B50F0" stroke-width="4" marker-end="url(#ah-cobalt)" marker-start="url(#ah-cobalt)"/>
+<line x1="305" y1="457" x2="545" y2="297" stroke="#15181E" stroke-width="2" marker-end="url(#ah-ink)"/>
+<line x1="720" y1="330" x2="720" y2="380" stroke="#15181E" stroke-width="2" marker-end="url(#ah-ink)"/>
+<line x1="895" y1="445" x2="1030" y2="445" stroke="#15181E" stroke-width="2" marker-end="url(#ah-ink)" marker-start="url(#ah-ink)"/>
+<line x1="895" y1="505" x2="1030" y2="560" stroke="#15181E" stroke-width="2" marker-end="url(#ah-ink)"/>
+<line x1="600" y1="200" x2="360" y2="80" stroke="#15181E" stroke-width="2" marker-end="url(#ah-ink)"/>
+</svg>

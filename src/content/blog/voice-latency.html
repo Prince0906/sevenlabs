@@ -1,0 +1,410 @@
+<p>Asha is a final-year student with an interview next week. She opens Aloud, a
+voice interviewer that asks real questions and listens to real answers. The
+interviewer asks: &quot;What is a closure?&quot; Asha talks for six seconds, stops, and
+presses <strong>Done</strong>.</p>
+<p>Then she waits.</p>
+<p>We measured that wait. Over 12 turns, the median time from pressing Done to
+hearing the first sound of the reply was <strong>1.3 seconds</strong>. The slowest turn took
+2.0. The scope matters, so here it is up front: those 12 turns were one
+session on one laptop, spoken by a synthetic voice, not a person. We did not
+know even that much until we measured, and the road to the measurement taught
+us more than the number did.</p>
+<p><img loading="lazy" decoding="async" src="/blog/voice-latency/shot-3-answering.png" alt="Aloud&#39;s interview screen while the candidate is answering. The panel of three interviewers is at the top, a transcript is below, and a single button sends the answer."></p>
+<p class="caption"><em>Figure 1. The live interview screen, mid-answer. One button owns the end of
+the turn: &quot;Send to the panel&quot; is Done. Local run, throwaway test account.</em></p>
+<h2 id="1-the-problem-a-silence-that-makes-practice-feel-fake">1. The problem: a silence that makes practice feel fake</h2>
+<p>Practising for an interview alone is easy and, in our experience, of limited
+use. You rehearse in your head, nobody interrupts, and nobody asks the
+follow-up that exposes the thing you half understand.</p>
+<p>A voice AI can ask the follow-up. But it has to feel like a person across the
+table, and two things break that feeling fast:</p>
+<ul>
+<li><strong>The reply is slow.</strong> A long silence after you stop talking makes you wonder
+whether it heard you.</li>
+<li><strong>The reply is loose.</strong> A fuzzy question or an accepted shallow answer teaches
+you nothing, and you know it.</li>
+</ul>
+<p>We built Aloud to attack both, and we wanted a way to check that we had.</p>
+<h2 id="2-objectives-three-constraints">2. Objectives: three constraints</h2>
+<table>
+<thead>
+<tr>
+<th>Constraint</th>
+<th>What it means for the candidate</th>
+<th>How we check it</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Feels real</strong></td>
+<td>The interviewer replies quickly, in a natural voice, and nobody talks over you.</td>
+<td>Time from Done to first sound. Our own targets, set before we measured: 0.5 s for a first response, 2.0 s typical, 3.5 s for a slow case. Targets, not results, and not an industry standard.</td>
+</tr>
+<tr>
+<td><strong>Stays sharp</strong></td>
+<td>Follow-ups respond to what you actually said.</td>
+<td>Reading transcripts. Not yet measured.</td>
+</tr>
+<tr>
+<td><strong>Can be explained</strong></td>
+<td>The report after the interview says why, in words you can argue with.</td>
+<td>Reading reports. Not yet measured.</td>
+</tr>
+</tbody></table>
+<p>Only the first row has a number in this post. That is on purpose. We would
+rather publish one real measurement than three guessed ones.</p>
+<h2 id="3-the-system-at-a-glance">3. The system at a glance</h2>
+<p>Before the turn, a map of what runs where.</p>
+<p><img loading="lazy" decoding="async" src="/blog/voice-latency/fig-03-system-map.svg" alt="System map. The browser connects directly to OpenAI&#39;s realtime service over WebRTC. Aloud&#39;s server, a Next.js app on one small EC2 machine behind Caddy, creates sessions, mints short-lived keys, stores finished turns and runs the judging. Postgres holds the data."></p>
+<p class="caption"><em>Figure 2. What runs where. The live audio goes browser to OpenAI and never
+passes through our server. Our server sets the session up and saves the
+result.</em></p>
+<p>Three terms, each used right away:</p>
+<ul>
+<li><strong>WebRTC</strong> is the browser technology behind video calls. It carries audio
+between two endpoints with little delay.</li>
+<li><strong>A realtime model</strong> takes audio in and gives audio out in one step, over a
+live connection.</li>
+<li><strong>A short-lived key</strong> is a temporary credential our server hands the browser,
+so the browser can talk to OpenAI without ever seeing our real key.</li>
+</ul>
+<p><strong>Technologies, in one breath:</strong> a Next.js app (the web framework that runs our
+server and screens), Postgres through Prisma for data, OpenAI&#39;s realtime model
+for the voice, Docker Compose on one small AWS EC2 machine (a rented server)
+with Caddy in front to handle HTTPS, GitHub Actions for checks and deploys, and
+Vitest, headless Chrome and Puppeteer for tests and measurement. Because the
+live audio never touches our server, there is less for us to scale.</p>
+<h2 id="4-one-turn-closely">4. One turn, closely</h2>
+<p>The obvious way to build a voice interviewer is three steps in a row. Turn the
+candidate&#39;s audio into text (speech to text), give the text to a language
+model, then turn the reply into speech (text to speech).</p>
+<p>Built the plain way, that waits at every step. The first step cannot start
+until you finish talking, the model cannot start until the text is ready, and
+the voice cannot start until the first words exist. Add three network round
+trips and the silence can stack up. (Streaming can overlap the steps, at the
+price of more moving parts. We did not build or measure this version, so treat
+this paragraph as reasoning, not a result.)</p>
+<p>Our prototype takes a shortcut. It uses one realtime model that listens and
+speaks directly. And it adds a trick that, we believe, matters as much as the
+model choice (we did not test the two apart): <strong>the answer is already at the
+model while Asha is still talking.</strong></p>
+<p><img loading="lazy" decoding="async" src="/blog/voice-latency/fig-04-one-turn.svg" alt="A sequence diagram of one turn. While the candidate speaks, audio streams to the model. When Done is pressed, the browser sends only two small messages, a commit and a response request. The model starts the reply, and sound follows. The time between Done (T0) and first sound (T1) is the wait the candidate feels."></p>
+<p class="caption"><em>Figure 3. One turn. Pressing Done sends two tiny messages, not an upload.
+Everything else already happened while Asha was speaking. T0 to T1 is the
+wait she feels.</em></p>
+<p>Two design choices make this work:</p>
+<ol>
+<li><strong>Push to talk.</strong> Asha presses Start, speaks, presses Done. No voice
+detection guesses when she has finished, so a six-second pause to think
+cuts nothing off. She owns the end of the turn.</li>
+<li><strong>Manual reply.</strong> We tell the model to reply when Done is pressed, not when
+it hears a gap.</li>
+</ol>
+<p>This has a cost. With one model doing everything, nothing checks the reply
+<em>before</em> it is spoken, and the text transcript is a by-product. Section 10
+comes back to that.</p>
+<h2 id="5-the-model-replies-in-027-s-but-the-sound-takes-a-second-longer">5. The model replies in 0.27 s, but the sound takes a second longer</h2>
+<p>Now the part we most wanted to know: how long is Asha&#39;s wait?</p>
+<h3 id="what-we-measured">What we measured</h3>
+<p>We added a small instrument, on a separate branch, to the browser. For every
+answered turn it records three moments:</p>
+<ul>
+<li><strong>T0</strong>: Done is pressed.</li>
+<li><strong>Reply start</strong>: OpenAI says it has begun responding.</li>
+<li><strong>T1</strong>: the interviewer&#39;s audio stream first carries sound above a fixed
+level, read from an audio analyser every 10 ms.</li>
+</ul>
+<p>Each turn becomes one line in the server log, and a script turns those lines
+into percentiles. A quick definition: <strong>p50</strong> is the median (half of turns were
+faster), and <strong>p95</strong> is the speed that 95 percent of turns beat (the slow end).</p>
+<h3 id="the-bug-our-tests-could-not-see">The bug our tests could not see</h3>
+<p>We wrote the script that reads the log lines, wrote tests, and the tests
+passed. Then we ran it on the real server log and it found <strong>zero</strong> records.</p>
+<p>Why? In our tests the extra data on each line looked like <code>meta: { ... }</code>, a
+nested object. In the real log our logger had written <code>meta</code> as a <em>string</em> of
+JSON. Our tests described what we assumed the log looked like. The real log was
+different.</p>
+<p>The fix was three lines, plus a new test built from a line copied out of a real
+log:</p>
+<pre><code class="language-ts">let meta = entry.meta;
+if (typeof meta === &quot;string&quot;) meta = JSON.parse(meta);
+if (!meta || typeof meta !== &quot;object&quot;) return null;
+</code></pre>
+<p class="caption"><em>This is the entire fix. The lesson is bigger than the code: test a parser on
+a line the real system wrote, not on a line you imagined.</em></p>
+<h3 id="how-honest-is-the-stopwatch">How honest is the stopwatch?</h3>
+<p>Before trusting T1, we measured the stopwatch itself. In headless Chrome (a
+browser with no window) we played a synthetic tone that switched from silence
+to sound at a known instant, 200 times. The detector reported the sound about
+<strong>21 ms late</strong>, almost constantly (median 21.3, p95 22.0). Against a wait of
+about a second, that is small and steady. Limit: this was a local test tone,
+not a real WebRTC stream.</p>
+<h3 id="the-run">The run</h3>
+<p>We ran the real app on a laptop, talking to the real OpenAI service over the
+real network. We did not talk into it ourselves. A script in Chrome played a
+42-second recording of a <strong>synthetic voice</strong>, made by text to speech on the
+laptop, as the microphone: six seconds per answer, 12 turns, one session.</p>
+<p>That caveat is real. <strong>The speaker is synthetic, there is one session, on one
+laptop and one home network.</strong> The numbers show how long the system takes after
+Done. They say nothing about how a nervous human sounds.</p>
+<p><img loading="lazy" decoding="async" src="/blog/voice-latency/fig-09-latency.svg" alt="A chart of 12 turns. For each turn, a grey dot marks when the model starts replying, always between 0.27 and 0.34 seconds, and a blue dot marks when the first sound reaches the ear, between 0.8 and 2.0 seconds. Dotted lines mark the median of 1.3 seconds and the p95 of 2.0 seconds."></p>
+<p class="caption"><em>Figure 4. Time from Done to hearing the interviewer, 12 turns. The grey dot
+barely moves. The blue dot moves a lot, and the gap between them is where the
+second goes. Measured; synthetic speaker, one session, one Mac.</em></p>
+<table>
+<thead>
+<tr>
+<th>Over 12 turns, in milliseconds</th>
+<th>Fastest</th>
+<th>p50</th>
+<th>p95</th>
+<th>Slowest</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Done to reply start</td>
+<td>265</td>
+<td>269</td>
+<td>340</td>
+<td>340</td>
+</tr>
+<tr>
+<td>Done to first sound</td>
+<td>795</td>
+<td>1295</td>
+<td>1994</td>
+<td>1994</td>
+</tr>
+</tbody></table>
+<p>To make it concrete, here is turn 1 of the run, stamped from Done:</p>
+<table>
+<thead>
+<tr>
+<th>Moment</th>
+<th>Time after Done</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Done pressed (T0)</td>
+<td>0 ms</td>
+</tr>
+<tr>
+<td>OpenAI says the reply has started</td>
+<td>269 ms</td>
+</tr>
+<tr>
+<td>First sound, our instrument (T1)</td>
+<td>1,326 ms</td>
+</tr>
+<tr>
+<td>First sound, Chrome&#39;s own audio statistics</td>
+<td>1,350 ms</td>
+</tr>
+</tbody></table>
+<h3 id="checking-the-number-with-a-second-instrument">Checking the number with a second instrument</h3>
+<p>One stopwatch is a claim. Two that agree are evidence. So the script also read
+Chrome&#39;s own WebRTC statistics for the incoming audio, polled every 20 ms from
+the press of Done, and noted when audio energy first rose (the last row above).</p>
+<p>The second source reported first sound a median <strong>44 ms later</strong> than our
+instrument (between 16 and 125 ms later, never earlier). That is what we would
+expect from a coarser poll and an instrument that is itself about 21 ms late.
+Two different ways of listening, and on every one of the 12 turns they agreed to
+within 125 ms.</p>
+<h3 id="what-the-numbers-mean-and-what-we-do-not-know">What the numbers mean, and what we do not know</h3>
+<p>The model starts replying between <strong>0.27 and 0.34 s</strong> after Done, on every
+turn. That part is steady and fast. But sound reaches the ear about a second
+later, and that part varies. We do not yet know why. Two candidates:</p>
+<ul>
+<li><strong>The model takes about a second to produce its first audio.</strong> To test it, log
+the moment the first audio chunk is announced on the data channel and compare
+it with the first audible sound.</li>
+<li><strong>Playout buffering.</strong> The browser holds audio briefly before playing it. To
+test it, measure the same turn with the buffer settings changed.</li>
+</ul>
+<p>This run cannot separate the two, and it could be both. We would rather say so
+than invent a cause.</p>
+<p>Against our targets: a median of 1.3 s is inside the 2.0 s typical target, and
+the slowest turn lands just under it. It does not meet the 0.5 s first-response
+target. In our own use, 1.3 s is a pause you notice and 2 s is a pause you start
+to wonder about. That is a judgement, not a measurement. And treat p95 with
+care: with 12 turns, it is simply the slowest turn.</p>
+<h3 id="the-trial-that-said-14-milliseconds">The trial that said 14 milliseconds</h3>
+<p>Our first two-turn trial reported a wait of 14 ms and 69 ms. That is not fast.
+That is impossible.</p>
+<p>What happened? The app was told the interviewer was &quot;done&quot; while the last
+seconds of its voice were still playing out of the speaker. That fits the
+realtime service sending audio faster than it plays, though we have not
+confirmed that against OpenAI&#39;s documentation. Our script pressed Done in that
+tail and read the old reply as the new one.</p>
+<p>The fix was to behave like a person: wait until the voice has been silent for
+1.5 seconds before starting the next answer. After that, the numbers made
+sense. A person would normally wait for the voice to stop (our assumption), so
+the measurement was only fooled because a script does not.</p>
+<h2 id="6-the-session-screen-is-a-state-machine-so-every-path-can-be-tested">6. The session screen is a state machine, so every path can be tested</h2>
+<p>A panel interview is a sequence, not one conversation: connect, interview, hand
+off to the next interviewer, maybe reconnect when the network drops, finish. If
+each of those is a handful of booleans spread across a screen, bugs hide in the
+gaps, and Asha finds them mid-answer.</p>
+<p>So the interview screen is a <strong>pure state machine</strong>: a function that takes the
+current state and an event and returns the next state, with no side effects of
+its own. That makes every path testable without a browser.</p>
+<p><img loading="lazy" decoding="async" src="/blog/voice-latency/fig-05-session-states.svg" alt="A flow diagram of the session states: connecting, live, handing off to the next interviewer, reconnecting when the connection drops, then completing and judging. Handoffs and reconnects loop back to connecting."></p>
+<p class="caption"><em>Figure 5. The session lifecycle, simplified (the real machine has more
+recovery states). Look at the loops back to &quot;connecting&quot;: a handoff, a key about
+to expire, and a dropped connection that resumes.</em></p>
+<h2 id="7-judging-never-runs-while-asha-is-waiting">7. Judging never runs while Asha is waiting</h2>
+<p>When the interview ends, Aloud has to produce a verdict and a report. That is
+slow, calls models, and can fail. None of it should happen inside a web request
+Asha is waiting on.</p>
+<p>So finishing a session does one small thing: in a single <strong>transaction</strong> (a
+database change that happens completely or not at all) it marks the session
+complete <strong>and writes a job</strong>. A background worker picks up the job and does
+the scoring. If the server crashes there is no gap, because there are not two
+steps.</p>
+<p><img loading="lazy" decoding="async" src="/blog/voice-latency/fig-06-judging-pipeline.svg" alt="A pipeline diagram. Finishing the session writes a job in the same transaction. A worker claims the job, scores each interviewer&#39;s seat in parallel, then a required final seat, then writes the verdict and report. A sweeper re-claims jobs that were stranded."></p>
+<p class="caption"><em>Figure 6. Judging off the live path. The job and the status change are one
+transaction. A sweeper catches anything left behind.</em></p>
+<blockquote>
+<p><strong>Optional depth: how a stuck job gets rescued.</strong> The worker claims a job
+with a row lock (<code>FOR UPDATE SKIP LOCKED</code>, so two workers never take the same
+row) and holds it on a 120-second <strong>lease</strong>, a claim that expires on its own.
+A job gets three attempts. A sweeper runs every five minutes and re-claims any
+job whose lease has expired, which is what happens after a redeploy kills the
+worker mid-job. Skip this box without losing the thread.</p>
+</blockquote>
+<h2 id="8-observability-today-is-small-one-logger-one-probe-one-sweeper">8. Observability today is small: one logger, one probe, one sweeper</h2>
+<p>We said we would be plain about this. Three things exist.</p>
+<p><strong>One place that writes logs.</strong> Every server log line goes through one
+function. It writes a single line of JSON and passes the message and any extra
+data through a <em>redactor</em> first, so a provider key cannot end up in a log by
+accident. That matters because the code handles users&#39; keys and ours. It is also
+the logger whose <code>meta</code> string caught us out in section 5.</p>
+<pre><code class="language-ts">function emit(level: Level, msg: string, meta?: unknown): void {
+  const entry: Record&lt;string, unknown&gt; = {
+    t: new Date().toISOString(),
+    level,
+    msg: redact(msg),
+  };
+  if (meta !== undefined) entry.meta = redactUnknown(meta);
+  process.stdout.write(`${JSON.stringify(entry)}\n`);
+}
+</code></pre>
+<p class="caption"><em>The whole logger. The redaction step is the reason it is a chokepoint and not a
+convenience.</em></p>
+<p><strong>A readiness probe.</strong> <code>/api/health</code> answers whether the machine can actually
+do its job. &quot;Ready&quot; means it can reach the database. If it cannot, it returns
+HTTP status <strong>503</strong> (&quot;service unavailable&quot;), so a box with no database never
+looks healthy to an uptime check.</p>
+<pre><code class="language-ts">let db = false;
+try {
+  await prisma.$queryRaw`SELECT 1`;
+  db = true;
+} catch (err) {
+  log.error(&quot;[GET /api/health] database unreachable&quot;, err);
+}
+return NextResponse.json({ status: db ? &quot;healthy&quot; : &quot;unavailable&quot;, db },
+  { status: db ? 200 : 503 });
+</code></pre>
+<p><em>One line, <code>SELECT 1</code>, and one status code are the difference between &quot;the
+process is up&quot; and &quot;the product works&quot;.</em></p>
+<p><strong>A sweeper</strong>, from section 7, which turns &quot;a deploy killed a job&quot; from an
+incident into a non-event.</p>
+<p>Here are all three at work, copied from a local run.</p>
+<p><img loading="lazy" decoding="async" src="/blog/voice-latency/fig-07-observability.svg" alt="Three terminal panels. One shows the logger replacing the middle of a fake API key with an ellipsis. One shows the health probe returning 200 with the database up, then 503 after the database is stopped. One shows the matching error log line."></p>
+<p class="caption"><em>Figure 7. Real output. Panel 1: the redactor shortens a fake key before it
+reaches stdout. Panel 2: we stopped the database container and the same request
+flipped from 200 to 503 (the second request came about three seconds after
+the first), which is the signal an uptime check reads. Panel 3: the server&#39;s own error line, stamped at the same instant as the
+503.</em></p>
+<p>That is all. We have <em>designed</em> a fuller setup with traces and dashboards for
+the model calls. It is not built.</p>
+<h2 id="9-every-change-passes-five-gates-before-it-ships">9. Every change passes five gates before it ships</h2>
+<p>Everything above ships through a pipeline, and the pipeline is a safety
+feature, not plumbing. Asha should never meet a build that did not pass.</p>
+<p><img loading="lazy" decoding="async" src="/blog/voice-latency/fig-08-delivery-pipeline.svg" alt="A pipeline diagram. A pull request runs five checks: lint, type check, tests with a coverage threshold, a clean production build, and a database schema drift check. Deployment is a separate workflow: re-run the gates, build and push the image, migrate, wait for human approval, roll the machine, then poll the health endpoint."></p>
+<p class="caption"><em>Figure 8. Delivery. Two workflows, split on purpose: the one that holds
+secrets never runs on a pull request. The image is built before the migration,
+so a failed build never touches the production database.</em></p>
+<p>The five gates are: <strong>lint</strong> (style and common mistakes), <strong>type check</strong>, tests
+with a <strong>coverage threshold</strong> (the build fails if too little code is tested), a
+clean production build, and a <strong>schema drift</strong> check (that the database shape in
+the code matches the migration files). The last step of a deploy polls
+<code>/api/health</code> to see whether the new box is ready, which is the probe from
+section 8 earning its keep.</p>
+<p>Here is the first workflow on a real run from our public repository: the most
+recent push to <code>main</code> when we checked on 24 Nov 2026 (the run itself is from 24
+July). All five gates are green in 1 minute 8 seconds.</p>
+<p><img loading="lazy" decoding="async" src="/blog/voice-latency/ci-run-green-cropped.png" alt="A GitHub Actions run page for the CI workflow. Five jobs are listed with green ticks: Lint, Typecheck, Tests plus coverage gate, Clean build, and Schema/migration drift. The run took 1 minute 8 seconds."></p>
+<p><em>Figure 9. The CI workflow on a real run (commit <code>7743050</code>). The five jobs run in
+parallel, so the total is close to the slowest single job (1 m 5 s) rather than
+the sum.</em></p>
+<h2 id="10-two-ways-to-build-it-and-what-each-costs">10. Two ways to build it, and what each costs</h2>
+<p>The prototype takes the speech-to-speech route. The alternative is the
+three-step <strong>cascade</strong> from section 4, and we have been weighing it. They trade
+off differently:</p>
+<p><img loading="lazy" decoding="async" src="/blog/voice-latency/fig-10-cascade-vs-speech-to-speech.svg" alt="Two voice-loop designs side by side. Speech-to-speech: audio goes into one model and audio comes out. Cascade: audio becomes text, a language model writes a reply, the reply becomes speech, with a place to check the reply before it is spoken."></p>
+<p class="caption"><em>Figure 10. Two ways to build the voice loop. Speech-to-speech is simple, and
+the transcript is a by-product. A cascade has more steps, which we expect to
+cost time (an assumption, not a measurement), but gives a transcript before
+the reply, a place to check the reply, and parts that can be swapped.</em></p>
+<ul>
+<li><strong>Speech-to-speech</strong> is what we run. It is the simplest path, and it gave us
+the numbers above. It costs us control: we cannot inspect the reply before it
+is spoken.</li>
+<li><strong>A cascade</strong> is more moving parts and, we expect, more delay per turn (not
+measured). In return it gives a transcript first, a checkpoint where a reply
+can be reviewed or corrected, and the freedom to swap any one piece.</li>
+</ul>
+<p>We have not made the final call in this post, and any latency or cost
+comparison between the two would be an estimate, so we do not print one.</p>
+<h2 id="11-key-outcomes-and-what-is-left">11. Key outcomes, and what is left</h2>
+<table>
+<thead>
+<tr>
+<th>Running today</th>
+<th>Designed, not built</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>A live prototype of the panel interview</td>
+<td>A fuller trace and dashboard setup for the model calls</td>
+</tr>
+<tr>
+<td>Push-to-talk over WebRTC to a realtime model</td>
+<td>A cascade option for the voice loop</td>
+</tr>
+<tr>
+<td>Judging off the live path with a lease and a sweeper</td>
+<td>Measuring the &quot;stays sharp&quot; and &quot;can be explained&quot; constraints</td>
+</tr>
+<tr>
+<td>One redacting JSON logger, a readiness probe that returns 503, a sweeper</td>
+<td>The same latency number from real people, over many sessions</td>
+</tr>
+<tr>
+<td>Five CI gates on every change</td>
+<td></td>
+</tr>
+<tr>
+<td>One measured number: Done to first sound, p50 1.3 s, p95 2.0 s (12 turns, synthetic speaker)</td>
+<td></td>
+</tr>
+</tbody></table>
+<h3 id="five-practices-you-can-copy">Five practices you can copy</h3>
+<ol>
+<li><strong>Put the limits next to the number.</strong> Ours says &quot;12 turns, synthetic
+speaker, one laptop&quot; in the same breath as 1.3 s.</li>
+<li><strong>Measure the stopwatch.</strong> We knew ours ran about 21 ms late before we
+trusted it.</li>
+<li><strong>Confirm with a second instrument.</strong> Chrome&#39;s own audio statistics agreed
+with ours to within 125 ms on every turn.</li>
+<li><strong>Test on what the real system wrote.</strong> Our parser passed every test and
+found nothing in the real log.</li>
+<li><strong>Distrust impossible numbers.</strong> 14 ms was a bug, not a result.</li>
+</ol>
+<h3 id="not-a-conclusion">Not a conclusion</h3>
+<p>This is a first measurement, not a verdict. The gap between &quot;the model started&quot;
+and &quot;you can hear it&quot; is still unexplained, the speaker was synthetic, and 12
+turns cannot say how rare a slow turn is. Next we will run real people through
+it, log the first audio chunk to split the two candidates in section 5, and
+publish the raw rows and the measuring script so you can check our arithmetic.
+If you spot a mistake in how we measured, tell us and we will correct this post.</p>
