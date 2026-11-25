@@ -1,0 +1,20 @@
+/* Styles for pre-rendered blog posts (see src/features/blog). */
+.blog-post { font-size: 1.0625rem; line-height: 1.7; }
+.blog-post p { margin: 0 0 1rem; }
+.blog-post h2 { font-family: var(--font-bricolage), sans-serif; font-size: 1.5rem; line-height: 1.25; font-weight: 700; margin: 2.75rem 0 0.75rem; padding-top: 1rem; border-top: 2px solid var(--primary); letter-spacing: -0.01em; }
+.blog-post h3 { font-size: 1.125rem; font-weight: 700; margin: 1.75rem 0 0.5rem; }
+.blog-post ul, .blog-post ol { margin: 0 0 1rem 1.25rem; padding: 0; }
+.blog-post ul { list-style: disc; }
+.blog-post ol { list-style: decimal; }
+.blog-post li { margin-bottom: 0.4rem; }
+.blog-post a { color: var(--primary); text-decoration: underline; text-underline-offset: 2px; }
+.blog-post img { display: block; max-width: 100%; height: auto; margin: 1.75rem auto 0.5rem; border-radius: 6px; }
+.blog-post p.caption { font-size: 0.875rem; line-height: 1.5; color: var(--muted-foreground); margin-bottom: 1.75rem; }
+.blog-post code { font-family: var(--font-geist-mono), monospace; font-size: 0.875em; background: var(--muted); padding: 0.1em 0.35em; border-radius: 4px; }
+.blog-post pre { background: #1b1f27; color: #e6e9f0; padding: 1rem 1.1rem; border-radius: 8px; overflow-x: auto; margin: 1.25rem 0 0.5rem; font-size: 0.8125rem; line-height: 1.6; }
+.blog-post pre code { background: none; padding: 0; color: inherit; font-size: inherit; }
+.blog-post table { width: 100%; border-collapse: collapse; margin: 1.25rem 0 1.5rem; font-size: 0.9375rem; display: block; overflow-x: auto; }
+.blog-post th, .blog-post td { border: 1px solid var(--border); padding: 0.5rem 0.7rem; text-align: left; vertical-align: top; }
+.blog-post th { background: var(--muted); }
+.blog-post blockquote { margin: 1.5rem 0; padding: 0.75rem 1.1rem; background: var(--muted); border-left: 4px solid var(--primary); border-radius: 0 6px 6px 0; }
+.blog-post blockquote p { margin: 0; }

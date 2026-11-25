@@ -1,7 +1,13 @@
 import type { NextAuthConfig } from "next-auth";
 import Google from "next-auth/providers/google";
 
-const PUBLIC_PATHS = ["/sign-in", "/sign-up", "/api/auth", "/api/health"];
+const PUBLIC_PATHS = [
+  "/sign-in",
+  "/sign-up",
+  "/api/auth",
+  "/api/health",
+  "/blog",
+];
 
 export const authConfig = {
   pages: { signIn: "/sign-in" },
